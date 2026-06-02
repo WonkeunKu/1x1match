@@ -14,7 +14,7 @@
 ## Start
 
 ```bash
-npm start
+node dev-server.mjs
 ```
 
 ## Health Check
@@ -22,3 +22,4 @@ npm start
 ```text
 /api/health
 ```
+

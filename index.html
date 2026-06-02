@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1대1매치</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="앱 메뉴">
+        <div class="brand">
+          <div class="brand-mark">1</div>
+          <div>
+            <strong>1대1매치</strong>
+            <span>1:1 두뇌 서바이벌 리그</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="apply" aria-label="참가 신청">
+            <span data-icon="calendar"></span>
+            참가 신청
+          </button>
+          <button class="nav-item" data-view="notice" aria-label="확정 공지">
+            <span data-icon="bell"></span>
+            확정 공지
+          </button>
+          <button class="nav-item" data-view="ranking" aria-label="랭킹">
+            <span data-icon="trophy"></span>
+            랭킹
+          </button>
+          <button class="nav-item" data-view="games" aria-label="게임 목록">
+            <span data-icon="dice"></span>
+            게임 목록
+          </button>
+          <button class="nav-item" data-view="admin" aria-label="운영 관리">
+            <span data-icon="settings"></span>
+            운영 관리
+          </button>
+        </nav>
+
+        <div class="side-note">
+          <span class="dot"></span>
+          2명이 모이면 자동 확정
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">서울 카페 오프라인 매치</p>
+            <h1>두 명이 모이면, 게임이 열린다</h1>
+          </div>
+          <div class="user-chip" id="userChip"></div>
+        </header>
+
+        <section id="apply" class="view active">
+          <div class="section-head">
+            <div>
+              <h2>참가 신청</h2>
+              <p>회원가입 또는 로그인 후 원하는 날짜에 참가 신청할 수 있습니다.</p>
+            </div>
+            <div class="segmented" id="areaFilters" role="tablist" aria-label="활동지 필터"></div>
+          </div>
+
+          <div class="auth-grid">
+            <section class="auth-panel" id="authPanel">
+              <div id="guestAuth">
+                <div class="auth-tabs" role="tablist" aria-label="회원 메뉴">
+                  <button class="selected" type="button" data-auth-tab="signup">회원가입</button>
+                  <button type="button" data-auth-tab="login">로그인</button>
+                </div>
+
+                <form class="auth-form active" id="signupForm">
+                  <h3>회원가입</h3>
+                  <p>닉네임, 전화번호, 주 활동지는 처음 한 번만 등록합니다.</p>
+                  <label>
+                    닉네임
+                    <input type="text" name="nickname" placeholder="예: 지니어스42" required />
+                  </label>
+                  <label>
+                    전화번호
+                    <input type="tel" name="phone" placeholder="010-0000-0000" required />
+                  </label>
+                  <label>
+                    주 활동지
+                    <input type="text" name="area" placeholder="예: 성수, 홍대, 강남" required />
+                  </label>
+                  <button class="primary-button" type="submit">가입하고 로그인</button>
+                </form>
+
+                <form class="auth-form" id="loginForm">
+                  <h3>로그인</h3>
+                  <p>가입할 때 등록한 전화번호로 로그인합니다.</p>
+                  <label>
+                    전화번호
+                    <input type="tel" name="phone" value="010-0000-0000" placeholder="010-0000-0000" required />
+                  </label>
+                  <button class="primary-button" type="submit">로그인</button>
+                </form>
+              </div>
+
+              <div class="member-card" id="memberCard"></div>
+            </section>
+
+            <form class="apply-panel compact" id="applyForm">
+              <div>
+                <h3>날짜 선택</h3>
+                <p>로그인된 회원 정보로 신청됩니다. 신청 후 안내 계좌로 참가비 1,000원을 이체해 주세요.</p>
+              </div>
+              <div class="bank-guide" id="bankGuide"></div>
+              <label>
+                선택 날짜
+                <select name="matchId" id="dateSelect" required></select>
+              </label>
+              <button class="primary-button" type="submit">
+                <span data-icon="card"></span>
+                1,000원 계좌이체 안내받고 신청
+              </button>
+            </form>
+          </div>
+
+          <section class="my-applications" id="myApplications"></section>
+
+          <div class="match-grid" id="matchGrid"></div>
+        </section>
+
+        <section id="notice" class="view">
+          <div class="section-head">
+            <div>
+              <h2>확정 공지</h2>
+              <p>확정된 매치와 24시간 전 공개된 게임을 확인합니다.</p>
+            </div>
+          </div>
+
+          <div class="notice-board" id="noticeBoard"></div>
+        </section>
+
+        <section id="ranking" class="view">
+          <div class="section-head">
+            <div>
+              <h2>리그 랭킹</h2>
+              <p>닉네임별 승률, 경기 수, 주 활동지를 확인할 수 있습니다.</p>
+            </div>
+            <div class="segmented">
+              <button class="selected">승률</button>
+              <button>승수</button>
+            </div>
+          </div>
+
+          <div class="ranking-table">
+            <div class="table-row table-head">
+              <span>순위</span>
+              <span>닉네임</span>
+              <span>전적</span>
+              <span>승률</span>
+              <span>활동지</span>
+            </div>
+            <div id="rankingRows"></div>
+          </div>
+        </section>
+
+        <section id="games" class="view">
+          <div class="section-head">
+            <div>
+              <h2>1:1 게임 목록</h2>
+              <p>앱에서 운영 중인 게임과 방식, 승리 조건을 확인할 수 있습니다.</p>
+            </div>
+          </div>
+
+          <div class="game-layout">
+            <div class="game-list" id="gameList"></div>
+            <article class="game-detail" id="gameDetail"></article>
+          </div>
+        </section>
+
+        <section id="admin" class="view">
+          <div class="section-head">
+            <div>
+              <h2>운영 관리</h2>
+              <p>운영자 로그인 후 신청 현황, 결과 입력, 환불 대상, 게임 공개 상태를 관리합니다.</p>
+            </div>
+          </div>
+
+          <form class="admin-login-panel" id="adminLoginForm">
+            <div>
+              <h3>운영자 로그인</h3>
+              <p>운영 관리 기능은 운영자만 사용할 수 있습니다.</p>
+            </div>
+            <label>
+              운영자 암호
+              <input type="password" name="password" placeholder="운영자 암호" required />
+            </label>
+            <button class="primary-button" type="submit">운영자 로그인</button>
+          </form>
+
+          <div id="adminContent">
+            <div class="admin-session">
+              <span class="status-pill confirmed">운영자 접속 중</span>
+              <button class="secondary-button" type="button" id="adminLogoutButton">운영자 로그아웃</button>
+            </div>
+            <div class="admin-grid" id="adminMetrics"></div>
+            <form class="admin-create-form" id="createMatchForm">
+              <div>
+                <h3>새 매치 열기</h3>
+                <p>웹에서 신청받을 날짜, 시간, 장소를 추가합니다.</p>
+              </div>
+              <label>
+                날짜
+                <input type="date" name="matchDate" required />
+              </label>
+              <label>
+                시간
+                <input type="time" name="time" required />
+              </label>
+              <label>
+                장소
+                <input type="text" name="location" placeholder="예: 성수 카페 매치룸" required />
+              </label>
+              <button class="primary-button" type="submit">매치 열기</button>
+            </form>
+            <div class="ops-list" id="opsList"></div>
+            <div class="event-log" id="eventLog"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
