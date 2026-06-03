@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
@@ -185,12 +186,19 @@ function currentUser() {
   return state.members.find((member) => member.id === state.currentUserId) || null;
 }
 
+function publicMember(member) {
+  if (!member) return null;
+
+  const { passwordHash, ...safeMember } = member;
+  return safeMember;
+}
+
 function publicState() {
   const rankings = [...state.members]
     .map((member) => {
       const total = member.wins + member.losses;
       return {
-        ...member,
+        ...publicMember(member),
         record: `${member.wins}승 ${member.losses}패`,
         rate: total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%",
         rateValue: total ? member.wins / total : 0,
@@ -199,10 +207,10 @@ function publicState() {
     .sort((a, b) => b.rateValue - a.rateValue || b.wins - a.wins);
 
   return {
-    user: currentUser(),
+    user: publicMember(currentUser()),
     isAuthenticated: Boolean(state.currentUserId),
     isAdmin: Boolean(state.isAdmin),
-    members: state.members,
+    members: state.members.map(publicMember),
     rankings,
     games: state.games,
     matches: state.matches.map((match) => decorateMatch(match)),
@@ -293,7 +301,49 @@ function sendJson(response, statusCode, payload) {
 }
 
 function normalizePhone(phone) {
-  return String(phone || "").trim();
+  const digits = String(phone || "").replace(/\D/g, "");
+
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  }
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  return digits;
+}
+
+function isValidPhone(phone) {
+  return /^010-\d{4}-\d{4}$/.test(phone);
+}
+
+function validatePassword(password, confirmation) {
+  const value = String(password || "");
+
+  if (value !== String(confirmation || "")) {
+    throw new Error("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+  }
+
+  if (value.length < 8 || !/[A-Za-z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
+    throw new Error("비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
+  }
+}
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(String(password), salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash || !storedHash.includes(":")) return false;
+
+  const [salt, hash] = storedHash.split(":");
+  const expected = Buffer.from(hash, "hex");
+  const actual = scryptSync(String(password), salt, expected.length);
+
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 function requireField(value, label) {
@@ -359,10 +409,39 @@ async function handleApi(request, response, pathname) {
     requireField(body.nickname, "닉네임");
     requireField(body.phone, "전화번호");
     requireField(body.area, "주 활동지");
+    requireField(body.password, "비밀번호");
+    requireField(body.passwordConfirm, "비밀번호 확인");
 
     const phone = normalizePhone(body.phone);
     const nickname = String(body.nickname).trim();
-    const exists = state.members.some((member) => member.phone === phone || member.nickname === nickname);
+
+    if (!isValidPhone(phone)) {
+      sendJson(response, 400, { error: "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요." });
+      return;
+    }
+
+    validatePassword(body.password, body.passwordConfirm);
+
+    const existingMemberByPhone = state.members.find((member) => member.phone === phone);
+    const existingMemberByNickname = state.members.find((member) => member.nickname === nickname);
+
+    if (existingMemberByPhone && !existingMemberByPhone.passwordHash) {
+      if (existingMemberByNickname && existingMemberByNickname.id !== existingMemberByPhone.id) {
+        sendJson(response, 409, { error: "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요." });
+        return;
+      }
+
+      existingMemberByPhone.nickname = nickname;
+      existingMemberByPhone.area = String(body.area || "").trim();
+      existingMemberByPhone.passwordHash = hashPassword(body.password);
+      state.currentUserId = existingMemberByPhone.id;
+      state.events.unshift(`${existingMemberByPhone.nickname}님이 비밀번호를 설정하고 로그인했습니다.`);
+      await persistState();
+      sendJson(response, 200, publicState());
+      return;
+    }
+
+    const exists = Boolean(existingMemberByPhone || existingMemberByNickname);
 
     if (exists) {
       sendJson(response, 409, { error: "이미 가입된 닉네임 또는 전화번호입니다. 로그인해 주세요." });
@@ -374,6 +453,7 @@ async function handleApi(request, response, pathname) {
       nickname,
       phone,
       area: String(body.area || "").trim(),
+      passwordHash: hashPassword(body.password),
       wins: 0,
       losses: 0,
     };
@@ -389,10 +469,16 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && pathname === "/api/login") {
     const body = await parseBody(request);
     requireField(body.phone, "전화번호");
+    requireField(body.password, "비밀번호");
 
     const member = state.members.find((candidate) => candidate.phone === normalizePhone(body.phone));
     if (!member) {
       sendJson(response, 404, { error: "가입된 전화번호를 찾을 수 없습니다." });
+      return;
+    }
+
+    if (!verifyPassword(body.password, member.passwordHash)) {
+      sendJson(response, 401, { error: "전화번호 또는 비밀번호가 올바르지 않습니다." });
       return;
     }
 

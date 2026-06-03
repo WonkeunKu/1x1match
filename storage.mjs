@@ -134,7 +134,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
     async load() {
       const [members, games, matches, applications, results, notificationLogs, events] = await Promise.all([
-        list("members", "select=id,nickname,phone,area,wins,losses"),
+        list("members", "select=id,nickname,phone,area,password_hash,wins,losses"),
         list("games", "select=id,title,summary,rules,win_condition"),
         list("matches", "select=id,display_date,match_date,match_time,location,game_id,game_revealed&order=match_date.asc,match_time.asc"),
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
@@ -149,7 +149,15 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
       return {
         currentUserId: null,
-        members,
+        members: members.map((member) => ({
+          id: member.id,
+          nickname: member.nickname,
+          phone: member.phone,
+          area: member.area,
+          passwordHash: member.password_hash,
+          wins: member.wins,
+          losses: member.losses,
+        })),
         games: games.map((game) => ({
           id: game.id,
           title: game.title,
@@ -193,6 +201,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           nickname: member.nickname,
           phone: member.phone,
           area: member.area,
+          password_hash: member.passwordHash || null,
           wins: member.wins,
           losses: member.losses,
         })),

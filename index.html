@@ -81,11 +81,19 @@
                   </label>
                   <label>
                     전화번호
-                    <input type="tel" name="phone" placeholder="010-0000-0000" required />
+                    <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
                   </label>
                   <label>
                     주 활동지
                     <input type="text" name="area" placeholder="예: 성수, 홍대, 강남" required />
+                  </label>
+                  <label>
+                    비밀번호
+                    <input type="password" name="password" placeholder="영문, 숫자, 특수문자 포함 8자 이상" autocomplete="new-password" required />
+                  </label>
+                  <label>
+                    비밀번호 확인
+                    <input type="password" name="passwordConfirm" placeholder="비밀번호를 한 번 더 입력" autocomplete="new-password" required />
                   </label>
                   <button class="primary-button" type="submit">가입하고 로그인</button>
                 </form>
@@ -95,7 +103,11 @@
                   <p>가입할 때 등록한 전화번호로 로그인합니다.</p>
                   <label>
                     전화번호
-                    <input type="tel" name="phone" value="010-0000-0000" placeholder="010-0000-0000" required />
+                    <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
+                  </label>
+                  <label>
+                    비밀번호
+                    <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required />
                   </label>
                   <button class="primary-button" type="submit">로그인</button>
                 </form>

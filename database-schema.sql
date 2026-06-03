@@ -11,6 +11,9 @@ create table if not exists members (
   created_at timestamptz not null default now()
 );
 
+alter table members
+  add column if not exists password_hash text;
+
 create table if not exists games (
   id text primary key,
   title text not null,

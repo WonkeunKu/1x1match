@@ -11,6 +11,14 @@ let appState = null;
 let activeGameId = null;
 let activeAreaFilter = "all";
 
+function formatPhoneInput(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 function renderIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
     const path = icons[node.dataset.icon];
@@ -549,6 +557,12 @@ document.querySelectorAll("[data-auth-tab]").forEach((tab) => {
   });
 });
 
+document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => {
+  input.addEventListener("input", () => {
+    input.value = formatPhoneInput(input.value);
+  });
+});
+
 document.addEventListener("click", (event) => {
   const filterButton = event.target.closest("[data-area-filter]");
   if (!filterButton) return;
@@ -560,9 +574,22 @@ document.addEventListener("click", (event) => {
 
 document.querySelector("#signupForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
+  const password = form.elements.password.value;
+  const passwordConfirm = form.elements.passwordConfirm.value;
+
+  if (password !== passwordConfirm) {
+    showToast("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+    return;
+  }
+
+  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    showToast("비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
+    return;
+  }
 
   try {
-    appState = await submitForm("/api/signup", event.currentTarget);
+    appState = await submitForm("/api/signup", form);
     renderAll();
     showToast("회원가입이 완료되었습니다. 이제 날짜만 선택해서 신청할 수 있습니다.");
   } catch (error) {
