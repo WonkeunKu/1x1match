@@ -278,6 +278,7 @@ h3 {
 .notice-main,
 .ranking-table,
 .game-detail,
+.policy-card,
 .metric,
 .ops-card {
   border: 1px solid rgba(255, 74, 57, 0.13);
@@ -706,6 +707,30 @@ select:disabled {
   background: #120f0f;
 }
 
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.policy-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 188px;
+  padding: 18px;
+}
+
+.policy-card h3,
+.policy-card p {
+  margin: 0;
+}
+
+.policy-card p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 .admin-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
@@ -957,6 +982,7 @@ select:disabled {
   }
 
   .match-grid,
+  .policy-grid,
   .admin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1017,6 +1043,7 @@ select:disabled {
   .my-application-list,
   .notice-board,
   .admin-grid,
+  .policy-grid,
   .game-layout,
   .member-card {
     grid-template-columns: 1fr;
