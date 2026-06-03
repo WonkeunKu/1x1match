@@ -46,6 +46,7 @@ async function loadState() {
 }
 
 function renderAll() {
+  renderNavigation();
   renderUser();
   renderAuth();
   renderPaymentGuide();
@@ -57,6 +58,20 @@ function renderAll() {
   renderGames(activeGameId || appState.games[0]?.id);
   renderAdmin();
   renderIcons();
+}
+
+function renderNavigation() {
+  const adminNav = document.querySelector('[data-view="admin"]');
+  if (!adminNav) return;
+
+  adminNav.hidden = !appState.isAuthenticated;
+
+  if (!appState.isAuthenticated && adminNav.classList.contains("active")) {
+    adminNav.classList.remove("active");
+    document.querySelector("#admin")?.classList.remove("active");
+    document.querySelector('[data-view="apply"]')?.classList.add("active");
+    document.querySelector("#apply")?.classList.add("active");
+  }
 }
 
 function renderPaymentGuide() {
