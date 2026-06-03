@@ -15,6 +15,21 @@ let gameSearchQuery = "";
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
 
+const gameTagMap = {
+  "memory-dinner": ["기억", "암기", "매칭"],
+  "position-combo": ["기억", "조합", "족보"],
+  "love-wins-all": ["베팅", "심리", "카드"],
+  "language-pieces": ["언어", "추리", "퍼즐"],
+  "show-me-the-coin": ["베팅", "심리", "계산"],
+  "forgotten-mines": ["기억", "전략", "이동"],
+  "horse-race": ["전략", "이동", "레이스"],
+  "secret-prophecy": ["추리", "심리", "카드"],
+  "doubles-plan": ["전략", "심리", "숫자"],
+  "love-wins-all-2": ["베팅", "심리", "카드"],
+  "forgotten-mines-2": ["전략", "기억", "이동"],
+  "doubles-plan-2": ["전략", "숫자", "블러핑"],
+};
+
 function formatPhoneInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
 
@@ -349,6 +364,10 @@ function renderRankings() {
     .join("");
 }
 
+function getGameTags(game) {
+  return gameTagMap[game.id] || [];
+}
+
 function renderGames(gameId) {
   const searchInput = document.querySelector("#gameSearchInput");
   if (searchInput && searchInput.value !== gameSearchQuery) {
@@ -358,7 +377,10 @@ function renderGames(gameId) {
   const query = gameSearchQuery.trim().toLowerCase();
   const visibleGames = query
     ? appState.games.filter((game) =>
-        [game.title, game.summary, game.win, ...(game.rules || [])].join(" ").toLowerCase().includes(query),
+        [game.title, game.summary, game.win, ...getGameTags(game), ...(game.rules || [])]
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
       )
     : appState.games;
   const activeGame =
@@ -373,12 +395,16 @@ function renderGames(gameId) {
   document.querySelector("#gameList").innerHTML = visibleGames.length
     ? visibleGames
     .map(
-      (game) => `
-        <button class="game-card ${game.id === activeGame.id ? "active" : ""}" data-game="${game.id}">
-          <strong>${game.title}</strong>
-          <span>${game.summary}</span>
-        </button>
-      `,
+      (game) => {
+        const tags = getGameTags(game);
+        return `
+          <button class="game-card ${game.id === activeGame.id ? "active" : ""}" data-game="${game.id}">
+            <strong>${game.title}</strong>
+            <span>${game.summary}</span>
+            ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
+          </button>
+        `;
+      },
     )
     .join("")
     : `<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
@@ -388,11 +414,14 @@ function renderGames(gameId) {
     return;
   }
 
+  const activeGameTags = getGameTags(activeGame);
+
   document.querySelector("#gameDetail").innerHTML = `
     <div class="game-detail-header">
       <span class="status-pill revealed-pill">운영 게임</span>
       <h3>${activeGame.title}</h3>
       <p>${activeGame.summary}</p>
+      ${activeGameTags.length ? `<div class="game-tags detail-tags">${activeGameTags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
       <div class="game-detail-actions">
         <button class="secondary-button" type="button" data-copy-game-rules="${activeGame.id}">규칙 복사</button>
       </div>
@@ -425,10 +454,12 @@ function formatRule(rule) {
 function buildGameRuleText(gameId) {
   const game = appState.games.find((item) => item.id === gameId);
   if (!game) return "";
+  const tags = getGameTags(game);
 
   return [
     `[1VS1매치] ${game.title}`,
     "",
+    ...(tags.length ? [`태그: ${tags.join(", ")}`, ""] : []),
     game.summary,
     "",
     "게임 규칙",
