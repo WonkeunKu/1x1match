@@ -745,6 +745,28 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/undo-payment") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+    const member = findMember(body.memberId);
+    const application = match?.applications.find((item) => item.memberId === body.memberId);
+
+    if (!match || !member || !application) {
+      sendJson(response, 404, { error: "입금 취소할 신청 내역을 찾을 수 없습니다." });
+      return;
+    }
+
+    application.paid = false;
+    application.paymentStatus = "payment_pending";
+    match.notificationLog = (match.notificationLog || []).filter((key) => !["confirmed-ready", "confirmed"].includes(key));
+    state.events.unshift(`${member.nickname}님의 ${match.date} ${match.time} 입금 확인을 취소했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/cancel-application") {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);
@@ -872,6 +894,29 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/clear-result") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match?.result) {
+      sendJson(response, 404, { error: "취소할 결과 입력 내역이 없습니다." });
+      return;
+    }
+
+    const previousWinner = findMember(match.result.winnerId);
+    const previousLoser = findMember(match.result.loserId);
+    if (previousWinner) previousWinner.wins = Math.max(0, previousWinner.wins - 1);
+    if (previousLoser) previousLoser.losses = Math.max(0, previousLoser.losses - 1);
+
+    match.result = null;
+    state.events.unshift(`${match.date} ${match.time} 경기 결과 입력을 취소했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/mark-message-sent") {
     if (!requireAdmin(response)) return;
 
@@ -890,6 +935,25 @@ async function handleApi(request, response, pathname) {
     }
 
     state.events.unshift(`${match.date} ${match.time} ${messageKey} 알림을 발송 완료로 체크했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/unmark-message-sent") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+    const messageKey = String(body.messageKey || "").trim();
+
+    if (!match || !messageKey) {
+      sendJson(response, 400, { error: "매치와 알림 종류를 확인해 주세요." });
+      return;
+    }
+
+    match.notificationLog = (match.notificationLog || []).filter((key) => key !== messageKey);
+    state.events.unshift(`${match.date} ${match.time} ${messageKey} 발송 완료 체크를 취소했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -957,6 +1021,25 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/hide-game") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "선택한 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    match.gameRevealed = false;
+    match.notificationLog = (match.notificationLog || []).filter((key) => !["game-revealed-ready", "game-revealed"].includes(key));
+    state.events.unshift(`${match.date} ${match.time} 매치의 게임 공개를 취소했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/refund") {
     if (!requireAdmin(response)) return;
 
@@ -977,6 +1060,31 @@ async function handleApi(request, response, pathname) {
       }
     }
     state.events.unshift(`${match.date} ${match.time} 환불 대상자의 참가비 환불을 완료했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/undo-refund") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "선택한 날짜를 찾을 수 없습니다." });
+      return;
+    }
+
+    for (const application of match.applications) {
+      if (application.paymentStatus === "refunded") {
+        application.paymentStatus = "paid";
+        application.paid = true;
+        application.cancelled = false;
+      }
+    }
+
+    state.events.unshift(`${match.date} ${match.time} 환불 처리 상태를 입금 확인 완료로 되돌렸습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;

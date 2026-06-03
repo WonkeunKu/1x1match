@@ -610,6 +610,12 @@ select {
   cursor: pointer;
 }
 
+.inline-action.danger {
+  border-color: rgba(255, 74, 57, 0.42);
+  background: rgba(181, 31, 36, 0.14);
+  color: #ffb8ad;
+}
+
 button:disabled,
 select:disabled {
   cursor: not-allowed;

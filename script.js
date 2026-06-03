@@ -483,6 +483,7 @@ function renderOpsList() {
 function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
+  const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
   const recommendedGame = needsReveal ? match.game : null;
   const gameOptions = appState.games
@@ -505,6 +506,11 @@ function renderOpsCard(match) {
                     ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
                     : ""
                 }
+                ${
+                  player.paymentStatus === "paid" && !player.cancelled
+                    ? `<button class="inline-action danger" type="button" data-undo-payment="${match.id}" data-member-id="${player.memberId}">입금 취소</button>`
+                    : ""
+                }
               </span>
             </div>
           `;
@@ -524,11 +530,14 @@ function renderOpsCard(match) {
         <div class="ops-actions">
           <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
           <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>운영자 지정 공개</button>
+          <button class="secondary-button" type="button" data-hide-game="${match.id}" ${!match.gameRevealed ? "disabled" : ""}>공개 취소</button>
           <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
           <button class="secondary-button" type="button" data-reveal-recommended="${match.id}" ${!recommendedGame ? "disabled" : ""}>추천 공개</button>
           <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
           <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
+          <button class="secondary-button" type="button" data-clear-result="${match.id}" ${!resultRecorded ? "disabled" : ""}>결과 취소</button>
           <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
+          <button class="secondary-button" type="button" data-undo-refund="${match.id}" ${!hasRefunded ? "disabled" : ""}>환불 취소</button>
           <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
           <button class="secondary-button" type="button" data-copy-promo="${match.id}">홍보 문구 복사</button>
         </div>
@@ -565,7 +574,11 @@ function renderOpsCard(match) {
           </div>
           <div class="message-actions">
             <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
-            <button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}" ${messageSent ? "disabled" : ""}>발송 완료 체크</button>
+            ${
+              messageSent
+                ? `<button class="secondary-button" type="button" data-message-unsent="${match.id}" data-message-key="${messageText.key}">발송 체크 취소</button>`
+                : `<button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}">발송 완료 체크</button>`
+            }
           </div>
         </div>
         <p>${messageText.body}</p>
@@ -840,6 +853,8 @@ document.addEventListener("click", async (event) => {
 
   const completePaymentButton = event.target.closest("[data-complete-payment]");
   if (completePaymentButton) {
+    if (!window.confirm("이 참가자의 입금을 확인 처리할까요?")) return;
+
     appState = await request("/api/complete-payment", {
       method: "POST",
       body: JSON.stringify({
@@ -851,8 +866,25 @@ document.addEventListener("click", async (event) => {
     showToast("입금 확인을 완료했습니다.");
   }
 
+  const undoPaymentButton = event.target.closest("[data-undo-payment]");
+  if (undoPaymentButton) {
+    if (!window.confirm("입금 확인을 취소하고 입금 대기 상태로 되돌릴까요?")) return;
+
+    appState = await request("/api/undo-payment", {
+      method: "POST",
+      body: JSON.stringify({
+        matchId: undoPaymentButton.dataset.undoPayment,
+        memberId: undoPaymentButton.dataset.memberId,
+      }),
+    });
+    renderAll();
+    showToast("입금 확인을 취소했습니다.");
+  }
+
   const revealButton = event.target.closest("[data-reveal]");
   if (revealButton) {
+    if (!window.confirm("선택한 게임을 참가자 공지에 공개할까요?")) return;
+
     const matchId = revealButton.dataset.reveal;
     const gameId = document.querySelector(`[data-game-select="${matchId}"]`).value;
     appState = await request("/api/reveal-game", {
@@ -861,6 +893,18 @@ document.addEventListener("click", async (event) => {
     });
     renderAll();
     showToast("게임과 규칙이 공지 화면에 공개되었습니다.");
+  }
+
+  const hideGameButton = event.target.closest("[data-hide-game]");
+  if (hideGameButton) {
+    if (!window.confirm("이미 공개한 게임을 다시 비공개 상태로 되돌릴까요?")) return;
+
+    appState = await request("/api/hide-game", {
+      method: "POST",
+      body: JSON.stringify({ matchId: hideGameButton.dataset.hideGame }),
+    });
+    renderAll();
+    showToast("게임 공개를 취소했습니다.");
   }
 
   const recommendGameButton = event.target.closest("[data-recommend-game]");
@@ -875,6 +919,8 @@ document.addEventListener("click", async (event) => {
 
   const revealRecommendedButton = event.target.closest("[data-reveal-recommended]");
   if (revealRecommendedButton) {
+    if (!window.confirm("추천된 게임을 참가자 공지에 공개할까요?")) return;
+
     const matchId = revealRecommendedButton.dataset.revealRecommended;
     const match = appState.matches.find((candidate) => candidate.id === matchId);
 
@@ -893,6 +939,8 @@ document.addEventListener("click", async (event) => {
 
   const resultButton = event.target.closest("[data-result]");
   if (resultButton) {
+    if (!window.confirm("선택한 참가자를 승자로 저장하고 랭킹에 반영할까요?")) return;
+
     const matchId = resultButton.dataset.result;
     const winnerId = document.querySelector(`[data-winner-select="${matchId}"]`).value;
     appState = await request("/api/record-result", {
@@ -901,6 +949,18 @@ document.addEventListener("click", async (event) => {
     });
     renderAll();
     showToast("경기 결과를 저장했고 랭킹을 갱신했습니다.");
+  }
+
+  const clearResultButton = event.target.closest("[data-clear-result]");
+  if (clearResultButton) {
+    if (!window.confirm("입력된 결과를 취소하고 랭킹 반영도 되돌릴까요?")) return;
+
+    appState = await request("/api/clear-result", {
+      method: "POST",
+      body: JSON.stringify({ matchId: clearResultButton.dataset.clearResult }),
+    });
+    renderAll();
+    showToast("경기 결과 입력을 취소했습니다.");
   }
 
   const copyMessageButton = event.target.closest("[data-copy-message]");
@@ -937,8 +997,23 @@ document.addEventListener("click", async (event) => {
     showToast("알림 발송 완료로 체크했습니다.");
   }
 
+  const messageUnsentButton = event.target.closest("[data-message-unsent]");
+  if (messageUnsentButton) {
+    appState = await request("/api/unmark-message-sent", {
+      method: "POST",
+      body: JSON.stringify({
+        matchId: messageUnsentButton.dataset.messageUnsent,
+        messageKey: messageUnsentButton.dataset.messageKey,
+      }),
+    });
+    renderAll();
+    showToast("발송 완료 체크를 취소했습니다.");
+  }
+
   const refundButton = event.target.closest("[data-refund]");
   if (refundButton) {
+    if (!window.confirm("환불 처리 상태로 변경할까요? 실제 송금 여부는 별도로 확인해 주세요.")) return;
+
     const matchId = refundButton.dataset.refund;
     appState = await request("/api/refund", {
       method: "POST",
@@ -946,6 +1021,18 @@ document.addEventListener("click", async (event) => {
     });
     renderAll();
     showToast("미매칭 신청자의 1,000원 환불이 예약되었습니다.");
+  }
+
+  const undoRefundButton = event.target.closest("[data-undo-refund]");
+  if (undoRefundButton) {
+    if (!window.confirm("환불 완료 상태를 입금 확인 완료 상태로 되돌릴까요?")) return;
+
+    appState = await request("/api/undo-refund", {
+      method: "POST",
+      body: JSON.stringify({ matchId: undoRefundButton.dataset.undoRefund }),
+    });
+    renderAll();
+    showToast("환불 상태를 되돌렸습니다.");
   }
 });
 
