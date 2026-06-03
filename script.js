@@ -4,6 +4,7 @@ const icons = {
   trophy: "M8 4h8v4a4 4 0 0 1-8 0V4z M8 6H4a4 4 0 0 0 4 4 M16 6h4a4 4 0 0 1-4 4 M12 14v4 M9 22h6 M8 18h8",
   dice: "M5 5h14v14H5z M8 8h.01 M12 12h.01 M16 16h.01 M16 8h.01 M8 16h.01",
   shield: "M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z M9 12l2 2 4-5",
+  link: "M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1 M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1",
   settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3 M12 19v3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M2 12h3 M19 12h3 M4.9 19.1 7 17 M17 7l2.1-2.1",
   card: "M3 6h18v12H3z M3 10h18 M7 15h4",
 };
@@ -671,6 +672,13 @@ document.querySelector("#adminLoginForm").addEventListener("submit", async (even
 });
 
 document.addEventListener("click", async (event) => {
+  const shareButton = event.target.closest("#copyShareLink");
+  if (shareButton) {
+    const copied = await copyText("https://www.1x1match.com");
+    showToast(copied ? "홍보 링크를 복사했습니다." : "링크 복사에 실패했습니다.");
+    return;
+  }
+
   const logoutButton = event.target.closest("#logoutButton");
   if (logoutButton) {
     appState = await request("/api/logout", { method: "POST", body: "{}" });
