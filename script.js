@@ -12,6 +12,7 @@ const icons = {
 let appState = null;
 let activeGameId = null;
 let activeAreaFilter = "all";
+let activeOpsFilter = "all";
 
 function formatPhoneInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -405,90 +406,133 @@ function renderAdmin() {
     )
     .join("");
 
-  document.querySelector("#opsList").innerHTML = appState.matches
-    .map((match) => {
-      const needsReveal = match.confirmed && !match.gameRevealed;
-      const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
-      const resultRecorded = Boolean(match.result);
-      const gameOptions = appState.games
-        .map((game) => `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}</option>`)
-        .join("");
-      const winnerOptions = match.players
-        .map((player) => `<option value="${player.memberId}">${player.nickname}</option>`)
-        .join("");
-      const participantList = match.allPlayers.length
-        ? match.allPlayers
-            .map((player) => {
-              const paymentLabel = paymentStatusLabel(player.paymentStatus);
-              return `
-                <div class="participant-row ${player.cancelled ? "cancelled" : ""}">
-                  <strong>${player.nickname}</strong>
-                  <span>${player.phone}</span>
-                  <span>${player.area}</span>
-                  <span>
-                    ${paymentLabel}
-                    ${
-                      player.paymentStatus === "payment_pending" && !player.cancelled
-                        ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
-                        : ""
-                    }
-                  </span>
-                </div>
-              `;
-            })
-            .join("")
-        : `<div class="participant-empty">아직 신청자가 없습니다.</div>`;
-      const messageText = buildAdminMessage(match);
-      const messageSent = match.notificationLog?.includes(messageText.key);
-
-      return `
-        <article class="ops-card">
-          <div class="ops-main">
-            <div>
-              <h3>${match.date} ${match.time}</h3>
-              <p>${match.location} · ${match.playerCount}/2명 · ${match.statusLabel}${resultRecorded ? " · 결과 입력됨" : ""}</p>
-            </div>
-            <div class="ops-actions">
-              <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
-              <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>게임 공개</button>
-              <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
-              <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
-              <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
-              <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
-            </div>
-          </div>
-          <div class="participant-list">
-            <div class="participant-head">
-              <span>닉네임</span>
-              <span>전화번호</span>
-              <span>활동지</span>
-              <span>결제</span>
-            </div>
-            ${participantList}
-          </div>
-          <div class="message-preview">
-            <div>
-              <div>
-                <strong>문자 알림 문구</strong>
-                <span>${messageText.type}${messageSent ? " · 발송 완료" : ""}</span>
-              </div>
-              <div class="message-actions">
-                <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
-                <button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}" ${messageSent ? "disabled" : ""}>발송 완료 체크</button>
-              </div>
-            </div>
-            <p>${messageText.body}</p>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  renderOpsList();
 
   document.querySelector("#eventLog").innerHTML = `
     <h3>운영 로그</h3>
     <ul>
       ${appState.events.map((event) => `<li>${event}</li>`).join("")}
     </ul>
+  `;
+}
+
+function filteredOpsMatches() {
+  return appState.matches.filter((match) => {
+    if (activeOpsFilter === "payment") {
+      return match.allPlayers.some((player) => player.paymentStatus === "payment_pending" && !player.cancelled);
+    }
+
+    if (activeOpsFilter === "confirmed") return match.confirmed;
+    if (activeOpsFilter === "reveal") return match.confirmed && !match.gameRevealed;
+    if (activeOpsFilter === "refund") {
+      return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
+    }
+
+    return true;
+  });
+}
+
+function renderOpsList() {
+  const opsFilters = [
+    { value: "all", label: "전체" },
+    { value: "payment", label: "입금 대기" },
+    { value: "confirmed", label: "확정" },
+    { value: "reveal", label: "게임 공개 대기" },
+    { value: "refund", label: "환불 필요" },
+  ];
+  const filteredMatches = filteredOpsMatches();
+  const filterMarkup = `
+    <div class="ops-filter segmented">
+      ${opsFilters
+        .map(
+          (filter) => `
+            <button class="${filter.value === activeOpsFilter ? "selected" : ""}" type="button" data-ops-filter="${filter.value}">
+              ${filter.label}
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+  const matchesMarkup = filteredMatches.length
+    ? filteredMatches.map(renderOpsCard).join("")
+    : `<article class="ops-card empty-state"><strong>해당 상태의 매치가 없습니다</strong><p>다른 필터를 선택해 주세요.</p></article>`;
+
+  document.querySelector("#opsList").innerHTML = filterMarkup + matchesMarkup;
+}
+
+function renderOpsCard(match) {
+  const needsReveal = match.confirmed && !match.gameRevealed;
+  const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
+  const resultRecorded = Boolean(match.result);
+  const gameOptions = appState.games
+    .map((game) => `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}</option>`)
+    .join("");
+  const winnerOptions = match.players.map((player) => `<option value="${player.memberId}">${player.nickname}</option>`).join("");
+  const participantList = match.allPlayers.length
+    ? match.allPlayers
+        .map((player) => {
+          const paymentLabel = paymentStatusLabel(player.paymentStatus);
+          return `
+            <div class="participant-row ${player.cancelled ? "cancelled" : ""}">
+              <strong>${player.nickname}</strong>
+              <span>${player.phone}</span>
+              <span>${player.area}</span>
+              <span>
+                ${paymentLabel}
+                ${
+                  player.paymentStatus === "payment_pending" && !player.cancelled
+                    ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
+                    : ""
+                }
+              </span>
+            </div>
+          `;
+        })
+        .join("")
+    : `<div class="participant-empty">아직 신청자가 없습니다.</div>`;
+  const messageText = buildAdminMessage(match);
+  const messageSent = match.notificationLog?.includes(messageText.key);
+
+  return `
+    <article class="ops-card">
+      <div class="ops-main">
+        <div>
+          <h3>${match.date} ${match.time}</h3>
+          <p>${match.location} · ${match.playerCount}/2명 · ${match.statusLabel}${resultRecorded ? " · 결과 입력됨" : ""}</p>
+        </div>
+        <div class="ops-actions">
+          <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
+          <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>게임 공개</button>
+          <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
+          <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
+          <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
+          <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
+        </div>
+      </div>
+      <div class="participant-list">
+        <div class="participant-head">
+          <span>닉네임</span>
+          <span>전화번호</span>
+          <span>활동지</span>
+          <span>결제</span>
+        </div>
+        ${participantList}
+      </div>
+      <div class="message-preview">
+        <div>
+          <div>
+            <strong>문자 알림 문구</strong>
+            <span>${messageText.type}${messageSent ? " · 발송 완료" : ""}</span>
+          </div>
+          <div class="message-actions">
+            <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
+            <button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}" ${messageSent ? "disabled" : ""}>발송 완료 체크</button>
+          </div>
+        </div>
+        <p>${messageText.body}</p>
+      </div>
+    </article>
   `;
 }
 
@@ -600,6 +644,14 @@ document.addEventListener("click", (event) => {
   activeAreaFilter = filterButton.dataset.areaFilter;
   renderAreaFilters();
   renderMatches();
+});
+
+document.addEventListener("click", (event) => {
+  const filterButton = event.target.closest("[data-ops-filter]");
+  if (!filterButton) return;
+
+  activeOpsFilter = filterButton.dataset.opsFilter;
+  renderAdmin();
 });
 
 document.querySelector("#signupForm").addEventListener("submit", async (event) => {

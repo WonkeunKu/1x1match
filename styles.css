@@ -815,6 +815,10 @@ select:disabled {
   gap: 12px;
 }
 
+.ops-filter {
+  justify-self: start;
+}
+
 .ops-card {
   display: grid;
   gap: 14px;
