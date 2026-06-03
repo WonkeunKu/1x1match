@@ -596,10 +596,11 @@ document.querySelector("#applyForm").addEventListener("submit", async (event) =>
 
 document.querySelector("#createMatchForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
 
   try {
-    appState = await submitForm("/api/create-match", event.currentTarget);
-    event.currentTarget.reset();
+    appState = await submitForm("/api/create-match", form);
+    form.reset();
     renderAll();
     showToast("웹 신청용 새 매치를 열었습니다.");
   } catch (error) {
@@ -609,10 +610,11 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
 
 document.querySelector("#adminLoginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
 
   try {
-    appState = await submitForm("/api/admin-login", event.currentTarget);
-    event.currentTarget.reset();
+    appState = await submitForm("/api/admin-login", form);
+    form.reset();
     renderAll();
     showToast("운영자 권한으로 로그인했습니다.");
   } catch (error) {
