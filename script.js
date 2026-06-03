@@ -364,15 +364,34 @@ function renderGames(gameId) {
     .join("");
 
   document.querySelector("#gameDetail").innerHTML = `
-    <span class="status-pill revealed-pill">운영 게임</span>
-    <h3>${activeGame.title}</h3>
-    <p>${activeGame.summary}</p>
-    <ul class="rule-list">
-      ${activeGame.rules.map((rule) => `<li>${rule}</li>`).join("")}
-    </ul>
-    <strong>승리 조건</strong>
-    <p>${activeGame.win}</p>
+    <div class="game-detail-header">
+      <span class="status-pill revealed-pill">운영 게임</span>
+      <h3>${activeGame.title}</h3>
+      <p>${activeGame.summary}</p>
+    </div>
+    <div class="rule-section-title">
+      <strong>게임 규칙</strong>
+      <span>${activeGame.rules.length}개 항목</span>
+    </div>
+    <ol class="rule-list">
+      ${activeGame.rules.map((rule) => `<li>${formatRule(rule)}</li>`).join("")}
+    </ol>
+    <div class="win-condition-box">
+      <strong>승리 조건</strong>
+      <p>${activeGame.win}</p>
+    </div>
   `;
+}
+
+function formatRule(rule) {
+  const colonIndex = rule.indexOf(":");
+  const lead = colonIndex > 0 ? rule.slice(0, colonIndex).trim() : "";
+
+  if (lead && lead.length <= 18) {
+    return `<div class="rule-copy"><span class="rule-lead">${lead}</span><span>${rule.slice(colonIndex + 1).trim()}</span></div>`;
+  }
+
+  return `<div class="rule-copy"><span>${rule}</span></div>`;
 }
 
 function renderAdmin() {
