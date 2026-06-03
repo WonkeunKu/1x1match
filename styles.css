@@ -99,21 +99,27 @@ body {
 .brand-mark::before {
   content: "";
   position: absolute;
-  inset: 0 13px 0 0;
-  z-index: -1;
-  transform: skewX(-18deg);
-  transform-origin: left bottom;
-  background: var(--accent);
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 13px;
+  height: 58px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(31deg);
+  background: linear-gradient(180deg, #050404 0%, #641317 45%, #c52a30 100%);
 }
 
 .brand-mark::after {
   content: "";
   position: absolute;
-  inset: 0 0 0 16px;
-  z-index: -1;
-  transform: skewX(-18deg);
-  transform-origin: left bottom;
-  background: rgba(7, 6, 6, 0.72);
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 13px;
+  height: 58px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(-31deg);
+  background: linear-gradient(180deg, #050404 0%, #4b1013 42%, #9e1d22 100%);
 }
 
 .mark-vs {
