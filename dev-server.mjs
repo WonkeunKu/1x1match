@@ -393,6 +393,7 @@ function decorateMatch(match) {
   const players = allPlayers.filter((player) => !player.cancelled && player.paymentStatus === "paid");
   const confirmed = players.length >= 2;
   const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
+  const visibleGame = match.gameRevealed || state.isAdmin ? game : null;
 
   return {
     ...match,
@@ -402,7 +403,8 @@ function decorateMatch(match) {
     confirmed,
     status: confirmed ? "confirmed" : "waiting",
     statusLabel: confirmed ? "확정" : players.length === 1 ? "1명 대기" : "신청 가능",
-    game,
+    gameId: visibleGame ? match.gameId : null,
+    game: visibleGame,
     notificationLog: match.notificationLog || [],
     appliedByMe: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId && !item.cancelled)),
     hasMyApplication: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId)),
@@ -888,6 +890,44 @@ async function handleApi(request, response, pathname) {
     }
 
     state.events.unshift(`${match.date} ${match.time} ${messageKey} 알림을 발송 완료로 체크했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/recommend-game") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "선택한 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    if (activePaidApplications(match).length < 2) {
+      sendJson(response, 409, { error: "확정된 매치만 게임을 추천할 수 있습니다." });
+      return;
+    }
+
+    if (match.gameRevealed) {
+      sendJson(response, 409, { error: "이미 게임이 공개된 매치입니다." });
+      return;
+    }
+
+    const candidates = state.games.filter((game) => game.id !== match.gameId);
+    const pool = candidates.length ? candidates : state.games;
+    const game = pool[Math.floor(Math.random() * pool.length)];
+
+    if (!game) {
+      sendJson(response, 404, { error: "추천할 게임이 없습니다." });
+      return;
+    }
+
+    match.gameId = game.id;
+    match.gameRevealed = false;
+    state.events.unshift(`${match.date} ${match.time} 매치에 ${game.title}을 랜덤 추천했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;

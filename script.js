@@ -484,6 +484,7 @@ function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const resultRecorded = Boolean(match.result);
+  const recommendedGame = needsReveal ? match.game : null;
   const gameOptions = appState.games
     .map((game) => `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}</option>`)
     .join("");
@@ -522,7 +523,9 @@ function renderOpsCard(match) {
         </div>
         <div class="ops-actions">
           <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
-          <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>게임 공개</button>
+          <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>운영자 지정 공개</button>
+          <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
+          <button class="secondary-button" type="button" data-reveal-recommended="${match.id}" ${!recommendedGame ? "disabled" : ""}>추천 공개</button>
           <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
           <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
           <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
@@ -530,6 +533,21 @@ function renderOpsCard(match) {
           <button class="secondary-button" type="button" data-copy-promo="${match.id}">홍보 문구 복사</button>
         </div>
       </div>
+      ${
+        needsReveal
+          ? `<div class="recommendation-box">
+              <span class="status-pill revealed-pill">랜덤 추천</span>
+              <div>
+                <strong>${recommendedGame ? recommendedGame.title : "아직 추천된 게임 없음"}</strong>
+                <p>${
+                  recommendedGame
+                    ? `${recommendedGame.summary} 운영자가 추천 공개를 눌러야 참가자에게 공지됩니다.`
+                    : "랜덤 추천 버튼을 누르면 사이트가 게임을 하나 고릅니다. 마음에 들면 추천 공개, 아니면 다시 추천하거나 운영자 지정 공개를 사용할 수 있습니다."
+                }</p>
+              </div>
+            </div>`
+          : ""
+      }
       <div class="participant-list">
         <div class="participant-head">
           <span>닉네임</span>
@@ -843,6 +861,34 @@ document.addEventListener("click", async (event) => {
     });
     renderAll();
     showToast("게임과 규칙이 공지 화면에 공개되었습니다.");
+  }
+
+  const recommendGameButton = event.target.closest("[data-recommend-game]");
+  if (recommendGameButton) {
+    appState = await request("/api/recommend-game", {
+      method: "POST",
+      body: JSON.stringify({ matchId: recommendGameButton.dataset.recommendGame }),
+    });
+    renderAll();
+    showToast("랜덤 추천 게임을 골랐습니다. 확인 후 추천 공개를 눌러주세요.");
+  }
+
+  const revealRecommendedButton = event.target.closest("[data-reveal-recommended]");
+  if (revealRecommendedButton) {
+    const matchId = revealRecommendedButton.dataset.revealRecommended;
+    const match = appState.matches.find((candidate) => candidate.id === matchId);
+
+    if (!match?.game) {
+      showToast("먼저 랜덤 추천을 받아주세요.");
+      return;
+    }
+
+    appState = await request("/api/reveal-game", {
+      method: "POST",
+      body: JSON.stringify({ matchId, gameId: match.game.id }),
+    });
+    renderAll();
+    showToast("추천 게임을 공지 화면에 공개했습니다.");
   }
 
   const resultButton = event.target.closest("[data-result]");
