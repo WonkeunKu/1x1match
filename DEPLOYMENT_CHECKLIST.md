@@ -1,4 +1,4 @@
-# 1대1매치 Deployment Checklist
+# 1VS1매치 Deployment Checklist
 
 Primary domain:
 

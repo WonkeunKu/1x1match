@@ -495,7 +495,7 @@ function buildAdminMessage(match) {
     return {
       key: "game-revealed",
       type: "게임 공개 안내",
-      body: `[1대1매치] ${match.date} ${match.time} ${match.location} 매치의 게임은 "${match.game.title}"입니다. 웹 공지에서 규칙을 확인해 주세요.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치의 게임은 "${match.game.title}"입니다. 웹 공지에서 규칙을 확인해 주세요.`,
     };
   }
 
@@ -504,7 +504,7 @@ function buildAdminMessage(match) {
     return {
       key: "confirmed",
       type: "매치 확정 안내",
-      body: `[1대1매치] ${match.date} ${match.time} ${match.location} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임은 시작 24시간 전에 공개됩니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임은 시작 24시간 전에 공개됩니다.`,
     };
   }
 
@@ -513,14 +513,14 @@ function buildAdminMessage(match) {
     return {
       key: "refund-pending",
       type: "환불 예정 안내",
-      body: `[1대1매치] ${match.date} ${match.time} 매치가 마감 전까지 2명 미달이면 참가비 1,000원은 환불 처리됩니다. 현재 신청자: ${player.nickname}.`,
+      body: `[1VS1매치] ${match.date} ${match.time} 매치가 마감 전까지 2명 미달이면 참가비 1,000원은 환불 처리됩니다. 현재 신청자: ${player.nickname}.`,
     };
   }
 
   return {
     key: "recruiting",
     type: "모집 안내",
-    body: `[1대1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다.`,
+    body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다.`,
   };
 }
 

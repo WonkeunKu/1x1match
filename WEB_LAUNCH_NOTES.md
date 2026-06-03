@@ -1,4 +1,4 @@
-# 1대1매치 Web Launch Notes
+# 1VS1매치 Web Launch Notes
 
 Primary domain:
 

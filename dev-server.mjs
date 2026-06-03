@@ -379,10 +379,10 @@ function messageForMatch(match, type) {
 
   if (type === "game-revealed") {
     const game = state.games.find((candidate) => candidate.id === match.gameId);
-    return `[1대1매치] ${match.date} ${match.time} ${match.location} match game: ${game?.title || "TBA"}. Check the web notice for rules.`;
+    return `[1VS1매치] ${match.date} ${match.time} ${match.location} match game: ${game?.title || "TBA"}. Check the web notice for rules.`;
   }
 
-  return `[1대1매치] ${match.date} ${match.time} ${match.location} 1:1 match confirmed. Players: ${players.map((player) => player.nickname).join(" vs ")}.`;
+  return `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 match confirmed. Players: ${players.map((player) => player.nickname).join(" vs ")}.`;
 }
 
 async function sendMatchSms(match, type) {
@@ -833,5 +833,5 @@ createServer(async (request, response) => {
     sendJson(response, 400, { error: error.message });
   }
 }).listen(port, host, () => {
-  console.log(`1대1매치 server listening on http://${host}:${port}`);
+  console.log(`1VS1매치 server listening on http://${host}:${port}`);
 });
