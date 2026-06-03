@@ -11,6 +11,7 @@ const icons = {
 
 let appState = null;
 let activeGameId = null;
+let gameSearchQuery = "";
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
 
@@ -349,10 +350,28 @@ function renderRankings() {
 }
 
 function renderGames(gameId) {
-  activeGameId = gameId;
-  const activeGame = appState.games.find((game) => game.id === gameId) || appState.games[0];
+  const searchInput = document.querySelector("#gameSearchInput");
+  if (searchInput && searchInput.value !== gameSearchQuery) {
+    searchInput.value = gameSearchQuery;
+  }
 
-  document.querySelector("#gameList").innerHTML = appState.games
+  const query = gameSearchQuery.trim().toLowerCase();
+  const visibleGames = query
+    ? appState.games.filter((game) =>
+        [game.title, game.summary, game.win, ...(game.rules || [])].join(" ").toLowerCase().includes(query),
+      )
+    : appState.games;
+  const activeGame =
+    visibleGames.find((game) => game.id === gameId) ||
+    visibleGames.find((game) => game.id === activeGameId) ||
+    visibleGames[0] ||
+    appState.games.find((game) => game.id === gameId) ||
+    appState.games[0];
+
+  activeGameId = activeGame?.id || null;
+
+  document.querySelector("#gameList").innerHTML = visibleGames.length
+    ? visibleGames
     .map(
       (game) => `
         <button class="game-card ${game.id === activeGame.id ? "active" : ""}" data-game="${game.id}">
@@ -361,7 +380,13 @@ function renderGames(gameId) {
         </button>
       `,
     )
-    .join("");
+    .join("")
+    : `<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
+
+  if (!activeGame) {
+    document.querySelector("#gameDetail").innerHTML = "";
+    return;
+  }
 
   document.querySelector("#gameDetail").innerHTML = `
     <div class="game-detail-header">
@@ -723,6 +748,11 @@ document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => 
   input.addEventListener("input", () => {
     input.value = formatPhoneInput(input.value);
   });
+});
+
+document.querySelector("#gameSearchInput")?.addEventListener("input", (event) => {
+  gameSearchQuery = event.currentTarget.value;
+  renderGames(activeGameId);
 });
 
 document.addEventListener("click", (event) => {
