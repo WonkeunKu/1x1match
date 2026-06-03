@@ -508,6 +508,7 @@ function renderOpsCard(match) {
           <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
           <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
           <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
+          <button class="secondary-button" type="button" data-copy-promo="${match.id}">홍보 문구 복사</button>
         </div>
       </div>
       <div class="participant-list">
@@ -580,6 +581,26 @@ function buildParticipantContacts(matchId) {
   });
 
   return [`${match.date} ${match.time} ${match.location}`, ...rows].join("\n");
+}
+
+function buildPromoText(matchId) {
+  const match = appState.matches.find((candidate) => candidate.id === matchId);
+  if (!match) return "";
+
+  const statusLine = match.confirmed ? "현재 매치 확정" : `현재 ${match.playerCount}/2명 신청`;
+  return [
+    "[1VS1매치 참가자 모집]",
+    "",
+    `${match.date} ${match.time}`,
+    `${match.location}`,
+    statusLine,
+    "",
+    "두 명이 모이면 1:1 두뇌 서바이벌 게임이 열립니다.",
+    "게임은 매치 24시간 전에 공개됩니다.",
+    "참가비 1,000원, 2명 미달 시 환불",
+    "",
+    "신청: https://www.1x1match.com",
+  ].join("\n");
 }
 
 async function copyText(text) {
@@ -829,6 +850,13 @@ document.addEventListener("click", async (event) => {
     const contacts = buildParticipantContacts(copyContactsButton.dataset.copyContacts);
     const copied = await copyText(contacts);
     showToast(copied ? "참가자 연락처를 복사했습니다." : "연락처 복사에 실패했습니다.");
+  }
+
+  const copyPromoButton = event.target.closest("[data-copy-promo]");
+  if (copyPromoButton) {
+    const promo = buildPromoText(copyPromoButton.dataset.copyPromo);
+    const copied = await copyText(promo);
+    showToast(copied ? "홍보 문구를 복사했습니다." : "홍보 문구 복사에 실패했습니다.");
   }
 
   const messageSentButton = event.target.closest("[data-message-sent]");
