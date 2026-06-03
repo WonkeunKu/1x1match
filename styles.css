@@ -764,8 +764,12 @@ select:disabled {
 }
 
 .game-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
+  min-height: 112px;
+  box-sizing: border-box;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -780,13 +784,21 @@ select:disabled {
 }
 
 .game-card strong {
-  display: block;
+  display: -webkit-box;
+  overflow: hidden;
   margin-bottom: 6px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
 .game-card span {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .game-empty {
