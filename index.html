@@ -95,6 +95,10 @@
                     비밀번호 확인
                     <input type="password" name="passwordConfirm" placeholder="비밀번호를 한 번 더 입력" autocomplete="new-password" required />
                   </label>
+                  <label class="check-line">
+                    <input type="checkbox" name="privacyConsent" required />
+                    <span>닉네임, 전화번호, 주 활동지를 참가 신청과 운영 안내 목적으로 수집하는 데 동의합니다.</span>
+                  </label>
                   <button class="primary-button" type="submit">가입하고 로그인</button>
                 </form>
 
@@ -125,6 +129,10 @@
               <label>
                 선택 날짜
                 <select name="matchId" id="dateSelect" required></select>
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="refundConsent" required />
+                <span>2명이 모이지 않으면 참가비 1,000원이 환불되며, 입금 확인 후 신청이 확정되는 것을 확인했습니다.</span>
               </label>
               <button class="primary-button" type="submit">
                 <span data-icon="card"></span>

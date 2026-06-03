@@ -352,6 +352,12 @@ function requireField(value, label) {
   }
 }
 
+function requireConsent(value, label) {
+  if (value !== "on") {
+    throw new Error(`${label}에 동의해 주세요.`);
+  }
+}
+
 async function maybeConfirm(match) {
   match.notificationLog ||= [];
   if (activePaidApplications(match).length === 2 && !match.notificationLog.includes("confirmed-ready")) {
@@ -411,6 +417,7 @@ async function handleApi(request, response, pathname) {
     requireField(body.area, "주 활동지");
     requireField(body.password, "비밀번호");
     requireField(body.passwordConfirm, "비밀번호 확인");
+    requireConsent(body.privacyConsent, "개인정보 수집 및 이용");
 
     const phone = normalizePhone(body.phone);
     const nickname = String(body.nickname).trim();
@@ -532,6 +539,7 @@ async function handleApi(request, response, pathname) {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);
     const member = currentUser();
+    requireConsent(body.refundConsent, "참가비 및 환불 안내");
 
     if (!member) {
       sendJson(response, 401, { error: "로그인 후 참가 신청할 수 있습니다." });

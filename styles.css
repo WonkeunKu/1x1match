@@ -504,6 +504,23 @@ select {
   font: inherit;
 }
 
+.check-line {
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  color: #c8baaa;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.check-line input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
 .primary-button,
 .secondary-button {
   display: inline-flex;
