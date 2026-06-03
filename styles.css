@@ -376,13 +376,25 @@ h3 {
   height: 34px;
   border-radius: 6px;
   background: transparent;
-  color: var(--muted);
+  color: #cdbfb1;
   font-weight: 800;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .auth-tabs .selected {
-  background: var(--ink);
-  color: #fff;
+  background: linear-gradient(135deg, #a91d23, #6f1117);
+  color: #fff8ef;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 204, 122, 0.18),
+    0 8px 22px rgba(181, 31, 36, 0.24);
+}
+
+.auth-tabs button:not(.selected):hover {
+  background: rgba(255, 74, 57, 0.1);
+  color: #fff8ef;
 }
 
 .auth-form {
