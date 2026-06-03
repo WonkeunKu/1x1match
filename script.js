@@ -639,6 +639,11 @@ document.querySelector("#adminLoginForm").addEventListener("submit", async (even
   event.preventDefault();
   const form = event.currentTarget;
 
+  if (!appState.isAuthenticated) {
+    showToast("먼저 참가 신청 화면에서 회원 로그인해 주세요.");
+    return;
+  }
+
   try {
     appState = await submitForm("/api/admin-login", form);
     form.reset();

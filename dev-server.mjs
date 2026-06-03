@@ -435,6 +435,7 @@ async function handleApi(request, response, pathname) {
       existingMemberByPhone.area = String(body.area || "").trim();
       existingMemberByPhone.passwordHash = hashPassword(body.password);
       state.currentUserId = existingMemberByPhone.id;
+      state.isAdmin = false;
       state.events.unshift(`${existingMemberByPhone.nickname}님이 비밀번호를 설정하고 로그인했습니다.`);
       await persistState();
       sendJson(response, 200, publicState());
@@ -460,6 +461,7 @@ async function handleApi(request, response, pathname) {
 
     state.members.push(member);
     state.currentUserId = member.id;
+    state.isAdmin = false;
     state.events.unshift(`${member.nickname}님이 회원가입 후 로그인했습니다.`);
     await persistState();
     sendJson(response, 201, publicState());
@@ -483,6 +485,7 @@ async function handleApi(request, response, pathname) {
     }
 
     state.currentUserId = member.id;
+    state.isAdmin = false;
     state.events.unshift(`${member.nickname}님이 로그인했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
@@ -491,6 +494,7 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/logout") {
     state.currentUserId = null;
+    state.isAdmin = false;
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -499,6 +503,11 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && pathname === "/api/admin-login") {
     const body = await parseBody(request);
     requireField(body.password, "운영자 암호");
+
+    if (!currentUser()) {
+      sendJson(response, 401, { error: "회원 로그인 후 운영자 암호를 입력해 주세요." });
+      return;
+    }
 
     if (String(body.password) !== adminPassword) {
       sendJson(response, 401, { error: "운영자 암호가 올바르지 않습니다." });
