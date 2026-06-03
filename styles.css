@@ -573,6 +573,11 @@ select {
   color: var(--ink);
 }
 
+.danger-button {
+  border-color: rgba(255, 74, 57, 0.34);
+  color: #ffb8ad;
+}
+
 .bank-guide {
   display: grid;
   gap: 6px;
@@ -929,15 +934,37 @@ select:disabled {
 }
 
 .ops-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.ops-action-group {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(18, 15, 15, 0.72);
 }
 
-.ops-actions select {
+.ops-action-group > span {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ops-action-group select {
   width: 150px;
+}
+
+.ops-action-group.compact {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
 }
 
 .recommendation-box {
@@ -1207,13 +1234,19 @@ select:disabled {
     display: grid;
   }
 
-  .ops-actions {
+  .ops-actions,
+  .ops-action-group {
     justify-content: stretch;
+    justify-items: stretch;
   }
 
-  .ops-actions select,
-  .ops-actions button {
+  .ops-action-group select,
+  .ops-action-group button {
     width: 100%;
+  }
+
+  .ops-action-group {
+    display: grid;
   }
 
   .participant-head,
