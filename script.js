@@ -532,17 +532,25 @@ function renderOpsCard(match) {
             <span>게임</span>
             <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
             <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
-            <button class="secondary-button" type="button" data-reveal-recommended="${match.id}" ${!recommendedGame ? "disabled" : ""}>추천 공개</button>
-            <button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>운영자 지정 공개</button>
-            <button class="secondary-button danger-button" type="button" data-hide-game="${match.id}" ${!match.gameRevealed ? "disabled" : ""}>공개 취소</button>
+            ${
+              match.gameRevealed
+                ? `<button class="secondary-button danger-button" type="button" data-hide-game="${match.id}">공개 취소</button>`
+                : `<button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>게임 공개</button>`
+            }
           </div>
           <div class="ops-action-group">
             <span>결과/정산</span>
             <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
-            <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
-            <button class="secondary-button danger-button" type="button" data-clear-result="${match.id}" ${!resultRecorded ? "disabled" : ""}>결과 취소</button>
-            <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
-            <button class="secondary-button danger-button" type="button" data-undo-refund="${match.id}" ${!hasRefunded ? "disabled" : ""}>환불 취소</button>
+            ${
+              resultRecorded
+                ? `<button class="secondary-button danger-button" type="button" data-clear-result="${match.id}">결과 취소</button>`
+                : `<button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>`
+            }
+            ${
+              hasRefunded
+                ? `<button class="secondary-button danger-button" type="button" data-undo-refund="${match.id}">환불 취소</button>`
+                : `<button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>`
+            }
           </div>
           <div class="ops-action-group compact">
             <span>복사</span>
@@ -559,8 +567,8 @@ function renderOpsCard(match) {
                 <strong>${recommendedGame ? recommendedGame.title : "아직 추천된 게임 없음"}</strong>
                 <p>${
                   recommendedGame
-                    ? `${recommendedGame.summary} 운영자가 추천 공개를 눌러야 참가자에게 공지됩니다.`
-                    : "랜덤 추천 버튼을 누르면 사이트가 게임을 하나 고릅니다. 마음에 들면 추천 공개, 아니면 다시 추천하거나 운영자 지정 공개를 사용할 수 있습니다."
+                    ? `${recommendedGame.summary} 운영자가 게임 공개를 눌러야 참가자에게 공지됩니다.`
+                    : "랜덤 추천 버튼을 누르면 사이트가 게임을 하나 고릅니다. 마음에 들면 게임 공개, 아니면 다시 추천하거나 선택창에서 직접 바꿔 공개할 수 있습니다."
                 }</p>
               </div>
             </div>`
@@ -923,27 +931,7 @@ document.addEventListener("click", async (event) => {
       body: JSON.stringify({ matchId: recommendGameButton.dataset.recommendGame }),
     });
     renderAll();
-    showToast("랜덤 추천 게임을 골랐습니다. 확인 후 추천 공개를 눌러주세요.");
-  }
-
-  const revealRecommendedButton = event.target.closest("[data-reveal-recommended]");
-  if (revealRecommendedButton) {
-    if (!window.confirm("추천된 게임을 참가자 공지에 공개할까요?")) return;
-
-    const matchId = revealRecommendedButton.dataset.revealRecommended;
-    const match = appState.matches.find((candidate) => candidate.id === matchId);
-
-    if (!match?.game) {
-      showToast("먼저 랜덤 추천을 받아주세요.");
-      return;
-    }
-
-    appState = await request("/api/reveal-game", {
-      method: "POST",
-      body: JSON.stringify({ matchId, gameId: match.game.id }),
-    });
-    renderAll();
-    showToast("추천 게임을 공지 화면에 공개했습니다.");
+    showToast("랜덤 추천 게임을 골랐습니다. 확인 후 게임 공개를 눌러주세요.");
   }
 
   const resultButton = event.target.closest("[data-result]");
