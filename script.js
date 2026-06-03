@@ -454,6 +454,7 @@ function renderAdmin() {
               <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
               <button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>
               <button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>
+              <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
             </div>
           </div>
           <div class="participant-list">
@@ -523,6 +524,18 @@ function buildAdminMessage(match) {
     type: "모집 안내",
     body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다.`,
   };
+}
+
+function buildParticipantContacts(matchId) {
+  const match = appState.matches.find((candidate) => candidate.id === matchId);
+  if (!match) return "";
+
+  const rows = match.allPlayers.map((player) => {
+    const status = player.cancelled ? "취소됨" : paymentStatusLabel(player.paymentStatus);
+    return `${player.nickname} / ${player.phone} / ${player.area} / ${status}`;
+  });
+
+  return [`${match.date} ${match.time} ${match.location}`, ...rows].join("\n");
 }
 
 async function copyText(text) {
@@ -757,6 +770,13 @@ document.addEventListener("click", async (event) => {
     const message = copyMessageButton.closest(".message-preview")?.querySelector("p")?.textContent || "";
     const copied = await copyText(message);
     showToast(copied ? "문자 문구를 복사했습니다." : "문구 복사에 실패했습니다. 문구를 직접 선택해 주세요.");
+  }
+
+  const copyContactsButton = event.target.closest("[data-copy-contacts]");
+  if (copyContactsButton) {
+    const contacts = buildParticipantContacts(copyContactsButton.dataset.copyContacts);
+    const copied = await copyText(contacts);
+    showToast(copied ? "참가자 연락처를 복사했습니다." : "연락처 복사에 실패했습니다.");
   }
 
   const messageSentButton = event.target.closest("[data-message-sent]");
