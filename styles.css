@@ -768,7 +768,7 @@ select:disabled {
   flex-direction: column;
   justify-content: center;
   width: 100%;
-  min-height: 112px;
+  height: 112px;
   box-sizing: border-box;
   padding: 16px;
   border: 1px solid var(--line);
