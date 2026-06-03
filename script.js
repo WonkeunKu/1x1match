@@ -393,6 +393,9 @@ function renderGames(gameId) {
       <span class="status-pill revealed-pill">운영 게임</span>
       <h3>${activeGame.title}</h3>
       <p>${activeGame.summary}</p>
+      <div class="game-detail-actions">
+        <button class="secondary-button" type="button" data-copy-game-rules="${activeGame.id}">규칙 복사</button>
+      </div>
     </div>
     <div class="rule-section-title">
       <strong>게임 규칙</strong>
@@ -417,6 +420,24 @@ function formatRule(rule) {
   }
 
   return `<div class="rule-copy"><span>${rule}</span></div>`;
+}
+
+function buildGameRuleText(gameId) {
+  const game = appState.games.find((item) => item.id === gameId);
+  if (!game) return "";
+
+  return [
+    `[1VS1매치] ${game.title}`,
+    "",
+    game.summary,
+    "",
+    "게임 규칙",
+    ...game.rules.map((rule, index) => `${index + 1}. ${rule}`),
+    "",
+    `승리 조건: ${game.win}`,
+    "",
+    "https://www.1x1match.com",
+  ].join("\n");
 }
 
 function renderAdmin() {
@@ -885,6 +906,13 @@ document.addEventListener("click", async (event) => {
   if (openGame) {
     document.querySelector('[data-view="games"]').click();
     renderGames(openGame.dataset.openGame);
+  }
+
+  const copyGameRulesButton = event.target.closest("[data-copy-game-rules]");
+  if (copyGameRulesButton) {
+    const rules = buildGameRuleText(copyGameRulesButton.dataset.copyGameRules);
+    const copied = await copyText(rules);
+    showToast(copied ? "게임 규칙을 복사했습니다." : "규칙 복사에 실패했습니다.");
   }
 
   const cancelApplicationButton = event.target.closest("[data-cancel-application]");

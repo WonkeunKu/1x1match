@@ -830,6 +830,11 @@ select:disabled {
   margin: 0;
 }
 
+.game-detail-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .rule-section-title {
   display: flex;
   align-items: center;
