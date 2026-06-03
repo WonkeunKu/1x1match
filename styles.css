@@ -102,7 +102,7 @@ body {
   top: 50%;
   left: 50%;
   z-index: 0;
-  width: 13px;
+  width: 10px;
   height: 58px;
   border-radius: 999px;
   transform: translate(-50%, -50%) rotate(31deg);
@@ -115,7 +115,7 @@ body {
   top: 50%;
   left: 50%;
   z-index: 0;
-  width: 13px;
+  width: 10px;
   height: 58px;
   border-radius: 999px;
   transform: translate(-50%, -50%) rotate(-31deg);
@@ -126,7 +126,7 @@ body {
   position: relative;
   z-index: 1;
   color: #fff8ef;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1;
   letter-spacing: 0;
