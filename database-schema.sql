@@ -31,9 +31,13 @@ create table if not exists matches (
   location text not null,
   game_id text references games(id) on update cascade on delete set null,
   game_revealed boolean not null default false,
+  admin_note text not null default '',
   created_at timestamptz not null default now(),
   unique (match_date, match_time, location)
 );
+
+alter table matches
+  add column if not exists admin_note text not null default '';
 
 create table if not exists applications (
   id text primary key,

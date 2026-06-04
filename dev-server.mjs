@@ -405,6 +405,7 @@ function decorateMatch(match) {
     statusLabel: confirmed ? "확정" : players.length === 1 ? "1명 대기" : "신청 가능",
     gameId: visibleGame ? match.gameId : null,
     game: visibleGame,
+    adminNote: state.isAdmin ? match.adminNote || "" : undefined,
     notificationLog: match.notificationLog || [],
     appliedByMe: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId && !item.cancelled)),
     hasMyApplication: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId)),
@@ -841,12 +842,31 @@ async function handleApi(request, response, pathname) {
       location: String(body.location).trim(),
       gameId: null,
       gameRevealed: false,
+      adminNote: "",
       applications: [],
       result: null,
     });
     state.events.unshift(`${date} ${body.time} 신규 매치를 열었습니다.`);
     await persistState();
     sendJson(response, 201, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/update-match-note") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "선택한 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    match.adminNote = String(body.adminNote || "").trim().slice(0, 600);
+    state.events.unshift(`${match.date} ${match.time} 운영자 메모를 저장했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
     return;
   }
 

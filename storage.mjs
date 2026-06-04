@@ -70,6 +70,15 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     return request(`/${table}?${query}`);
   }
 
+  async function listWithFallback(table, primaryQuery, fallbackQuery) {
+    try {
+      return await list(table, primaryQuery);
+    } catch (error) {
+      if (!fallbackQuery) throw error;
+      return list(table, fallbackQuery);
+    }
+  }
+
   async function upsert(table, rows, conflict = "id") {
     if (!rows.length) return;
 
@@ -136,7 +145,11 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       const [members, games, matches, applications, results, notificationLogs, events] = await Promise.all([
         list("members", "select=id,nickname,phone,area,password_hash,wins,losses"),
         list("games", "select=id,title,summary,rules,win_condition"),
-        list("matches", "select=id,display_date,match_date,match_time,location,game_id,game_revealed&order=match_date.asc,match_time.asc"),
+        listWithFallback(
+          "matches",
+          "select=id,display_date,match_date,match_time,location,game_id,game_revealed,admin_note&order=match_date.asc,match_time.asc",
+          "select=id,display_date,match_date,match_time,location,game_id,game_revealed&order=match_date.asc,match_time.asc",
+        ),
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
@@ -175,6 +188,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
             location: match.location,
             gameId: match.game_id,
             gameRevealed: match.game_revealed,
+            adminNote: match.admin_note || "",
             applications: applications
               .filter((application) => application.match_id === match.id)
               .map((application) => ({
@@ -218,9 +232,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         })),
       );
 
-      await upsert(
-        "matches",
-        matches.map((match) => ({
+      const matchRows = matches.map((match) => ({
           id: match.id,
           match_date: normalizeMatchDate(match),
           display_date: match.date,
@@ -228,8 +240,17 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           location: match.location,
           game_id: match.gameId,
           game_revealed: Boolean(match.gameRevealed),
-        })),
-      );
+          admin_note: match.adminNote || "",
+        }));
+
+      try {
+        await upsert("matches", matchRows);
+      } catch (error) {
+        await upsert(
+          "matches",
+          matchRows.map(({ admin_note, ...match }) => match),
+        );
+      }
 
       await deleteAll("notification_logs");
       await deleteAll("match_results", "match_id");

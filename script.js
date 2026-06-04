@@ -451,6 +451,14 @@ function formatRule(rule) {
   return `<div class="rule-copy"><span>${rule}</span></div>`;
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function buildGameRuleText(gameId) {
   const game = appState.games.find((item) => item.id === gameId);
   if (!game) return "";
@@ -651,6 +659,14 @@ function renderOpsCard(match) {
             </div>`
           : ""
       }
+      <div class="admin-note-box">
+        <label for="admin-note-${match.id}">운영자 메모</label>
+        <textarea id="admin-note-${match.id}" data-admin-note-input="${match.id}" maxlength="600" placeholder="예: 카페 예약 완료, 입금자명 확인 필요, 참가자 요청사항">${escapeHtml(match.adminNote || "")}</textarea>
+        <div>
+          <span>참가자에게는 보이지 않습니다.</span>
+          <button class="secondary-button" type="button" data-save-admin-note="${match.id}">메모 저장</button>
+        </div>
+      </div>
       <div class="participant-list">
         <div class="participant-head">
           <span>닉네임</span>
@@ -944,6 +960,18 @@ document.addEventListener("click", async (event) => {
     const rules = buildGameRuleText(copyGameRulesButton.dataset.copyGameRules);
     const copied = await copyText(rules);
     showToast(copied ? "게임 규칙을 복사했습니다." : "규칙 복사에 실패했습니다.");
+  }
+
+  const saveAdminNoteButton = event.target.closest("[data-save-admin-note]");
+  if (saveAdminNoteButton) {
+    const matchId = saveAdminNoteButton.dataset.saveAdminNote;
+    const adminNote = document.querySelector(`[data-admin-note-input="${matchId}"]`)?.value || "";
+    appState = await request("/api/update-match-note", {
+      method: "POST",
+      body: JSON.stringify({ matchId, adminNote }),
+    });
+    renderAll();
+    showToast("운영자 메모를 저장했습니다.");
   }
 
   const cancelApplicationButton = event.target.closest("[data-cancel-application]");
