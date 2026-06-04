@@ -233,6 +233,7 @@ function publicMember(member) {
 
 function publicState() {
   const rankings = [...state.members]
+    .filter((member) => member.wins + member.losses > 0)
     .map((member) => {
       const total = member.wins + member.losses;
       return {
