@@ -1205,6 +1205,16 @@ select:disabled {
   background: linear-gradient(135deg, rgba(181, 31, 36, 0.12), rgba(16, 13, 13, 0.96));
 }
 
+.message-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.message-stack > strong {
+  color: #fff8ef;
+  font-size: 15px;
+}
+
 .message-preview > div {
   display: flex;
   align-items: center;

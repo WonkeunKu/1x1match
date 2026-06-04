@@ -602,8 +602,30 @@ function renderOpsCard(match) {
         })
         .join("")
     : `<div class="participant-empty">아직 신청자가 없습니다.</div>`;
-  const messageText = buildAdminMessage(match);
-  const messageSent = match.notificationLog?.includes(messageText.key);
+  const messageMarkup = buildAdminMessages(match)
+    .map((messageText) => {
+      const messageSent = match.notificationLog?.includes(messageText.key);
+      return `
+        <div class="message-preview">
+          <div>
+            <div>
+              <strong>${messageText.type}</strong>
+              <span>${messageSent ? "발송 완료" : "발송 대기"}</span>
+            </div>
+            <div class="message-actions">
+              <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
+              ${
+                messageSent
+                  ? `<button class="secondary-button" type="button" data-message-unsent="${match.id}" data-message-key="${messageText.key}">발송 체크 취소</button>`
+                  : `<button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}">발송 완료 체크</button>`
+              }
+            </div>
+          </div>
+          <p>${messageText.body}</p>
+        </div>
+      `;
+    })
+    .join("");
 
   return `
     <article class="ops-card">
@@ -676,59 +698,74 @@ function renderOpsCard(match) {
         </div>
         ${participantList}
       </div>
-      <div class="message-preview">
-        <div>
-          <div>
-            <strong>문자 알림 문구</strong>
-            <span>${messageText.type}${messageSent ? " · 발송 완료" : ""}</span>
-          </div>
-          <div class="message-actions">
-            <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
-            ${
-              messageSent
-                ? `<button class="secondary-button" type="button" data-message-unsent="${match.id}" data-message-key="${messageText.key}">발송 체크 취소</button>`
-                : `<button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}">발송 완료 체크</button>`
-            }
-          </div>
-        </div>
-        <p>${messageText.body}</p>
+      <div class="message-stack">
+        <strong>상황별 문자 문구</strong>
+        ${messageMarkup}
       </div>
     </article>
   `;
 }
 
-function buildAdminMessage(match) {
-  if (match.confirmed && match.gameRevealed && match.game) {
-    return {
-      key: "game-revealed",
-      type: "게임 공개 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치의 게임은 "${match.game.title}"입니다. 웹 공지에서 규칙을 확인해 주세요.`,
-    };
+function buildAdminMessages(match) {
+  const messages = [];
+  const siteUrl = "https://www.1x1match.com";
+  const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396 구원근";
+  const activeApplicants = match.allPlayers.filter((player) => !player.cancelled);
+  const paymentPendingPlayers = activeApplicants.filter((player) => player.paymentStatus === "payment_pending");
+  const refundPlayers = activeApplicants.filter((player) =>
+    ["refund_requested", "refund_scheduled", "refunded"].includes(player.paymentStatus),
+  );
+
+  if (!match.confirmed) {
+    messages.push({
+      key: "recruiting",
+      type: "모집 안내",
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. 신청: ${siteUrl}`,
+    });
+  }
+
+  if (paymentPendingPlayers.length) {
+    messages.push({
+      key: "payment-guide",
+      type: "입금 안내",
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 참가 신청이 접수되었습니다. 참가비 1,000원을 ${account}으로 입금해 주세요. 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
+    });
   }
 
   if (match.confirmed) {
     const names = match.players.map((player) => player.nickname).join(" vs ");
-    return {
+    messages.push({
       key: "confirmed",
       type: "매치 확정 안내",
       body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임은 시작 24시간 전에 공개됩니다.`,
-    };
+    });
   }
 
-  if (match.playerCount === 1) {
-    const player = match.players[0];
-    return {
+  if (match.confirmed && match.gameRevealed && match.game) {
+    messages.push({
+      key: "game-revealed",
+      type: "게임 공개 안내",
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치의 게임은 "${match.game.title}"입니다. 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
+    });
+  }
+
+  if (match.playerCount === 1 && match.players[0]) {
+    messages.push({
       key: "refund-pending",
-      type: "환불 예정 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} 매치가 마감 전까지 2명 미달이면 참가비 1,000원은 환불 처리됩니다. 현재 신청자: ${player.nickname}.`,
-    };
+      type: "미달 환불 안내",
+      body: `[1VS1매치] ${match.date} ${match.time} 매치가 시작 24시간 전까지 2명 미달이면 참가비 1,000원이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
+    });
   }
 
-  return {
-    key: "recruiting",
-    type: "모집 안내",
-    body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다.`,
-  };
+  if (refundPlayers.length) {
+    messages.push({
+      key: "refund-guide",
+      type: "환불 안내",
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치 환불 대상 안내입니다. 환불 대상: ${refundPlayers.map((player) => player.nickname).join(", ")}. 운영자가 입금 확인 후 순차적으로 환불 처리합니다.`,
+    });
+  }
+
+  return messages;
 }
 
 function buildParticipantContacts(matchId) {
