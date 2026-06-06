@@ -72,9 +72,73 @@
               <span data-icon="link"></span>
               링크 복사
             </button>
+            <button class="secondary-button header-auth-button" type="button" id="openAuthButton">로그인</button>
             <div class="user-chip" id="userChip"></div>
           </div>
         </header>
+
+        <div class="auth-modal" id="authModal" hidden>
+          <div class="auth-modal-backdrop" data-close-auth></div>
+          <section class="auth-panel auth-dialog" aria-label="회원 로그인 및 가입">
+            <div class="auth-dialog-head">
+              <div>
+                <h2>회원 로그인</h2>
+                <p>신청은 로그인 후 진행할 수 있습니다.</p>
+              </div>
+              <button class="icon-button" type="button" aria-label="닫기" data-close-auth>×</button>
+            </div>
+            <div id="guestAuth">
+              <div class="auth-tabs" role="tablist" aria-label="회원 메뉴">
+                <button class="selected" type="button" data-auth-tab="login">로그인</button>
+                <button type="button" data-auth-tab="signup">회원가입</button>
+              </div>
+
+              <form class="auth-form active" id="loginForm">
+                <h3>로그인</h3>
+                <p>가입할 때 등록한 전화번호와 비밀번호로 로그인합니다.</p>
+                <label>
+                  전화번호
+                  <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
+                </label>
+                <label>
+                  비밀번호
+                  <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required />
+                </label>
+                <button class="primary-button" type="submit">로그인</button>
+              </form>
+
+              <form class="auth-form" id="signupForm">
+                <h3>회원가입</h3>
+                <p>닉네임, 전화번호, 주 활동지는 처음 한 번만 등록합니다.</p>
+                <label>
+                  닉네임
+                  <input type="text" name="nickname" placeholder="예: 지니어스42" required />
+                </label>
+                <label>
+                  전화번호
+                  <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
+                </label>
+                <label>
+                  주 활동지
+                  <input type="text" name="area" placeholder="예: 성수, 홍대, 강남" required />
+                </label>
+                <label>
+                  비밀번호
+                  <input type="password" name="password" placeholder="영문, 숫자, 특수문자 포함 8자 이상" autocomplete="new-password" required />
+                </label>
+                <label>
+                  비밀번호 확인
+                  <input type="password" name="passwordConfirm" placeholder="비밀번호를 한 번 더 입력" autocomplete="new-password" required />
+                </label>
+                <label class="check-line">
+                  <input type="checkbox" name="privacyConsent" required />
+                  <span>닉네임, 전화번호, 주 활동지를 참가 신청과 운영 안내 목적으로 수집하는 데 동의합니다.</span>
+                </label>
+                <button class="primary-button" type="submit">가입하고 로그인</button>
+              </form>
+            </div>
+          </section>
+        </div>
 
         <section id="apply" class="view active">
           <div class="section-head">
@@ -85,81 +149,29 @@
             <div class="segmented" id="areaFilters" role="tablist" aria-label="활동지 필터"></div>
           </div>
 
-          <div class="auth-grid">
-            <section class="auth-panel" id="authPanel">
-              <div id="guestAuth">
-                <div class="auth-tabs" role="tablist" aria-label="회원 메뉴">
-                  <button class="selected" type="button" data-auth-tab="signup">회원가입</button>
-                  <button type="button" data-auth-tab="login">로그인</button>
-                </div>
-
-                <form class="auth-form active" id="signupForm">
-                  <h3>회원가입</h3>
-                  <p>닉네임, 전화번호, 주 활동지는 처음 한 번만 등록합니다.</p>
-                  <label>
-                    닉네임
-                    <input type="text" name="nickname" placeholder="예: 지니어스42" required />
-                  </label>
-                  <label>
-                    전화번호
-                    <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
-                  </label>
-                  <label>
-                    주 활동지
-                    <input type="text" name="area" placeholder="예: 성수, 홍대, 강남" required />
-                  </label>
-                  <label>
-                    비밀번호
-                    <input type="password" name="password" placeholder="영문, 숫자, 특수문자 포함 8자 이상" autocomplete="new-password" required />
-                  </label>
-                  <label>
-                    비밀번호 확인
-                    <input type="password" name="passwordConfirm" placeholder="비밀번호를 한 번 더 입력" autocomplete="new-password" required />
-                  </label>
-                  <label class="check-line">
-                    <input type="checkbox" name="privacyConsent" required />
-                    <span>닉네임, 전화번호, 주 활동지를 참가 신청과 운영 안내 목적으로 수집하는 데 동의합니다.</span>
-                  </label>
-                  <button class="primary-button" type="submit">가입하고 로그인</button>
-                </form>
-
-                <form class="auth-form" id="loginForm">
-                  <h3>로그인</h3>
-                  <p>가입할 때 등록한 전화번호로 로그인합니다.</p>
-                  <label>
-                    전화번호
-                    <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
-                  </label>
-                  <label>
-                    비밀번호
-                    <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required />
-                  </label>
-                  <button class="primary-button" type="submit">로그인</button>
-                </form>
-              </div>
-
-              <div class="member-card" id="memberCard"></div>
-            </section>
-
-            <form class="apply-panel compact" id="applyForm">
+          <div class="apply-grid">
+            <form class="apply-panel compact" id="applyForm" novalidate>
               <div>
                 <h3>날짜 선택</h3>
-                <p>로그인된 회원 정보로 신청됩니다. 신청 후 안내 계좌로 참가비 1,000원을 이체해 주세요.</p>
+                <p>원하는 날짜를 선택한 뒤 신청 직전에 참가비 계좌와 환불 기준을 확인합니다.</p>
               </div>
-              <div class="bank-guide" id="bankGuide"></div>
               <label>
                 선택 날짜
                 <select name="matchId" id="dateSelect" required></select>
               </label>
-              <label class="check-line">
-                <input type="checkbox" name="refundConsent" required />
-                <span>2명이 모이지 않으면 참가비 1,000원이 환불되며, 입금 확인 후 신청이 확정되는 것을 확인했습니다.</span>
-              </label>
+              <div class="final-payment-check" id="finalPaymentCheck" hidden>
+                <div class="bank-guide" id="bankGuide"></div>
+                <label class="check-line">
+                  <input type="checkbox" name="refundConsent" required />
+                  <span>2명이 모이지 않으면 참가비 1,000원이 환불되며, 입금 확인 후 신청이 확정되는 것을 확인했습니다.</span>
+                </label>
+              </div>
               <button class="primary-button" type="submit">
                 <span data-icon="card"></span>
-                1,000원 계좌이체 안내받고 신청
+                신청 완료
               </button>
             </form>
+            <aside class="member-card" id="memberCard"></aside>
           </div>
 
           <section class="my-applications" id="myApplications"></section>
