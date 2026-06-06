@@ -754,9 +754,13 @@ select:disabled {
 
 .game-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   align-items: start;
   gap: 16px;
+}
+
+.game-layout.detail-view {
+  display: block;
 }
 
 .game-search {
@@ -773,30 +777,10 @@ select:disabled {
 
 .game-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   align-content: start;
   align-self: start;
-  gap: 10px;
-  max-height: min(660px, calc(100vh - 250px));
-  min-height: 280px;
-  overflow-y: auto;
-  padding-right: 6px;
-  overscroll-behavior: contain;
-  scrollbar-color: rgba(255, 74, 57, 0.42) rgba(18, 15, 15, 0.72);
-  scrollbar-width: thin;
-}
-
-.game-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.game-list::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background: rgba(18, 15, 15, 0.72);
-}
-
-.game-list::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 74, 57, 0.72), rgba(95, 18, 22, 0.88));
+  gap: 12px;
 }
 
 .game-card {
@@ -817,6 +801,11 @@ select:disabled {
 .game-card.active {
   border-color: var(--ink);
   box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.game-card:hover {
+  border-color: rgba(255, 248, 239, 0.62);
+  transform: translateY(-1px);
 }
 
 .game-card strong {
@@ -875,6 +864,10 @@ select:disabled {
 .game-detail {
   min-height: 390px;
   padding: 24px;
+}
+
+.game-back-button {
+  margin-bottom: 18px;
 }
 
 .game-detail-header {
@@ -1413,11 +1406,6 @@ select:disabled {
   .game-layout,
   .member-card {
     grid-template-columns: 1fr;
-  }
-
-  .game-list {
-    max-height: 420px;
-    min-height: 260px;
   }
 
   .top-actions {

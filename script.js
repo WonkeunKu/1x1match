@@ -12,6 +12,7 @@ const icons = {
 let appState = null;
 let activeGameId = null;
 let gameSearchQuery = "";
+let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
 
@@ -377,7 +378,11 @@ function getGameTags(game) {
   return gameTagMap[game.id] || [];
 }
 
-function renderGames(gameId) {
+function renderGames(gameId, options = {}) {
+  if (options.detail !== undefined) {
+    isGameDetailOpen = options.detail;
+  }
+
   const searchInput = document.querySelector("#gameSearchInput");
   if (searchInput && searchInput.value !== gameSearchQuery) {
     searchInput.value = gameSearchQuery;
@@ -395,37 +400,58 @@ function renderGames(gameId) {
   const activeGame =
     visibleGames.find((game) => game.id === gameId) ||
     visibleGames.find((game) => game.id === activeGameId) ||
-    visibleGames[0] ||
     appState.games.find((game) => game.id === gameId) ||
+    appState.games.find((game) => game.id === activeGameId) ||
+    visibleGames[0] ||
     appState.games[0];
 
   activeGameId = activeGame?.id || null;
 
-  document.querySelector("#gameList").innerHTML = visibleGames.length
+  const gameLayout = document.querySelector(".game-layout");
+  const gameSearch = document.querySelector(".game-search");
+  const gameList = document.querySelector("#gameList");
+  const gameDetail = document.querySelector("#gameDetail");
+
+  if (gameLayout) {
+    gameLayout.classList.toggle("detail-view", isGameDetailOpen);
+  }
+
+  if (gameSearch) {
+    gameSearch.hidden = isGameDetailOpen;
+  }
+
+  if (gameList) {
+    gameList.hidden = isGameDetailOpen;
+  }
+
+  if (gameDetail) {
+    gameDetail.hidden = !isGameDetailOpen;
+  }
+
+  gameList.innerHTML = visibleGames.length
     ? visibleGames
-    .map(
-      (game) => {
-        const tags = getGameTags(game);
-        return `
-          <button class="game-card ${game.id === activeGame.id ? "active" : ""}" data-game="${game.id}">
-            <strong>${game.title}</strong>
-            <span>${game.summary}</span>
-            ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
-          </button>
-        `;
-      },
-    )
-    .join("")
+        .map((game) => {
+          const tags = getGameTags(game);
+          return `
+            <button class="game-card" data-game="${game.id}">
+              <strong>${game.title}</strong>
+              <span>${game.summary}</span>
+              ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
+            </button>
+          `;
+        })
+        .join("")
     : `<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
 
   if (!activeGame) {
-    document.querySelector("#gameDetail").innerHTML = "";
+    gameDetail.innerHTML = "";
     return;
   }
 
   const activeGameTags = getGameTags(activeGame);
 
-  document.querySelector("#gameDetail").innerHTML = `
+  gameDetail.innerHTML = `
+    <button class="game-back-button secondary-button" type="button" data-game-list>목록으로</button>
     <div class="game-detail-header">
       <span class="status-pill revealed-pill">운영 게임</span>
       <h3>${activeGame.title}</h3>
@@ -847,6 +873,10 @@ document.querySelectorAll(".nav-item").forEach((item) => {
     document.querySelectorAll(".nav-item, .view").forEach((node) => node.classList.remove("active"));
     item.classList.add("active");
     document.querySelector(`#${item.dataset.view}`).classList.add("active");
+
+    if (item.dataset.view === "games") {
+      renderGames(activeGameId, { detail: false });
+    }
   });
 });
 
@@ -866,7 +896,7 @@ document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => 
 
 document.querySelector("#gameSearchInput")?.addEventListener("input", (event) => {
   gameSearchQuery = event.currentTarget.value;
-  renderGames(activeGameId);
+  renderGames(activeGameId, { detail: false });
 });
 
 document.addEventListener("click", (event) => {
@@ -992,13 +1022,18 @@ document.addEventListener("click", async (event) => {
 
   const gameButton = event.target.closest("[data-game]");
   if (gameButton) {
-    renderGames(gameButton.dataset.game);
+    renderGames(gameButton.dataset.game, { detail: true });
+  }
+
+  const gameListButton = event.target.closest("[data-game-list]");
+  if (gameListButton) {
+    renderGames(activeGameId, { detail: false });
   }
 
   const openGame = event.target.closest("[data-open-game]");
   if (openGame) {
     document.querySelector('[data-view="games"]').click();
-    renderGames(openGame.dataset.openGame);
+    renderGames(openGame.dataset.openGame, { detail: true });
   }
 
   const copyGameRulesButton = event.target.closest("[data-copy-game-rules]");
