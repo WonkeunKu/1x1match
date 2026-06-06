@@ -45,6 +45,7 @@ const gameTagMap = {
   "secret-dice": ["주사위", "확률", "전략"],
   "mystery-number": ["추리", "숫자", "심리"],
   "battle-ascending": ["전략", "숫자", "순서"],
+  "blind-betting": ["베팅", "카드", "심리"],
 };
 
 function formatPhoneInput(value) {
