@@ -54,6 +54,40 @@ const gameTagMap = {
   "formula-maze": ["암기", "계산", "퍼즐"],
 };
 
+const gameCategoryMap = {
+  "doubles-plan": "death",
+  "love-wins-all-2": "death",
+  "forgotten-mines-2": "death",
+  "doubles-plan-2": "death",
+  "memory-dinner": "death",
+  "position-combo": "death",
+  "love-wins-all": "death",
+  "language-pieces": "death",
+  "show-me-the-coin": "death",
+  "forgotten-mines": "death",
+  "horse-race": "death",
+  "secret-prophecy": "death",
+  monorail: "genius",
+  "strategic-yut": "genius",
+  "same-number-finder": "genius",
+  "black-and-white": "genius",
+  "black-and-white-2": "genius",
+  "betting-black-and-white": "genius",
+  "twelve-shogi": "genius",
+  "number-shogi": "genius",
+  "kyeol-hap": "genius",
+  "mystery-number": "blood",
+  "battle-ascending": "blood",
+  "blind-betting": "blood",
+  "formula-maze": "blood",
+  "color-turn": "blood",
+  "secret-dice": "blood",
+  "big-small": "devils",
+  baghchal: "devils",
+  "nine-mens-morris": "devils",
+  hexagon: "devils",
+};
+
 function formatPhoneInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
 
@@ -492,6 +526,10 @@ function getGameTags(game) {
   return gameTagMap[game.id] || [];
 }
 
+function getGameCategory(game) {
+  return gameCategoryMap[game.id] || "uncategorized";
+}
+
 function renderGames(gameId, options = {}) {
   if (options.detail !== undefined) {
     isGameDetailOpen = options.detail;
@@ -546,8 +584,9 @@ function renderGames(gameId, options = {}) {
     ? visibleGames
         .map((game) => {
           const tags = getGameTags(game);
+          const category = getGameCategory(game);
           return `
-            <button class="game-card" data-game="${game.id}">
+            <button class="game-card game-card--${category}" data-game="${game.id}">
               <strong>${game.title}</strong>
               <span>${game.summary}</span>
               ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
