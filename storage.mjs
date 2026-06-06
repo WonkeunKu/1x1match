@@ -153,7 +153,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
-        list("event_logs", "select=message&order=created_at.desc&limit=50"),
+        list("event_logs", "select=message,created_at&order=created_at.desc&limit=50"),
       ]);
 
       if (!members.length && !games.length && !matches.length) {
@@ -201,7 +201,10 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
             notificationLog: notificationLogs.filter((item) => item.match_id === match.id).map((item) => item.message_key),
           };
         }),
-        events: events.map((event) => event.message),
+        events: events.map((event) => ({
+          message: event.message,
+          createdAt: event.created_at,
+        })),
       };
     },
 
@@ -262,10 +265,14 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       await upsert("notification_logs", buildNotificationLogs(matches));
       await upsert(
         "event_logs",
-        (state.events || []).map((message, index) => ({
+        (state.events || []).map((event, index) => {
+          const entry = typeof event === "string" ? { message: event, createdAt: null } : event;
+          return {
           id: `event-${String(index).padStart(4, "0")}`,
-          message,
-        })),
+          message: entry.message,
+          created_at: entry.createdAt || new Date().toISOString(),
+        };
+        }),
       );
     },
   };

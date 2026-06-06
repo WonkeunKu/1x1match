@@ -232,7 +232,26 @@ function publicMember(member) {
   return safeMember;
 }
 
+function normalizeEvent(event) {
+  if (typeof event === "string") {
+    return { message: event, createdAt: null };
+  }
+
+  return {
+    message: String(event?.message || ""),
+    createdAt: event?.createdAt || event?.created_at || null,
+  };
+}
+
+function logEvent(message) {
+  state.events.unshift({
+    message,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 function publicState() {
+  const events = state.events.map(normalizeEvent);
   const rankings = [...state.members]
     .filter((member) => member.wins + member.losses > 0)
     .map((member) => {
@@ -254,8 +273,8 @@ function publicState() {
     rankings,
     games: state.games,
     matches: state.matches.map((match) => decorateMatch(match)),
-    events: state.events.slice(0, 8),
-    allEvents: state.isAdmin ? state.events : [],
+    events: events.slice(0, 8),
+    allEvents: state.isAdmin ? events : [],
     metrics: buildMetrics(),
     payment: {
       amount: 1000,
@@ -454,7 +473,7 @@ async function maybeConfirm(match) {
   match.notificationLog ||= [];
   if (activePaidApplications(match).length === 2 && !match.notificationLog.includes("confirmed-ready")) {
     match.notificationLog.push("confirmed-ready");
-    state.events.unshift(`${match.date} ${match.time} 매치가 확정되어 참가자 2명에게 문자를 발송했습니다.`);
+    logEvent(`${match.date} ${match.time} 매치가 확정되어 참가자 2명에게 문자를 발송했습니다.`);
   }
 }
 
@@ -535,7 +554,7 @@ async function handleApi(request, response, pathname) {
       existingMemberByPhone.passwordHash = hashPassword(body.password);
       state.currentUserId = existingMemberByPhone.id;
       state.isAdmin = false;
-      state.events.unshift(`${existingMemberByPhone.nickname}님이 비밀번호를 설정하고 로그인했습니다.`);
+      logEvent(`${existingMemberByPhone.nickname}님이 비밀번호를 설정하고 로그인했습니다.`);
       await persistState();
       sendJson(response, 200, publicStateWithSession());
       return;
@@ -561,7 +580,7 @@ async function handleApi(request, response, pathname) {
     state.members.push(member);
     state.currentUserId = member.id;
     state.isAdmin = false;
-    state.events.unshift(`${member.nickname}님이 회원가입 후 로그인했습니다.`);
+    logEvent(`${member.nickname}님이 회원가입 후 로그인했습니다.`);
     await persistState();
     sendJson(response, 201, publicStateWithSession());
     return;
@@ -585,7 +604,7 @@ async function handleApi(request, response, pathname) {
 
     state.currentUserId = member.id;
     state.isAdmin = false;
-    state.events.unshift(`${member.nickname}님이 로그인했습니다.`);
+    logEvent(`${member.nickname}님이 로그인했습니다.`);
     await persistState();
     sendJson(response, 200, publicStateWithSession());
     return;
@@ -632,7 +651,7 @@ async function handleApi(request, response, pathname) {
     }
 
     state.isAdmin = true;
-    state.events.unshift("운영자가 로그인했습니다.");
+    logEvent("운영자가 로그인했습니다.");
     await persistState();
     sendJson(response, 200, publicStateWithSession());
     return;
@@ -672,7 +691,7 @@ async function handleApi(request, response, pathname) {
     }
 
     match.applications.push({ memberId: member.id, paid: false, paymentStatus: "payment_pending" });
-    state.events.unshift(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 1,000원 결제 대기.`);
+    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 1,000원 결제 대기.`);
     await persistState();
     sendJson(response, 201, publicState());
     return;
@@ -699,7 +718,7 @@ async function handleApi(request, response, pathname) {
     await paymentProvider.captureParticipationFee({ member, match, amount: 1000 });
     application.paid = true;
     application.paymentStatus = "paid";
-    state.events.unshift(`${member.nickname}님의 ${match.date} ${match.time} 참가비 1,000원 입금을 확인했습니다.`);
+    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 참가비 1,000원 입금을 확인했습니다.`);
     await maybeConfirm(match);
     await persistState();
     sendJson(response, 200, publicState());
@@ -722,7 +741,7 @@ async function handleApi(request, response, pathname) {
     application.paid = false;
     application.paymentStatus = "payment_pending";
     match.notificationLog = (match.notificationLog || []).filter((key) => !["confirmed-ready", "confirmed"].includes(key));
-    state.events.unshift(`${member.nickname}님의 ${match.date} ${match.time} 입금 확인을 취소했습니다.`);
+    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 입금 확인을 취소했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -758,11 +777,11 @@ async function handleApi(request, response, pathname) {
 
     if (application.paymentStatus === "payment_pending") {
       match.applications = match.applications.filter((item) => item.memberId !== member.id);
-      state.events.unshift(`${member.nickname}님이 ${match.date} ${match.time} 결제 대기 신청을 취소했습니다.`);
+      logEvent(`${member.nickname}님이 ${match.date} ${match.time} 결제 대기 신청을 취소했습니다.`);
     } else {
       application.paymentStatus = "refund_requested";
       application.cancelled = true;
-      state.events.unshift(`${member.nickname}님이 ${match.date} ${match.time} 신청 취소와 환불을 요청했습니다.`);
+      logEvent(`${member.nickname}님이 ${match.date} ${match.time} 신청 취소와 환불을 요청했습니다.`);
     }
 
     if (beforeCount === 0) {
@@ -806,7 +825,7 @@ async function handleApi(request, response, pathname) {
       applications: [],
       result: null,
     });
-    state.events.unshift(`${date} ${body.time} 신규 매치를 열었습니다.`);
+    logEvent(`${date} ${body.time} 신규 매치를 열었습니다.`);
     await persistState();
     sendJson(response, 201, publicState());
     return;
@@ -824,7 +843,7 @@ async function handleApi(request, response, pathname) {
     }
 
     match.adminNote = String(body.adminNote || "").trim().slice(0, 600);
-    state.events.unshift(`${match.date} ${match.time} 운영자 메모를 저장했습니다.`);
+    logEvent(`${match.date} ${match.time} 운영자 메모를 저장했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -868,7 +887,7 @@ async function handleApi(request, response, pathname) {
     winner.wins += 1;
     loser.losses += 1;
     match.result = { winnerId, loserId };
-    state.events.unshift(`${match.date} ${match.time} 결과 입력: ${winner.nickname} 승리.`);
+    logEvent(`${match.date} ${match.time} 결과 입력: ${winner.nickname} 승리.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -891,7 +910,7 @@ async function handleApi(request, response, pathname) {
     if (previousLoser) previousLoser.losses = Math.max(0, previousLoser.losses - 1);
 
     match.result = null;
-    state.events.unshift(`${match.date} ${match.time} 경기 결과 입력을 취소했습니다.`);
+    logEvent(`${match.date} ${match.time} 경기 결과 입력을 취소했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -914,7 +933,7 @@ async function handleApi(request, response, pathname) {
       match.notificationLog.push(messageKey);
     }
 
-    state.events.unshift(`${match.date} ${match.time} ${messageKey} 알림을 발송 완료로 체크했습니다.`);
+    logEvent(`${match.date} ${match.time} ${messageKey} 알림을 발송 완료로 체크했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -933,7 +952,7 @@ async function handleApi(request, response, pathname) {
     }
 
     match.notificationLog = (match.notificationLog || []).filter((key) => key !== messageKey);
-    state.events.unshift(`${match.date} ${match.time} ${messageKey} 발송 완료 체크를 취소했습니다.`);
+    logEvent(`${match.date} ${match.time} ${messageKey} 발송 완료 체크를 취소했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -971,7 +990,7 @@ async function handleApi(request, response, pathname) {
 
     match.gameId = game.id;
     match.gameRevealed = false;
-    state.events.unshift(`${match.date} ${match.time} 매치에 ${game.title}을 랜덤 추천했습니다.`);
+    logEvent(`${match.date} ${match.time} 매치에 ${game.title}을 랜덤 추천했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -995,7 +1014,7 @@ async function handleApi(request, response, pathname) {
     if (activePaidApplications(match).length >= 2 && !match.notificationLog.includes("game-revealed-ready")) {
       match.notificationLog.push("game-revealed-ready");
     }
-    state.events.unshift(`${match.date} ${match.time} 매치 게임으로 ${game.title}을 공개했습니다.`);
+    logEvent(`${match.date} ${match.time} 매치 게임으로 ${game.title}을 공개했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -1014,7 +1033,7 @@ async function handleApi(request, response, pathname) {
 
     match.gameRevealed = false;
     match.notificationLog = (match.notificationLog || []).filter((key) => !["game-revealed-ready", "game-revealed"].includes(key));
-    state.events.unshift(`${match.date} ${match.time} 매치의 게임 공개를 취소했습니다.`);
+    logEvent(`${match.date} ${match.time} 매치의 게임 공개를 취소했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -1039,7 +1058,7 @@ async function handleApi(request, response, pathname) {
         application.paid = false;
       }
     }
-    state.events.unshift(`${match.date} ${match.time} 환불 대상자의 참가비 환불을 완료했습니다.`);
+    logEvent(`${match.date} ${match.time} 환불 대상자의 참가비 환불을 완료했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -1064,7 +1083,7 @@ async function handleApi(request, response, pathname) {
       }
     }
 
-    state.events.unshift(`${match.date} ${match.time} 환불 처리 상태를 입금 확인 완료로 되돌렸습니다.`);
+    logEvent(`${match.date} ${match.time} 환불 처리 상태를 입금 확인 완료로 되돌렸습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;

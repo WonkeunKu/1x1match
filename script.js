@@ -52,6 +52,21 @@ function formatPhoneInput(value) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
+function formatEventTime(value) {
+  if (!value) return "시간 없음";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "시간 없음";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 function renderIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
     const path = icons[node.dataset.icon];
@@ -593,7 +608,12 @@ function renderAdmin() {
       <span>${visibleEvents.length}/${events.length}</span>
     </div>
     <ul>
-      ${visibleEvents.map((event) => `<li>${event}</li>`).join("")}
+      ${visibleEvents
+        .map((event) => {
+          const entry = typeof event === "string" ? { message: event, createdAt: null } : event;
+          return `<li><time>${formatEventTime(entry.createdAt)}</time><span>${entry.message}</span></li>`;
+        })
+        .join("")}
     </ul>
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
   `;
