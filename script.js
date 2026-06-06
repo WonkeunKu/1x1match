@@ -44,6 +44,7 @@ const gameTagMap = {
   "color-turn": ["전략", "기억", "4목"],
   "secret-dice": ["주사위", "확률", "전략"],
   "mystery-number": ["추리", "숫자", "심리"],
+  "battle-ascending": ["전략", "숫자", "순서"],
 };
 
 function formatPhoneInput(value) {
