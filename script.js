@@ -32,6 +32,7 @@ const gameTagMap = {
   "strategic-yut": ["전략", "심리", "윷놀이"],
   "same-number-finder": ["기억", "암산", "순발력"],
   "black-and-white": ["심리", "숫자", "블러핑"],
+  "twelve-shogi": ["전략", "보드", "장기"],
 };
 
 function formatPhoneInput(value) {
