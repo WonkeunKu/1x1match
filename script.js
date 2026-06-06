@@ -33,6 +33,7 @@ const gameTagMap = {
   "same-number-finder": ["기억", "암산", "순발력"],
   "black-and-white": ["심리", "숫자", "블러핑"],
   "twelve-shogi": ["전략", "보드", "장기"],
+  "number-shogi": ["전략", "숫자", "보드"],
 };
 
 function formatPhoneInput(value) {
