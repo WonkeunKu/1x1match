@@ -40,6 +40,7 @@ const gameTagMap = {
   baghchal: ["전략", "보드", "봉쇄"],
   "nine-mens-morris": ["전략", "보드", "삼목"],
   hexagon: ["기억", "암산", "숫자"],
+  "color-turn": ["전략", "기억", "4목"],
 };
 
 function formatPhoneInput(value) {
