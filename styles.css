@@ -776,6 +776,27 @@ select:disabled {
   align-content: start;
   align-self: start;
   gap: 10px;
+  max-height: min(660px, calc(100vh - 250px));
+  min-height: 280px;
+  overflow-y: auto;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 74, 57, 0.42) rgba(18, 15, 15, 0.72);
+  scrollbar-width: thin;
+}
+
+.game-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.game-list::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(18, 15, 15, 0.72);
+}
+
+.game-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 74, 57, 0.72), rgba(95, 18, 22, 0.88));
 }
 
 .game-card {
@@ -1392,6 +1413,11 @@ select:disabled {
   .game-layout,
   .member-card {
     grid-template-columns: 1fr;
+  }
+
+  .game-list {
+    max-height: 420px;
+    min-height: 260px;
   }
 
   .top-actions {
