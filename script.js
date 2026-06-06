@@ -29,6 +29,7 @@ const gameTagMap = {
   "forgotten-mines-2": ["전략", "기억", "이동"],
   "doubles-plan-2": ["전략", "숫자", "블러핑"],
   monorail: ["전략", "타일", "퍼즐"],
+  "strategic-yut": ["전략", "심리", "윷놀이"],
 };
 
 function formatPhoneInput(value) {
