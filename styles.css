@@ -870,6 +870,12 @@ select:disabled {
   margin-bottom: 18px;
 }
 
+.game-bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
 .game-detail-header {
   display: grid;
   gap: 10px;

@@ -451,7 +451,7 @@ function renderGames(gameId, options = {}) {
   const activeGameTags = getGameTags(activeGame);
 
   gameDetail.innerHTML = `
-    <button class="game-back-button secondary-button" type="button" data-game-list>목록으로</button>
+    <button class="game-back-button secondary-button" type="button" data-game-list>&lt;뒤로가기</button>
     <div class="game-detail-header">
       <span class="status-pill revealed-pill">운영 게임</span>
       <h3>${activeGame.title}</h3>
@@ -471,6 +471,9 @@ function renderGames(gameId, options = {}) {
     <div class="win-condition-box">
       <strong>승리 조건</strong>
       <p>${activeGame.win}</p>
+    </div>
+    <div class="game-bottom-actions">
+      <button class="secondary-button" type="button" data-game-list>목록</button>
     </div>
   `;
 }
