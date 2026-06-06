@@ -28,6 +28,7 @@ const gameTagMap = {
   "love-wins-all-2": ["베팅", "심리", "카드"],
   "forgotten-mines-2": ["전략", "기억", "이동"],
   "doubles-plan-2": ["전략", "숫자", "블러핑"],
+  monorail: ["전략", "타일", "퍼즐"],
 };
 
 function formatPhoneInput(value) {
