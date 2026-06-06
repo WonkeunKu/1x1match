@@ -38,6 +38,8 @@ const gameTagMap = {
   "kyeol-hap": ["순발력", "패턴", "도형"],
   "big-small": ["베팅", "카드", "심리"],
   baghchal: ["전략", "보드", "봉쇄"],
+  "nine-mens-morris": ["전략", "보드", "삼목"],
+  hexagon: ["기억", "암산", "숫자"],
 };
 
 function formatPhoneInput(value) {
