@@ -1129,6 +1129,73 @@ select:disabled {
   margin-bottom: 0;
 }
 
+.member-roster-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 74, 57, 0.13);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(35, 29, 27, 0.98), rgba(20, 16, 15, 0.98));
+  box-shadow: var(--shadow);
+}
+
+.member-roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.member-roster-head h3,
+.member-roster-head p {
+  margin: 0;
+}
+
+.member-roster-head p {
+  color: var(--muted);
+}
+
+.member-roster {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #100d0d;
+}
+
+.member-roster-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(140px, 1fr) minmax(110px, 0.8fr) minmax(90px, 0.7fr) minmax(80px, 0.6fr) minmax(70px, 0.6fr);
+  gap: 12px;
+  min-width: 760px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  align-items: center;
+}
+
+.member-roster-row:last-child {
+  border-bottom: 0;
+}
+
+.member-roster-header {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.member-roster-row strong {
+  color: #fff8ef;
+}
+
+.member-roster-row span {
+  color: #d8cab9;
+}
+
+.member-roster-empty {
+  padding: 16px;
+  color: var(--muted);
+}
+
 .metric {
   justify-content: space-between;
   min-height: 94px;
@@ -1521,6 +1588,7 @@ select:disabled {
 
   .topbar,
   .section-head,
+  .member-roster-head,
   .notice-board,
   .game-layout,
   .ops-main,

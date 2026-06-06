@@ -612,6 +612,7 @@ function renderAdmin() {
   adminContent.hidden = false;
 
   const metrics = [
+    ["전체 회원", appState.members?.length || 0],
     ["오늘 신규 신청", appState.metrics.todayApplications],
     ["확정 매치", appState.metrics.confirmed],
     ["환불 검토", appState.metrics.refundTargets],
@@ -629,6 +630,7 @@ function renderAdmin() {
     )
     .join("");
 
+  renderMemberRoster();
   renderOpsList();
 
   const events = appState.allEvents || appState.events || [];
@@ -650,6 +652,66 @@ function renderAdmin() {
     </ul>
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
   `;
+}
+
+function memberApplicationCount(memberId) {
+  return appState.matches.reduce(
+    (count, match) => count + match.allPlayers.filter((player) => player.memberId === memberId && !player.cancelled).length,
+    0,
+  );
+}
+
+function renderMemberRoster() {
+  const roster = document.querySelector("#memberRoster");
+  if (!roster) return;
+
+  const members = [...(appState.members || [])].sort((a, b) => {
+    const aTotal = a.wins + a.losses;
+    const bTotal = b.wins + b.losses;
+    return bTotal - aTotal || b.wins - a.wins || a.nickname.localeCompare(b.nickname, "ko-KR");
+  });
+
+  if (!members.length) {
+    roster.innerHTML = `<div class="member-roster-empty">가입 회원이 없습니다.</div>`;
+    return;
+  }
+
+  roster.innerHTML = `
+    <div class="member-roster-row member-roster-header">
+      <span>닉네임</span>
+      <span>전화번호</span>
+      <span>활동지</span>
+      <span>전적</span>
+      <span>승률</span>
+      <span>신청</span>
+    </div>
+    ${members
+      .map((member) => {
+        const total = member.wins + member.losses;
+        const rate = total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%";
+        return `
+          <div class="member-roster-row">
+            <strong>${escapeHtml(member.nickname)}</strong>
+            <span>${escapeHtml(member.phone)}</span>
+            <span>${escapeHtml(member.area)}</span>
+            <span>${member.wins}승 ${member.losses}패</span>
+            <span>${rate}</span>
+            <span>${memberApplicationCount(member.id)}회</span>
+          </div>
+        `;
+      })
+      .join("")}
+  `;
+}
+
+function buildMemberContactText() {
+  return (appState.members || [])
+    .map((member) => {
+      const total = member.wins + member.losses;
+      const rate = total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%";
+      return `${member.nickname} / ${member.phone} / ${member.area} / ${member.wins}승 ${member.losses}패 / 승률 ${rate} / 신청 ${memberApplicationCount(member.id)}회`;
+    })
+    .join("\n");
 }
 
 function filteredOpsMatches() {
@@ -1154,6 +1216,14 @@ document.addEventListener("click", async (event) => {
   if (shareButton) {
     const copied = await copyText("https://www.1x1match.com");
     showToast(copied ? "홍보 링크를 복사했습니다." : "링크 복사에 실패했습니다.");
+    return;
+  }
+
+  const copyMemberContactsButton = event.target.closest("#copyMemberContactsButton");
+  if (copyMemberContactsButton) {
+    const text = buildMemberContactText();
+    const copied = text ? await copyText(text) : false;
+    showToast(copied ? "회원 연락처 명단을 복사했습니다." : "복사할 회원 명단이 없습니다.");
     return;
   }
 

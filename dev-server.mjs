@@ -269,7 +269,7 @@ function publicState() {
     user: publicMember(currentUser()),
     isAuthenticated: Boolean(state.currentUserId),
     isAdmin: Boolean(state.isAdmin),
-    members: state.members.map(publicMember),
+    members: state.isAdmin ? state.members.map(publicMember) : [],
     rankings,
     games: state.games,
     matches: state.matches.map((match) => decorateMatch(match)),
