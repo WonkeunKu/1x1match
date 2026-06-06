@@ -43,6 +43,7 @@ const gameTagMap = {
   hexagon: ["기억", "암산", "숫자"],
   "color-turn": ["전략", "기억", "4목"],
   "secret-dice": ["주사위", "확률", "전략"],
+  "mystery-number": ["추리", "숫자", "심리"],
 };
 
 function formatPhoneInput(value) {
