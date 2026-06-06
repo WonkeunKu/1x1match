@@ -30,6 +30,7 @@ const gameTagMap = {
   "doubles-plan-2": ["전략", "숫자", "블러핑"],
   monorail: ["전략", "타일", "퍼즐"],
   "strategic-yut": ["전략", "심리", "윷놀이"],
+  "same-number-finder": ["기억", "암산", "순발력"],
 };
 
 function formatPhoneInput(value) {
