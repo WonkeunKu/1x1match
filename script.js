@@ -12,6 +12,7 @@ const icons = {
 let appState = null;
 let activeGameId = null;
 let gameSearchQuery = "";
+let activeGameCategoryFilter = "all";
 let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
@@ -87,6 +88,14 @@ const gameCategoryMap = {
   "nine-mens-morris": "devils",
   hexagon: "devils",
 };
+
+const gameCategoryOptions = [
+  { value: "all", label: "전체" },
+  { value: "genius", label: "더 지니어스" },
+  { value: "devils", label: "데블스 플랜" },
+  { value: "blood", label: "피의 게임" },
+  { value: "death", label: "데스 게임" },
+];
 
 function formatPhoneInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -530,6 +539,25 @@ function getGameCategory(game) {
   return gameCategoryMap[game.id] || "uncategorized";
 }
 
+function renderGameCategoryFilters() {
+  const filter = document.querySelector("#gameCategoryFilter");
+  if (!filter) return;
+
+  filter.innerHTML = gameCategoryOptions
+    .map(
+      (option) => `
+        <button
+          type="button"
+          class="${activeGameCategoryFilter === option.value ? "selected" : ""}"
+          data-game-category="${option.value}"
+        >
+          ${option.label}
+        </button>
+      `,
+    )
+    .join("");
+}
+
 function renderGames(gameId, options = {}) {
   if (options.detail !== undefined) {
     isGameDetailOpen = options.detail;
@@ -541,14 +569,18 @@ function renderGames(gameId, options = {}) {
   }
 
   const query = gameSearchQuery.trim().toLowerCase();
+  const categoryFilteredGames =
+    activeGameCategoryFilter === "all"
+      ? appState.games
+      : appState.games.filter((game) => getGameCategory(game) === activeGameCategoryFilter);
   const visibleGames = query
-    ? appState.games.filter((game) =>
+    ? categoryFilteredGames.filter((game) =>
         [game.title, game.summary, game.win, ...getGameTags(game), ...(game.rules || [])]
           .join(" ")
           .toLowerCase()
           .includes(query),
       )
-    : appState.games;
+    : categoryFilteredGames;
   const activeGame =
     visibleGames.find((game) => game.id === gameId) ||
     visibleGames.find((game) => game.id === activeGameId) ||
@@ -560,9 +592,12 @@ function renderGames(gameId, options = {}) {
   activeGameId = activeGame?.id || null;
 
   const gameLayout = document.querySelector(".game-layout");
+  const gameControls = document.querySelector(".game-controls");
   const gameSearch = document.querySelector(".game-search");
   const gameList = document.querySelector("#gameList");
   const gameDetail = document.querySelector("#gameDetail");
+
+  renderGameCategoryFilters();
 
   if (gameLayout) {
     gameLayout.classList.toggle("detail-view", isGameDetailOpen);
@@ -570,6 +605,10 @@ function renderGames(gameId, options = {}) {
 
   if (gameSearch) {
     gameSearch.hidden = isGameDetailOpen;
+  }
+
+  if (gameControls) {
+    gameControls.hidden = isGameDetailOpen;
   }
 
   if (gameList) {
@@ -1162,6 +1201,14 @@ document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => 
 document.querySelector("#gameSearchInput")?.addEventListener("input", (event) => {
   gameSearchQuery = event.currentTarget.value;
   renderGames(activeGameId, { detail: false });
+});
+
+document.querySelector("#gameCategoryFilter")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-game-category]");
+  if (!button) return;
+
+  activeGameCategoryFilter = button.dataset.gameCategory;
+  renderGames(null, { detail: false });
 });
 
 document.querySelector("#dateSelect")?.addEventListener("change", () => {
