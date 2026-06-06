@@ -35,6 +35,8 @@ const gameTagMap = {
   "twelve-shogi": ["전략", "보드", "장기"],
   "number-shogi": ["전략", "숫자", "보드"],
   "kyeol-hap": ["순발력", "패턴", "도형"],
+  "big-small": ["베팅", "카드", "심리"],
+  baghchal: ["전략", "보드", "봉쇄"],
 };
 
 function formatPhoneInput(value) {
