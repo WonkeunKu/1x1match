@@ -42,6 +42,7 @@ const gameTagMap = {
   "nine-mens-morris": ["전략", "보드", "삼목"],
   hexagon: ["기억", "암산", "숫자"],
   "color-turn": ["전략", "기억", "4목"],
+  "secret-dice": ["주사위", "확률", "전략"],
 };
 
 function formatPhoneInput(value) {
