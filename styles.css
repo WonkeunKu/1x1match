@@ -377,9 +377,24 @@ h3 {
 
 .match-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 8px;
   margin-bottom: 18px;
+}
+
+.match-list-head,
+.match-row {
+  display: grid;
+  grid-template-columns: minmax(128px, 0.9fr) minmax(180px, 1.3fr) minmax(104px, 0.7fr) minmax(120px, 0.7fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.match-list-head {
+  padding: 0 14px 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .match-card,
@@ -404,6 +419,34 @@ h3 {
 .match-card {
   min-height: 152px;
   padding: 16px;
+}
+
+.match-row {
+  min-height: 74px;
+  padding: 12px 14px;
+}
+
+.match-row strong {
+  margin-bottom: 2px;
+}
+
+.match-row p {
+  margin: 0;
+}
+
+.compact-slots {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.compact-slots .slot {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
 }
 
 .match-card.empty-state {
@@ -1190,6 +1233,60 @@ select:disabled {
   padding: 16px;
 }
 
+.ops-card-collapsed {
+  padding: 0;
+}
+
+.ops-summary-button {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.ops-summary-button strong,
+.ops-summary-button small {
+  display: block;
+}
+
+.ops-summary-button small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.ops-summary-button:hover {
+  background: rgba(255, 74, 57, 0.08);
+}
+
+.ops-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ops-summary-tags b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(184, 135, 45, 0.14);
+  color: var(--amber);
+  font-size: 12px;
+}
+
+.ops-open-label {
+  color: var(--ink);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .ops-card h3 {
   margin-bottom: 4px;
 }
@@ -1567,6 +1664,8 @@ select:disabled {
   }
 
   .match-grid,
+  .match-list-head,
+  .match-row,
   .apply-panel,
   .apply-panel.compact,
   .admin-create-form,
@@ -1578,6 +1677,14 @@ select:disabled {
   .game-layout,
   .member-card {
     grid-template-columns: 1fr;
+  }
+
+  .match-list-head {
+    display: none;
+  }
+
+  .compact-slots {
+    justify-content: flex-start;
   }
 
   .top-actions {
@@ -1612,6 +1719,10 @@ select:disabled {
 
   .ops-action-group {
     display: grid;
+  }
+
+  .ops-summary-button {
+    grid-template-columns: 1fr;
   }
 
   .participant-head,

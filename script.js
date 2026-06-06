@@ -15,6 +15,7 @@ let gameSearchQuery = "";
 let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
+let activeOpsMatchId = null;
 let visibleEventCount = 8;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
@@ -394,22 +395,33 @@ function renderMatches() {
   const matches = visibleMatches();
 
   grid.innerHTML = matches.length
-    ? matches
-    .map(
-      (match) => `
-        <article class="match-card ${match.appliedByMe ? "mine" : ""}">
-          <span class="status-pill ${match.status}">${match.appliedByMe ? "내 신청" : match.statusLabel}</span>
-          <strong>${match.date}</strong>
-          <p>${match.time} · ${match.location}</p>
-          <div class="slots" aria-label="참가 슬롯">
-            <span class="slot ${match.playerCount >= 1 ? "filled" : ""}"></span>
-            <span class="slot ${match.playerCount >= 2 ? "filled" : ""}"></span>
-          </div>
-          <span>${match.playerCount}/2명 신청</span>
-        </article>
-      `,
-    )
-    .join("")
+    ? `
+      <div class="match-list-head">
+        <span>날짜</span>
+        <span>지역/장소</span>
+        <span>상태</span>
+        <span>인원</span>
+      </div>
+      ${matches
+        .map(
+          (match) => `
+            <article class="match-card match-row ${match.appliedByMe ? "mine" : ""}">
+              <div>
+                <strong>${match.date}</strong>
+                <span>${match.time}</span>
+              </div>
+              <p>${match.location}</p>
+              <span class="status-pill ${match.status}">${match.appliedByMe ? "내 신청" : match.statusLabel}</span>
+              <div class="compact-slots" aria-label="참가 슬롯">
+                <span>${match.playerCount}/2명</span>
+                <span class="slot ${match.playerCount >= 1 ? "filled" : ""}"></span>
+                <span class="slot ${match.playerCount >= 2 ? "filled" : ""}"></span>
+              </div>
+            </article>
+          `,
+        )
+        .join("")}
+    `
     : `<article class="match-card empty-state"><strong>표시할 매치가 없습니다</strong><p>다른 활동지를 선택해 주세요.</p></article>`;
 
   const available = matches.filter((match) => match.playerCount < 2 && !match.appliedByMe);
@@ -760,6 +772,9 @@ function renderOpsList() {
     { value: "refund", label: "환불 필요" },
   ];
   const filteredMatches = filteredOpsMatches();
+  if (activeOpsMatchId && !filteredMatches.some((match) => match.id === activeOpsMatchId)) {
+    activeOpsMatchId = null;
+  }
   const filterMarkup = `
     <div class="ops-filter segmented">
       ${opsFilters
@@ -785,6 +800,36 @@ function renderOpsCard(match) {
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
+  const isExpanded = activeOpsMatchId === match.id;
+  const paymentPendingCount = match.allPlayers.filter((player) => player.paymentStatus === "payment_pending" && !player.cancelled).length;
+  const issueLabels = [
+    paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
+    needsReveal ? "게임 공개 대기" : "",
+    needsRefund ? "환불 필요" : "",
+    resultRecorded ? "결과 입력됨" : "",
+  ].filter(Boolean);
+
+  if (!isExpanded) {
+    return `
+      <article class="ops-card ops-card-collapsed">
+        <button class="ops-summary-button" type="button" data-toggle-ops-match="${match.id}">
+          <span>
+            <strong>${match.date} ${match.time}</strong>
+            <small>${match.location} · ${match.playerCount}/2명 · ${match.statusLabel}</small>
+          </span>
+          <span class="ops-summary-tags">
+            ${
+              issueLabels.length
+                ? issueLabels.map((label) => `<b>${label}</b>`).join("")
+                : "<b>특이사항 없음</b>"
+            }
+          </span>
+          <span class="ops-open-label">관리 열기</span>
+        </button>
+      </article>
+    `;
+  }
+
   const recommendedGame = needsReveal ? match.game : null;
   const gameOptions = appState.games
     .map((game) => `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}</option>`)
@@ -843,12 +888,13 @@ function renderOpsCard(match) {
     .join("");
 
   return `
-    <article class="ops-card">
+    <article class="ops-card ops-card-expanded">
       <div class="ops-main">
         <div>
           <h3>${match.date} ${match.time}</h3>
           <p>${match.location} · ${match.playerCount}/2명 · ${match.statusLabel}${resultRecorded ? " · 결과 입력됨" : ""}</p>
         </div>
+        <button class="secondary-button" type="button" data-toggle-ops-match="${match.id}">접기</button>
         <div class="ops-actions">
           <div class="ops-action-group">
             <span>게임</span>
@@ -1100,6 +1146,7 @@ document.addEventListener("click", (event) => {
   if (!filterButton) return;
 
   activeOpsFilter = filterButton.dataset.opsFilter;
+  activeOpsMatchId = null;
   renderAdmin();
 });
 
@@ -1257,6 +1304,14 @@ document.addEventListener("click", async (event) => {
   if (showMoreEventsButton) {
     visibleEventCount += 8;
     renderAdmin();
+  }
+
+  const toggleOpsMatchButton = event.target.closest("[data-toggle-ops-match]");
+  if (toggleOpsMatchButton) {
+    const matchId = toggleOpsMatchButton.dataset.toggleOpsMatch;
+    activeOpsMatchId = activeOpsMatchId === matchId ? null : matchId;
+    renderAdmin();
+    return;
   }
 
   const gameButton = event.target.closest("[data-game]");
