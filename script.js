@@ -16,8 +16,8 @@ let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
 let visibleEventCount = 8;
-let isAuthModalOpen = false;
 let isPaymentConfirmOpen = false;
+let authReturnView = "apply";
 
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
@@ -135,7 +135,6 @@ function renderAll() {
   renderNavigation();
   renderUser();
   renderAuth();
-  renderAuthModal();
   renderPaymentGuide();
   renderAreaFilters();
   renderMyApplications();
@@ -161,6 +160,35 @@ function renderNavigation() {
   }
 }
 
+function setActiveView(viewId) {
+  document.querySelectorAll(".nav-item, .view").forEach((node) => node.classList.remove("active"));
+  document.querySelector(`#${viewId}`)?.classList.add("active");
+  document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
+
+  if (viewId !== "auth") {
+    authReturnView = viewId;
+  }
+
+  if (viewId === "games") {
+    renderGames(activeGameId, { detail: false });
+  }
+
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function openAuthView() {
+  const currentView = document.querySelector(".view.active");
+  if (currentView?.id && currentView.id !== "auth") {
+    authReturnView = currentView.id;
+  }
+
+  setActiveView("auth");
+}
+
+function closeAuthView() {
+  setActiveView(authReturnView || "apply");
+}
+
 function renderPaymentGuide() {
   const guide = document.querySelector("#bankGuide");
   if (!guide) return;
@@ -170,13 +198,6 @@ function renderPaymentGuide() {
     <span>${appState.payment?.bankAccountLabel || "운영자 공지 예정"}</span>
     <small>입금자명은 회원가입 닉네임과 같게 보내주세요. 운영자가 입금 확인 후 매치가 확정됩니다.</small>
   `;
-}
-
-function renderAuthModal() {
-  const modal = document.querySelector("#authModal");
-  if (!modal) return;
-
-  modal.hidden = !isAuthModalOpen || appState.isAuthenticated;
 }
 
 function getMatchArea(match) {
@@ -1029,13 +1050,7 @@ async function submitForm(path, form) {
 
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item, .view").forEach((node) => node.classList.remove("active"));
-    item.classList.add("active");
-    document.querySelector(`#${item.dataset.view}`).classList.add("active");
-
-    if (item.dataset.view === "games") {
-      renderGames(activeGameId, { detail: false });
-    }
+    setActiveView(item.dataset.view);
   });
 });
 
@@ -1048,16 +1063,10 @@ document.querySelectorAll("[data-auth-tab]").forEach((tab) => {
 });
 
 document.querySelector("#openAuthButton")?.addEventListener("click", () => {
-  isAuthModalOpen = true;
-  renderAuthModal();
+  openAuthView();
 });
 
-document.addEventListener("click", (event) => {
-  if (!event.target.closest("[data-close-auth]")) return;
-
-  isAuthModalOpen = false;
-  renderAuthModal();
-});
+document.querySelector("#backFromAuthButton")?.addEventListener("click", closeAuthView);
 
 document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => {
   input.addEventListener("input", () => {
@@ -1113,9 +1122,9 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
   try {
     appState = await submitForm("/api/signup", form);
     saveSession();
-    isAuthModalOpen = false;
     isPaymentConfirmOpen = false;
     renderAll();
+    closeAuthView();
     showToast("회원가입이 완료되었습니다. 이제 날짜만 선택해서 신청할 수 있습니다.");
   } catch (error) {
     showToast(error.message);
@@ -1128,9 +1137,9 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
   try {
     appState = await submitForm("/api/login", event.currentTarget);
     saveSession();
-    isAuthModalOpen = false;
     isPaymentConfirmOpen = false;
     renderAll();
+    closeAuthView();
     showToast("로그인되었습니다. 참가 신청을 진행할 수 있습니다.");
   } catch (error) {
     showToast(error.message);
@@ -1142,8 +1151,8 @@ document.querySelector("#applyForm").addEventListener("submit", async (event) =>
   const form = event.currentTarget;
 
   if (!appState.isAuthenticated) {
-    isAuthModalOpen = true;
-    renderAuthModal();
+    authReturnView = "apply";
+    openAuthView();
     showToast("로그인 후 참가 신청할 수 있습니다.");
     return;
   }
@@ -1231,7 +1240,6 @@ document.addEventListener("click", async (event) => {
   if (logoutButton) {
     appState = await request("/api/logout", { method: "POST", body: "{}" });
     clearSession();
-    isAuthModalOpen = false;
     isPaymentConfirmOpen = false;
     renderAll();
     showToast("로그아웃되었습니다.");

@@ -267,33 +267,20 @@ button {
   white-space: nowrap;
 }
 
-.auth-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
+.auth-view {
+  min-height: calc(100vh - 160px);
+}
+
+.auth-page-shell {
   display: grid;
-  place-items: center;
-  padding: 20px;
-}
-
-.auth-modal[hidden] {
-  display: none;
-}
-
-.auth-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(5, 4, 4, 0.72);
-  backdrop-filter: blur(6px);
+  place-items: start center;
+  min-height: calc(100vh - 220px);
+  padding: 26px 0 64px;
 }
 
 .auth-dialog {
-  position: relative;
-  z-index: 1;
-  width: min(520px, 100%);
-  max-height: min(760px, calc(100vh - 40px));
-  overflow: auto;
-  padding: 18px;
+  width: min(560px, 100%);
+  padding: 22px;
 }
 
 .auth-dialog-head {
@@ -307,24 +294,6 @@ button {
 .auth-dialog-head p {
   margin-bottom: 0;
   color: var(--muted);
-}
-
-.icon-button {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #120f0f;
-  color: var(--ink);
-  font-size: 24px;
-  line-height: 1;
-}
-
-.icon-button:hover {
-  background: rgba(255, 74, 57, 0.12);
 }
 
 .eyebrow {
@@ -1619,6 +1588,11 @@ select:disabled {
   .header-auth-button,
   .user-chip {
     width: 100%;
+  }
+
+  .auth-page-shell {
+    min-height: auto;
+    padding: 8px 0 42px;
   }
 
   .my-application-item {
