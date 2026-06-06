@@ -15,6 +15,7 @@ let gameSearchQuery = "";
 let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
+let visibleEventCount = 8;
 
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
@@ -72,8 +73,37 @@ async function request(path, options = {}) {
   return payload;
 }
 
+function saveSession() {
+  if (appState?.sessionToken) {
+    localStorage.setItem("oneVsOneSession", appState.sessionToken);
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem("oneVsOneSession");
+}
+
+async function restoreSession() {
+  const saved = localStorage.getItem("oneVsOneSession");
+  if (!saved) return;
+
+  try {
+    appState = await request("/api/restore-session", {
+      method: "POST",
+      body: JSON.stringify({ token: saved }),
+    });
+
+    if (!appState.isAuthenticated) {
+      clearSession();
+    }
+  } catch (error) {
+    clearSession();
+  }
+}
+
 async function loadState() {
   appState = await request("/api/state");
+  await restoreSession();
   renderAll();
 }
 
@@ -553,11 +583,19 @@ function renderAdmin() {
 
   renderOpsList();
 
+  const events = appState.allEvents || appState.events || [];
+  const visibleEvents = events.slice(0, visibleEventCount);
+  const hasMoreEvents = visibleEventCount < events.length;
+
   document.querySelector("#eventLog").innerHTML = `
-    <h3>운영 로그</h3>
+    <div class="event-log-head">
+      <h3>운영 로그</h3>
+      <span>${visibleEvents.length}/${events.length}</span>
+    </div>
     <ul>
-      ${appState.events.map((event) => `<li>${event}</li>`).join("")}
+      ${visibleEvents.map((event) => `<li>${event}</li>`).join("")}
     </ul>
+    ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
   `;
 }
 
@@ -940,6 +978,7 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
 
   try {
     appState = await submitForm("/api/signup", form);
+    saveSession();
     renderAll();
     showToast("회원가입이 완료되었습니다. 이제 날짜만 선택해서 신청할 수 있습니다.");
   } catch (error) {
@@ -952,6 +991,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
 
   try {
     appState = await submitForm("/api/login", event.currentTarget);
+    saveSession();
     renderAll();
     showToast("로그인되었습니다. 참가 신청을 진행할 수 있습니다.");
   } catch (error) {
@@ -996,6 +1036,7 @@ document.querySelector("#adminLoginForm").addEventListener("submit", async (even
 
   try {
     appState = await submitForm("/api/admin-login", form);
+    saveSession();
     form.reset();
     renderAll();
     showToast("운영자 권한으로 로그인했습니다.");
@@ -1015,6 +1056,7 @@ document.addEventListener("click", async (event) => {
   const logoutButton = event.target.closest("#logoutButton");
   if (logoutButton) {
     appState = await request("/api/logout", { method: "POST", body: "{}" });
+    clearSession();
     renderAll();
     showToast("로그아웃되었습니다.");
   }
@@ -1022,8 +1064,15 @@ document.addEventListener("click", async (event) => {
   const adminLogoutButton = event.target.closest("#adminLogoutButton");
   if (adminLogoutButton) {
     appState = await request("/api/admin-logout", { method: "POST", body: "{}" });
+    saveSession();
     renderAll();
     showToast("운영자 권한에서 로그아웃했습니다.");
+  }
+
+  const showMoreEventsButton = event.target.closest("[data-show-more-events]");
+  if (showMoreEventsButton) {
+    visibleEventCount += 8;
+    renderAdmin();
   }
 
   const gameButton = event.target.closest("[data-game]");

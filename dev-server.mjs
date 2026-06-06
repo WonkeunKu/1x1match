@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
@@ -36,6 +36,7 @@ const storage = createStorage({ driver: storageDriver, jsonPath: storagePath });
 const paymentProvider = createPaymentProvider({ provider: process.env.PAYMENT_PROVIDER || "mock" });
 const smsProvider = createSmsProvider({ provider: process.env.SMS_PROVIDER || "mock" });
 const adminPassword = process.env.ADMIN_PASSWORD || "mindmatch-admin";
+const sessionSecret = process.env.SESSION_SECRET || adminPassword;
 const bankAccountLabel = process.env.BANK_ACCOUNT_LABEL || "계좌 정보 준비 중";
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "127.0.0.1";
@@ -254,6 +255,7 @@ function publicState() {
     games: state.games,
     matches: state.matches.map((match) => decorateMatch(match)),
     events: state.events.slice(0, 8),
+    allEvents: state.isAdmin ? state.events : [],
     metrics: buildMetrics(),
     payment: {
       amount: 1000,
@@ -388,6 +390,54 @@ function verifyPassword(password, storedHash) {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
+function base64UrlEncode(value) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function base64UrlDecode(value) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signSessionPayload(payload) {
+  return createHmac("sha256", sessionSecret).update(payload).digest("base64url");
+}
+
+function createSessionToken(memberId, isAdmin = false) {
+  const payload = base64UrlEncode(
+    JSON.stringify({
+      memberId,
+      isAdmin: Boolean(isAdmin),
+      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 14,
+    }),
+  );
+  return `${payload}.${signSessionPayload(payload)}`;
+}
+
+function verifySessionToken(token) {
+  const [payload, signature] = String(token || "").split(".");
+  if (!payload || !signature) return null;
+
+  const expectedSignature = signSessionPayload(payload);
+  const expected = Buffer.from(expectedSignature);
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+
+  try {
+    const session = JSON.parse(base64UrlDecode(payload));
+    if (!session.memberId || Number(session.expiresAt) < Date.now()) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+function publicStateWithSession() {
+  return {
+    ...publicState(),
+    sessionToken: state.currentUserId ? createSessionToken(state.currentUserId, state.isAdmin) : null,
+  };
+}
+
 function requireField(value, label) {
   if (!String(value || "").trim()) {
     throw new Error(`${label}을 입력해 주세요.`);
@@ -487,7 +537,7 @@ async function handleApi(request, response, pathname) {
       state.isAdmin = false;
       state.events.unshift(`${existingMemberByPhone.nickname}님이 비밀번호를 설정하고 로그인했습니다.`);
       await persistState();
-      sendJson(response, 200, publicState());
+      sendJson(response, 200, publicStateWithSession());
       return;
     }
 
@@ -513,7 +563,7 @@ async function handleApi(request, response, pathname) {
     state.isAdmin = false;
     state.events.unshift(`${member.nickname}님이 회원가입 후 로그인했습니다.`);
     await persistState();
-    sendJson(response, 201, publicState());
+    sendJson(response, 201, publicStateWithSession());
     return;
   }
 
@@ -537,7 +587,7 @@ async function handleApi(request, response, pathname) {
     state.isAdmin = false;
     state.events.unshift(`${member.nickname}님이 로그인했습니다.`);
     await persistState();
-    sendJson(response, 200, publicState());
+    sendJson(response, 200, publicStateWithSession());
     return;
   }
 
@@ -546,6 +596,24 @@ async function handleApi(request, response, pathname) {
     state.isAdmin = false;
     await persistState();
     sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/restore-session") {
+    const body = await parseBody(request);
+    const session = verifySessionToken(body.token);
+    const member = session ? state.members.find((candidate) => candidate.id === session.memberId) : null;
+
+    if (!member) {
+      state.currentUserId = null;
+      state.isAdmin = false;
+      sendJson(response, 200, publicState());
+      return;
+    }
+
+    state.currentUserId = member.id;
+    state.isAdmin = Boolean(session.isAdmin);
+    sendJson(response, 200, publicStateWithSession());
     return;
   }
 
@@ -566,14 +634,14 @@ async function handleApi(request, response, pathname) {
     state.isAdmin = true;
     state.events.unshift("운영자가 로그인했습니다.");
     await persistState();
-    sendJson(response, 200, publicState());
+    sendJson(response, 200, publicStateWithSession());
     return;
   }
 
   if (request.method === "POST" && pathname === "/api/admin-logout") {
     state.isAdmin = false;
     await persistState();
-    sendJson(response, 200, publicState());
+    sendJson(response, 200, publicStateWithSession());
     return;
   }
 

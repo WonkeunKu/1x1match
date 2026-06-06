@@ -1288,6 +1288,28 @@ select:disabled {
   padding-left: 18px;
 }
 
+.event-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.event-log-head h3 {
+  margin: 0;
+}
+
+.event-log-head span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.event-more-button {
+  margin-top: 14px;
+}
+
 .toast {
   position: fixed;
   right: 24px;
