@@ -236,12 +236,18 @@ function closeAuthView() {
 function renderPaymentGuide() {
   const guide = document.querySelector("#bankGuide");
   if (!guide) return;
+  const account = paymentAccountText();
 
   guide.innerHTML = `
     <strong>6월 시범운영 참가비 1,000원</strong>
-    <span>${appState.payment?.bankAccountLabel || "운영자 공지 예정"}</span>
+    <span>${account}</span>
     <small>정상 참가비는 5,000원이며 6월만 1,000원으로 할인됩니다. 카페 진행 시 음료 비용은 별도입니다. 입금자명은 회원가입 닉네임과 같게 보내주세요.</small>
   `;
+}
+
+function paymentAccountText() {
+  const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396";
+  return account.includes("구원근") ? account : `${account} / 예금주: 구원근`;
 }
 
 function getMatchArea(match) {
@@ -402,7 +408,7 @@ function renderMyApplications() {
                 <span>${applicationStatusLabel} · ${paymentLabel} · ${gameLabel}</span>
                 ${
                   myPayment === "payment_pending"
-                    ? `<span>입금 계좌: ${appState.payment?.bankAccountLabel || "운영자 공지 예정"}</span>`
+                    ? `<span>입금 계좌: ${paymentAccountText()}</span>`
                     : ""
                 }
               </div>
@@ -1048,7 +1054,7 @@ function renderOpsCard(match) {
 function buildAdminMessages(match) {
   const messages = [];
   const siteUrl = "https://www.1x1match.com";
-  const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396 구원근";
+  const account = paymentAccountText();
   const activeApplicants = match.allPlayers.filter((player) => !player.cancelled);
   const paymentPendingPlayers = activeApplicants.filter((player) => player.paymentStatus === "payment_pending");
   const refundPlayers = activeApplicants.filter((player) =>
