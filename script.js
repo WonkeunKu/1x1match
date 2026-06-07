@@ -502,6 +502,7 @@ function renderNotices() {
   document.querySelector("#noticeBoard").innerHTML = confirmedMatches
     .map((match) => {
       const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
+      const gameCategory = match.gameRevealed && match.game ? getGameCategory(match.game) : "";
       const gameBody =
         match.gameRevealed && match.game
           ? `${match.game.summary} 이번 매치의 상세 규칙이 공개되었습니다.`
@@ -510,7 +511,9 @@ function renderNotices() {
 
       return `
         <article class="notice-main">
-          <div class="status-pill ${match.gameRevealed ? "revealed-pill" : "confirmed"}">${gameLabel}</div>
+          <div class="status-pill ${
+            match.gameRevealed ? `revealed-pill notice-game-pill notice-game-pill--${gameCategory}` : "confirmed"
+          }">${gameLabel}</div>
           <h3>${match.date} ${match.time}</h3>
           <p>${gameBody}</p>
           <div class="player-row">

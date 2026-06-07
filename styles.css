@@ -507,6 +507,27 @@ h3 {
   background: var(--blue);
 }
 
+.notice-game-pill {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff9ef;
+}
+
+.notice-game-pill--genius {
+  background: linear-gradient(135deg, #7b591b, #3b2b10);
+}
+
+.notice-game-pill--death {
+  background: linear-gradient(135deg, #285f45, #102d22);
+}
+
+.notice-game-pill--blood {
+  background: linear-gradient(135deg, #812126, #360c10);
+}
+
+.notice-game-pill--devils {
+  background: linear-gradient(135deg, #304f95, #14254b);
+}
+
 .auth-grid,
 .apply-grid {
   display: grid;
