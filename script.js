@@ -313,6 +313,12 @@ function matchCapacityLabel(match) {
   return match.playerCount >= 2 ? "마감" : `${match.playerCount}/2`;
 }
 
+function matchSeatLabel(match) {
+  if (!match) return "선택 전";
+  if (match.playerCount >= 2) return "마감";
+  return `${2 - match.playerCount}자리 남음`;
+}
+
 function noticeAreaMatches(match, filter) {
   return filter === "all" || getMatchArea(match) === filter;
 }
@@ -483,6 +489,7 @@ function renderApplySelector() {
   const areaMatches = matches.filter((match) => getMatchArea(match) === activeApplyArea);
   const timeMatches = areaMatches.filter((match) => match.date === activeApplyDate);
   const selectedMatch = timeMatches.find((match) => match.id === activeApplyTimeMatchId);
+  const canApplySelectedMatch = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe;
   hiddenInput.value = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe ? selectedMatch.id : "";
 
   selector.innerHTML = `
@@ -519,6 +526,18 @@ function renderApplySelector() {
             `;
           })
           .join("")}
+      </div>
+    </div>
+    <div class="apply-selection-summary ${canApplySelectedMatch ? "ready" : "blocked"}">
+      <div>
+        <span>선택한 매치</span>
+        <strong>${selectedMatch ? `${selectedMatch.date} ${selectedMatch.time}` : "날짜와 시간을 선택해 주세요"}</strong>
+        <small>${selectedMatch ? selectedMatch.location : "지역, 날짜, 시간 순서로 선택합니다."}</small>
+      </div>
+      <div>
+        <span>잔여석</span>
+        <strong>${matchSeatLabel(selectedMatch)}</strong>
+        <small>${canApplySelectedMatch ? "신청 전 참가비 안내를 확인합니다." : "마감 또는 이미 신청한 매치입니다."}</small>
       </div>
     </div>
   `;

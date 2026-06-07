@@ -832,6 +832,43 @@ h3 {
   color: var(--muted);
 }
 
+.apply-selection-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.6fr);
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 248, 239, 0.1);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(14, 10, 10, 0.96), rgba(42, 21, 19, 0.86));
+}
+
+.apply-selection-summary.ready {
+  border-color: rgba(27, 151, 99, 0.42);
+  box-shadow: inset 4px 0 0 rgba(27, 151, 99, 0.72);
+}
+
+.apply-selection-summary.blocked {
+  border-color: rgba(181, 31, 36, 0.34);
+  box-shadow: inset 4px 0 0 rgba(181, 31, 36, 0.65);
+}
+
+.apply-selection-summary div {
+  display: grid;
+  gap: 5px;
+}
+
+.apply-selection-summary span,
+.apply-selection-summary small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.apply-selection-summary strong {
+  color: #fff8ef;
+  font-size: 1.04rem;
+}
+
 .final-payment-check {
   display: grid;
   gap: 12px;
@@ -2433,6 +2470,7 @@ select:disabled {
   .match-row,
   .apply-panel,
   .apply-panel.compact,
+  .apply-selection-summary,
   .admin-create-form,
   .admin-login-panel,
   .my-application-list,
