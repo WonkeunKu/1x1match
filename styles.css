@@ -1764,6 +1764,45 @@ select:disabled {
   font-weight: 800;
 }
 
+.backup-panel {
+  margin-bottom: 16px;
+}
+
+.backup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 74, 57, 0.13);
+  border-radius: 8px;
+  background: rgba(8, 7, 7, 0.58);
+}
+
+.backup-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.backup-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.backup-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .admin-create-form {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(150px, 0.7fr)) auto;
@@ -2753,6 +2792,14 @@ select:disabled {
   }
 
   .system-status-meta {
+    justify-content: flex-start;
+  }
+
+  .backup-card {
+    display: grid;
+  }
+
+  .backup-actions {
     justify-content: flex-start;
   }
 

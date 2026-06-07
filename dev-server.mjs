@@ -983,6 +983,14 @@ function sendJson(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
+function sendDownload(response, contentType, filename, body) {
+  response.writeHead(200, {
+    "Content-Type": `${contentType}; charset=utf-8`,
+    "Content-Disposition": `attachment; filename="${filename}"`,
+  });
+  response.end(body);
+}
+
 function normalizePhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
 
@@ -1140,6 +1148,126 @@ function activePaidApplications(match) {
   return match.applications.filter((item) => !item.cancelled && item.paymentStatus === "paid");
 }
 
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function adminExportPayload() {
+  return {
+    exportedAt: new Date().toISOString(),
+    system: {
+      storage: storage.name,
+      paymentProvider: paymentProvider.name,
+      smsProvider: smsProvider.name,
+    },
+    members: state.members.map(publicMember),
+    games: state.games,
+    matches: state.matches.map((match) => {
+      const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
+      const applications = (match.applications || []).map((application) => {
+        const member = findMember(application.memberId);
+        return {
+          memberId: application.memberId,
+          nickname: member?.nickname || "",
+          realName: member?.realName || "",
+          phone: member?.phone || "",
+          area: member?.area || "",
+          paid: Boolean(application.paid),
+          paymentStatus: application.paymentStatus || "payment_pending",
+          cancelled: Boolean(application.cancelled),
+        };
+      });
+      const winner = match.result ? findMember(match.result.winnerId) : null;
+      const loser = match.result ? findMember(match.result.loserId) : null;
+
+      return {
+        id: match.id,
+        date: match.date,
+        time: match.time,
+        location: match.location,
+        confirmed: activePaidApplications(match).length >= 2,
+        gameId: match.gameId,
+        gameTitle: game?.title || "",
+        gameRevealed: Boolean(match.gameRevealed),
+        result: match.result
+          ? {
+              winnerId: match.result.winnerId,
+              winnerNickname: winner?.nickname || "",
+              loserId: match.result.loserId,
+              loserNickname: loser?.nickname || "",
+            }
+          : null,
+        adminNote: match.adminNote || "",
+        notificationLog: match.notificationLog || [],
+        applications,
+      };
+    }),
+    events: state.events.map(normalizeEvent),
+  };
+}
+
+function adminApplicationsCsv() {
+  const headers = [
+    "match_id",
+    "date",
+    "time",
+    "location",
+    "confirmed",
+    "game",
+    "game_revealed",
+    "winner",
+    "loser",
+    "member_id",
+    "nickname",
+    "real_name",
+    "phone",
+    "area",
+    "paid",
+    "payment_status",
+    "cancelled",
+  ];
+  const rows = [headers];
+
+  state.matches.forEach((match) => {
+    const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
+    const winner = match.result ? findMember(match.result.winnerId) : null;
+    const loser = match.result ? findMember(match.result.loserId) : null;
+    const base = [
+      match.id,
+      match.date,
+      match.time,
+      match.location,
+      activePaidApplications(match).length >= 2 ? "Y" : "N",
+      game?.title || "",
+      match.gameRevealed ? "Y" : "N",
+      winner?.nickname || "",
+      loser?.nickname || "",
+    ];
+
+    if (!match.applications?.length) {
+      rows.push([...base, "", "", "", "", "", "", "", ""]);
+      return;
+    }
+
+    match.applications.forEach((application) => {
+      const member = findMember(application.memberId);
+      rows.push([
+        ...base,
+        application.memberId,
+        member?.nickname || "",
+        member?.realName || "",
+        member?.phone || "",
+        member?.area || "",
+        application.paid ? "Y" : "N",
+        application.paymentStatus || "payment_pending",
+        application.cancelled ? "Y" : "N",
+      ]);
+    });
+  });
+
+  return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
+}
+
 function messageForMatch(match, type) {
   const players = activePaidApplications(match).map((application) => findMember(application.memberId)).filter(Boolean);
 
@@ -1173,6 +1301,26 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "GET" && pathname === "/api/state") {
     sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/admin/export") {
+    if (!requireAdmin(response)) return;
+
+    const format = String(new URL(request.url, `http://${request.headers.host}`).searchParams.get("format") || "json");
+    const date = new Date().toISOString().slice(0, 10);
+
+    if (format === "csv") {
+      sendDownload(response, "text/csv", `1vs1match-applications-${date}.csv`, adminApplicationsCsv());
+      return;
+    }
+
+    sendDownload(
+      response,
+      "application/json",
+      `1vs1match-backup-${date}.json`,
+      JSON.stringify(adminExportPayload(), null, 2),
+    );
     return;
   }
 

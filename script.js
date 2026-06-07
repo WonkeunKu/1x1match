@@ -1243,6 +1243,7 @@ function renderAdmin() {
   adminLoginForm.hidden = true;
   adminContent.hidden = false;
   renderAdminSystemStatus();
+  renderAdminBackupPanel();
 
   const metrics = [
     ["전체 회원", appState.members?.length || 0, "all"],
@@ -1286,6 +1287,47 @@ function renderAdmin() {
     </ul>
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
   `;
+}
+
+function renderAdminBackupPanel() {
+  const panel = document.querySelector("#adminBackupPanel");
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <div class="backup-card">
+      <div>
+        <span>운영 데이터 백업</span>
+        <strong>회원·신청·매치 데이터 내보내기</strong>
+        <p>비밀번호 정보는 제외하고 내려받습니다. CSV는 신청 현황 확인용, JSON은 전체 백업용입니다.</p>
+      </div>
+      <div class="backup-actions">
+        <button class="secondary-button" type="button" data-admin-export="csv">CSV 다운로드</button>
+        <button class="secondary-button" type="button" data-admin-export="json">JSON 백업</button>
+      </div>
+    </div>
+  `;
+}
+
+async function downloadAdminExport(format) {
+  const response = await fetch(`/api/admin/export?format=${encodeURIComponent(format)}`);
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || "백업 파일을 만들지 못했습니다.");
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const filenameMatch = disposition.match(/filename="([^"]+)"/);
+  const filename = filenameMatch?.[1] || `1vs1match-backup.${format === "csv" ? "csv" : "json"}`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderAdminSystemStatus() {
@@ -2490,6 +2532,17 @@ document.addEventListener("click", async (event) => {
     const text = buildMemberContactText();
     const copied = text ? await copyText(text) : false;
     showToast(copied ? "회원 연락처 명단을 복사했습니다." : "복사할 회원 명단이 없습니다.");
+    return;
+  }
+
+  const adminExportButton = event.target.closest("[data-admin-export]");
+  if (adminExportButton) {
+    try {
+      await downloadAdminExport(adminExportButton.dataset.adminExport);
+      showToast("운영 데이터 파일을 내려받았습니다.");
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 
