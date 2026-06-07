@@ -17,6 +17,7 @@ let isGameDetailOpen = false;
 let activeAreaFilter = "all";
 let activeOpsFilter = "all";
 let activeOpsMatchId = null;
+let activeMemberId = null;
 let visibleEventCount = 8;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
@@ -789,6 +790,99 @@ function memberApplicationCount(memberId) {
   );
 }
 
+function memberApplications(memberId) {
+  return appState.matches
+    .flatMap((match) =>
+      match.allPlayers
+        .filter((player) => player.memberId === memberId)
+        .map((player) => ({
+          match,
+          player,
+        })),
+    )
+    .sort((a, b) => `${a.match.date} ${a.match.time}`.localeCompare(`${b.match.date} ${b.match.time}`, "ko-KR"));
+}
+
+function memberResultLabel(member, match) {
+  if (!match.result) return "결과 없음";
+  if (match.result.winnerId === member.id) return "승리";
+  if (match.result.loserId === member.id) return "패배";
+  return "미참여";
+}
+
+function renderMemberDetail() {
+  const detail = document.querySelector("#memberDetail");
+  if (!detail) return;
+
+  const members = appState.members || [];
+  const member = members.find((item) => item.id === activeMemberId);
+
+  if (!member) {
+    detail.innerHTML = `
+      <div class="member-detail-empty">
+        <strong>회원을 선택해 주세요.</strong>
+        <span>회원 행을 클릭하면 상세 정보와 신청 이력이 열립니다.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const total = member.wins + member.losses;
+  const rate = total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%";
+  const applications = memberApplications(member.id);
+
+  detail.innerHTML = `
+    <div class="member-detail-head">
+      <div>
+        <p>회원 상세</p>
+        <h4>${escapeHtml(member.nickname)}</h4>
+      </div>
+      <button class="secondary-button" type="button" data-close-member-detail>닫기</button>
+    </div>
+    <div class="member-detail-grid">
+      <span><strong>이름</strong>${escapeHtml(member.realName || "미등록")}</span>
+      <span><strong>생년월일</strong>${escapeHtml(member.birthDate || "미등록")}</span>
+      <span><strong>전화번호</strong>${escapeHtml(member.phone)}</span>
+      <span><strong>활동지</strong>${escapeHtml(member.area)}</span>
+      <span><strong>전적</strong>${member.wins}승 ${member.losses}패</span>
+      <span><strong>승률</strong>${rate}</span>
+      <span><strong>신청</strong>${applications.length}회</span>
+    </div>
+    <div class="member-history">
+      <div class="member-history-head">
+        <h4>신청 이력</h4>
+        <span>${applications.length}건</span>
+      </div>
+      ${
+        applications.length
+          ? applications
+              .map(({ match, player }) => {
+                const gameLabel = match.game ? match.game.title : match.gameRevealed ? "게임 미지정" : "게임 공개 대기";
+                const applicationLabel = player.cancelled ? "취소됨" : match.confirmed ? "확정" : "대기";
+                const paymentLabel = paymentStatusLabel(player.paymentStatus);
+                const resultLabel = memberResultLabel(member, match);
+
+                return `
+                  <article class="member-history-row">
+                    <div>
+                      <strong>${match.date} ${match.time}</strong>
+                      <span>${escapeHtml(match.location)} · ${escapeHtml(gameLabel)}</span>
+                    </div>
+                    <div>
+                      <span>${applicationLabel}</span>
+                      <span>${paymentLabel}</span>
+                      <span>${resultLabel}</span>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")
+          : `<div class="member-history-empty">아직 신청 이력이 없습니다.</div>`
+      }
+    </div>
+  `;
+}
+
 function renderMemberRoster() {
   const roster = document.querySelector("#memberRoster");
   if (!roster) return;
@@ -801,7 +895,12 @@ function renderMemberRoster() {
 
   if (!members.length) {
     roster.innerHTML = `<div class="member-roster-empty">가입 회원이 없습니다.</div>`;
+    renderMemberDetail();
     return;
+  }
+
+  if (activeMemberId && !members.some((member) => member.id === activeMemberId)) {
+    activeMemberId = null;
   }
 
   roster.innerHTML = `
@@ -820,7 +919,7 @@ function renderMemberRoster() {
         const total = member.wins + member.losses;
         const rate = total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%";
         return `
-          <div class="member-roster-row">
+          <button class="member-roster-row member-roster-button ${activeMemberId === member.id ? "selected" : ""}" type="button" data-member-detail="${member.id}">
             <strong>${escapeHtml(member.nickname)}</strong>
             <span>${escapeHtml(member.realName || "미등록")}</span>
             <span>${escapeHtml(member.birthDate || "미등록")}</span>
@@ -829,11 +928,13 @@ function renderMemberRoster() {
             <span>${member.wins}승 ${member.losses}패</span>
             <span>${rate}</span>
             <span>${memberApplicationCount(member.id)}회</span>
-          </div>
+          </button>
         `;
       })
       .join("")}
   `;
+
+  renderMemberDetail();
 }
 
 function buildMemberContactText() {
@@ -1394,6 +1495,20 @@ document.addEventListener("click", async (event) => {
     const text = buildMemberContactText();
     const copied = text ? await copyText(text) : false;
     showToast(copied ? "회원 연락처 명단을 복사했습니다." : "복사할 회원 명단이 없습니다.");
+    return;
+  }
+
+  const memberDetailButton = event.target.closest("[data-member-detail]");
+  if (memberDetailButton) {
+    activeMemberId = memberDetailButton.dataset.memberDetail;
+    renderMemberRoster();
+    return;
+  }
+
+  const closeMemberDetailButton = event.target.closest("[data-close-member-detail]");
+  if (closeMemberDetailButton) {
+    activeMemberId = null;
+    renderMemberRoster();
     return;
   }
 
