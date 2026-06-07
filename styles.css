@@ -2569,6 +2569,12 @@ select:disabled {
   background: linear-gradient(135deg, rgba(181, 31, 36, 0.12), rgba(16, 13, 13, 0.96));
 }
 
+.message-preview-priority {
+  border-color: rgba(255, 74, 57, 0.48);
+  background: linear-gradient(135deg, rgba(181, 31, 36, 0.24), rgba(38, 18, 18, 0.96));
+  box-shadow: 0 0 0 1px rgba(255, 74, 57, 0.08), 0 18px 42px rgba(0, 0, 0, 0.22);
+}
+
 .message-stack {
   display: grid;
   gap: 10px;

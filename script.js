@@ -1264,6 +1264,7 @@ function renderAdmin() {
     ["전체 회원", appState.members?.length || 0, "all"],
     ["입금 대기", appState.matches.filter(hasPaymentPending).length, "payment"],
     ["게임 공개 대기", appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length, "reveal"],
+    ["게임 안내 문자", appState.matches.filter(needsGameRevealMessage).length, "gameMessage"],
     ["결과 입력 대기", appState.matches.filter((match) => match.confirmed && !match.result).length, "result"],
     ["환불 필요", appState.matches.filter(hasRefundNeeded).length, "refund"],
   ];
@@ -1385,6 +1386,12 @@ function adminActionItems() {
       title: "게임 공개",
       count: appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length,
       detail: "확정됐지만 아직 게임이 공개되지 않은 매치",
+    },
+    {
+      filter: "gameMessage",
+      title: "게임 안내 문자",
+      count: appState.matches.filter(needsGameRevealMessage).length,
+      detail: "게임이 공개됐지만 안내 문자 발송 체크가 아직 없는 매치",
     },
     {
       filter: "result",
@@ -1688,6 +1695,10 @@ function hasRefundNeeded(match) {
   return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
 }
 
+function needsGameRevealMessage(match) {
+  return Boolean(match.confirmed && match.gameRevealed && match.game && !match.notificationLog?.includes("game-revealed"));
+}
+
 function matchesOpsFilter(match, filter) {
   if (filter === "week") return isMatchThisWeek(match);
   if (filter === "month") return isMatchThisMonth(match);
@@ -1695,6 +1706,7 @@ function matchesOpsFilter(match, filter) {
   if (filter === "payment") return hasPaymentPending(match);
   if (filter === "confirmed") return match.confirmed;
   if (filter === "reveal") return match.confirmed && !match.gameRevealed;
+  if (filter === "gameMessage") return needsGameRevealMessage(match);
   if (filter === "result") return match.confirmed && !match.result;
   if (filter === "refund") return hasRefundNeeded(match);
 
@@ -1747,6 +1759,7 @@ function renderOpsList() {
     { value: "payment", label: "입금 대기" },
     { value: "confirmed", label: "확정/마감" },
     { value: "reveal", label: "게임 공개 대기" },
+    { value: "gameMessage", label: "게임 안내 문자" },
     { value: "result", label: "결과 대기" },
     { value: "refund", label: "환불 필요" },
   ];
@@ -1807,6 +1820,7 @@ function renderOpsList() {
 
 function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
+  const needsGameMessage = needsGameRevealMessage(match);
   const isManualReveal = match.gameRevealMode === "manual";
   const isAutoReveal = match.gameRevealMode === "auto";
   const revealScheduleLabel = formatRevealSchedule(match);
@@ -1818,6 +1832,7 @@ function renderOpsCard(match) {
   const issueLabels = [
     paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
     needsReveal ? "게임 공개 대기" : "",
+    needsGameMessage ? "게임 안내 문자 대기" : "",
     needsRefund ? "환불 필요" : "",
     resultRecorded ? "결과 입력됨" : "",
   ].filter(Boolean);
@@ -1878,8 +1893,9 @@ function renderOpsCard(match) {
   const messageMarkup = buildAdminMessages(match)
     .map((messageText) => {
       const messageSent = match.notificationLog?.includes(messageText.key);
+      const isPendingGameMessage = messageText.key === "game-revealed" && !messageSent;
       return `
-        <div class="message-preview">
+        <div class="message-preview ${isPendingGameMessage ? "message-preview-priority" : ""}">
           <div>
             <div>
               <strong>${messageText.type}</strong>
