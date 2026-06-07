@@ -21,6 +21,9 @@ let activeMemberId = null;
 let visibleEventCount = 8;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
+let activeApplyArea = "";
+let activeApplyDate = "";
+let activeApplyTimeMatchId = "";
 
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
@@ -294,6 +297,120 @@ function visibleMatches() {
   return appState.matches.filter((match) => getMatchArea(match) === activeAreaFilter);
 }
 
+function matchSortValue(match) {
+  const matchDate = parseMatchDate(match);
+  const dateValue = matchDate ? matchDate.getTime() : Number.MAX_SAFE_INTEGER;
+  return `${String(dateValue).padStart(16, "0")} ${match.time || ""} ${match.location || ""}`;
+}
+
+function matchCapacityLabel(match) {
+  return match.playerCount >= 2 ? "마감" : `${match.playerCount}/2`;
+}
+
+function selectableApplyMatches() {
+  return [...appState.matches].sort((a, b) => matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR"));
+}
+
+function syncApplySelection(matches) {
+  const areas = [...new Set(matches.map((match) => getMatchArea(match)))];
+  if (!areas.length) {
+    activeApplyArea = "";
+    activeApplyDate = "";
+    activeApplyTimeMatchId = "";
+    return;
+  }
+
+  if (!areas.includes(activeApplyArea)) {
+    activeApplyArea = appState.user?.area && areas.includes(appState.user.area) ? appState.user.area : areas[0];
+  }
+
+  const areaMatches = matches.filter((match) => getMatchArea(match) === activeApplyArea);
+  const dates = [...new Set(areaMatches.map((match) => match.date))];
+  if (!dates.includes(activeApplyDate)) {
+    activeApplyDate =
+      dates.find((date) =>
+        areaMatches.some((match) => match.date === date && match.playerCount < 2 && !match.appliedByMe),
+      ) ||
+      dates[0] ||
+      "";
+  }
+
+  const dateMatches = areaMatches.filter((match) => match.date === activeApplyDate);
+  if (!dateMatches.some((match) => match.id === activeApplyTimeMatchId)) {
+    activeApplyTimeMatchId = dateMatches.find((match) => match.playerCount < 2 && !match.appliedByMe)?.id || dateMatches[0]?.id || "";
+  }
+}
+
+function renderApplySelector() {
+  const selector = document.querySelector("#applyStepSelector");
+  const hiddenInput = document.querySelector("#dateSelect");
+  if (!selector || !hiddenInput) return;
+
+  const matches = selectableApplyMatches();
+  syncApplySelection(matches);
+
+  if (!matches.length) {
+    hiddenInput.value = "";
+    selector.innerHTML = `<div class="apply-step-empty">현재 신청 가능한 매치가 없습니다.</div>`;
+    return;
+  }
+
+  const areas = [...new Set(matches.map((match) => getMatchArea(match)))];
+  const areaMatches = matches.filter((match) => getMatchArea(match) === activeApplyArea);
+  const dates = [...new Set(areaMatches.map((match) => match.date))];
+  const timeMatches = areaMatches.filter((match) => match.date === activeApplyDate);
+  const selectedMatch = timeMatches.find((match) => match.id === activeApplyTimeMatchId);
+  hiddenInput.value = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe ? selectedMatch.id : "";
+
+  selector.innerHTML = `
+    <div class="apply-step">
+      <strong>지역</strong>
+      <div class="apply-option-grid apply-option-grid--area">
+        ${areas
+          .map(
+            (area) => `
+              <button class="${area === activeApplyArea ? "selected" : ""}" type="button" data-apply-area="${area}">
+                ${area}
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+    <div class="apply-step">
+      <strong>날짜</strong>
+      <div class="apply-option-grid apply-option-grid--date">
+        ${dates
+          .map(
+            (date) => `
+              <button class="${date === activeApplyDate ? "selected" : ""}" type="button" data-apply-date="${date}">
+                ${date}
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+    <div class="apply-step">
+      <strong>시간</strong>
+      <div class="apply-option-grid apply-option-grid--time">
+        ${timeMatches
+          .map((match) => {
+            const closed = match.playerCount >= 2 || match.appliedByMe;
+            return `
+              <button class="${match.id === activeApplyTimeMatchId ? "selected" : ""}" type="button" data-apply-time="${match.id}" ${closed ? "disabled" : ""}>
+                <span>${match.time}</span>
+                <small>${matchCapacityLabel(match)}</small>
+                <em>${match.location}</em>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderAreaFilters() {
   const filterBox = document.querySelector("#areaFilters");
   const areas = [...new Set(appState.matches.map((match) => getMatchArea(match)))];
@@ -466,7 +583,6 @@ function paymentStatusLabel(status) {
 
 function renderMatches() {
   const grid = document.querySelector("#matchGrid");
-  const select = document.querySelector("#dateSelect");
   const submitButton = document.querySelector("#applyForm button[type='submit']");
   const matches = visibleMatches();
 
@@ -500,19 +616,8 @@ function renderMatches() {
     `
     : `<article class="match-card empty-state"><strong>표시할 매치가 없습니다</strong><p>다른 활동지를 선택해 주세요.</p></article>`;
 
-  const available = matches.filter((match) => match.playerCount < 2 && !match.appliedByMe);
-  select.innerHTML = available
-    .map((match) => `<option value="${match.id}">${match.date} ${match.time} · ${match.playerCount}/2명</option>`)
-    .join("");
-
-  if (!available.length) {
-    select.innerHTML = `<option value="">신청 가능한 날짜 없음</option>`;
-    submitButton.disabled = true;
-    select.disabled = true;
-  } else {
-    submitButton.disabled = !appState.isAuthenticated;
-    select.disabled = !appState.isAuthenticated;
-  }
+  renderApplySelector();
+  submitButton.disabled = appState.isAuthenticated && !document.querySelector("#dateSelect")?.value;
 }
 
 function renderNotices() {
@@ -1409,6 +1514,45 @@ document.querySelector("#gameCategoryFilter")?.addEventListener("click", (event)
 
 document.querySelector("#dateSelect")?.addEventListener("change", () => {
   isPaymentConfirmOpen = false;
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+});
+
+document.addEventListener("click", (event) => {
+  const areaButton = event.target.closest("[data-apply-area]");
+  if (!areaButton) return;
+
+  activeApplyArea = areaButton.dataset.applyArea;
+  activeApplyDate = "";
+  activeApplyTimeMatchId = "";
+  isPaymentConfirmOpen = false;
+  renderMatches();
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+});
+
+document.addEventListener("click", (event) => {
+  const dateButton = event.target.closest("[data-apply-date]");
+  if (!dateButton) return;
+
+  activeApplyDate = dateButton.dataset.applyDate;
+  activeApplyTimeMatchId = "";
+  isPaymentConfirmOpen = false;
+  renderMatches();
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+});
+
+document.addEventListener("click", (event) => {
+  const timeButton = event.target.closest("[data-apply-time]");
+  if (!timeButton || timeButton.disabled) return;
+
+  activeApplyTimeMatchId = timeButton.dataset.applyTime;
+  isPaymentConfirmOpen = false;
+  renderMatches();
   renderAuth();
   renderPaymentGuide();
   renderIcons();
