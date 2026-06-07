@@ -246,17 +246,35 @@ function renderPaymentGuide() {
   const guide = document.querySelector("#bankGuide");
   if (!guide) return;
   const account = paymentAccountText();
+  const match = selectedApplyMatch();
+  const matchLine = match ? `${match.date} ${match.time} · ${match.location}` : "선택한 매치";
+  const playerLine = match ? `현재 ${match.playerCount}/2명 신청` : "선택 후 확인 가능";
 
   guide.innerHTML = `
-    <strong>6월 시범운영 참가비 1,000원</strong>
-    <span>${account}</span>
-    <small>정상 참가비는 5,000원이며 6월만 1,000원으로 할인됩니다. 카페 진행 시 음료 비용은 별도입니다. 입금자명은 회원가입 닉네임과 같게 보내주세요.</small>
+    <div class="final-check-head">
+      <span>신청 전 최종 확인</span>
+      <strong>${matchLine}</strong>
+      <small>${playerLine}</small>
+    </div>
+    <div class="final-check-grid">
+      <span><strong>정상 참가비</strong>5,000원</span>
+      <span><strong>6월 시범운영</strong>1,000원</span>
+      <span><strong>입금 계좌</strong>${account}</span>
+      <span><strong>현장 비용</strong>카페 음료 비용 별도</span>
+      <span><strong>입금자명</strong>회원가입 닉네임과 동일</span>
+      <span><strong>환불 기준</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
+    </div>
   `;
 }
 
 function paymentAccountText() {
   const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396";
   return account.includes("구원근") ? account : `${account} / 예금주: 구원근`;
+}
+
+function selectedApplyMatch() {
+  const matchId = document.querySelector("#dateSelect")?.value;
+  return appState.matches.find((match) => match.id === matchId) || null;
 }
 
 function getMatchArea(match) {

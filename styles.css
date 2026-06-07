@@ -780,6 +780,49 @@ textarea {
   line-height: 1.5;
 }
 
+.final-check-head {
+  display: grid;
+  gap: 5px;
+}
+
+.final-check-head > span {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.final-check-head strong {
+  color: #fff8ef;
+  font-size: 18px;
+}
+
+.final-check-head small {
+  color: var(--muted);
+}
+
+.final-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.final-check-grid > span {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff8ef;
+  line-height: 1.35;
+}
+
+.final-check-grid strong {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .inline-action {
   margin-left: 8px;
   padding: 5px 8px;
@@ -1913,7 +1956,8 @@ select:disabled {
   .member-card,
   .member-detail-grid,
   .member-history-row,
-  .member-history-row div:last-child {
+  .member-history-row div:last-child,
+  .final-check-grid {
     grid-template-columns: 1fr;
   }
 
