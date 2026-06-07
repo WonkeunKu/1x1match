@@ -1433,6 +1433,28 @@ select:disabled {
 
 .ops-filter {
   justify-self: start;
+  flex-wrap: wrap;
+}
+
+.ops-filter button {
+  gap: 6px;
+}
+
+.ops-filter button span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ops-filter button.selected span {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff8ef;
 }
 
 .ops-card {

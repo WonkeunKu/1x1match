@@ -947,28 +947,77 @@ function buildMemberContactText() {
     .join("\n");
 }
 
+function parseMatchDate(match) {
+  const idDate = String(match.id || "").match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (idDate) return new Date(`${idDate}T00:00:00`);
+
+  const fallback = new Date(match.date);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function isMatchThisWeek(match) {
+  const matchDate = parseMatchDate(match);
+  if (!matchDate) return false;
+
+  const start = startOfToday();
+  const day = start.getDay() || 7;
+  start.setDate(start.getDate() - day + 1);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+
+  return matchDate >= start && matchDate < end;
+}
+
+function isMatchThisMonth(match) {
+  const matchDate = parseMatchDate(match);
+  if (!matchDate) return false;
+
+  const today = startOfToday();
+  return matchDate.getFullYear() === today.getFullYear() && matchDate.getMonth() === today.getMonth();
+}
+
+function hasPaymentPending(match) {
+  return match.allPlayers.some((player) => player.paymentStatus === "payment_pending" && !player.cancelled);
+}
+
+function hasRefundNeeded(match) {
+  return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
+}
+
+function matchesOpsFilter(match, filter) {
+  if (filter === "week") return isMatchThisWeek(match);
+  if (filter === "month") return isMatchThisMonth(match);
+  if (filter === "open") return match.playerCount < 2;
+  if (filter === "payment") return hasPaymentPending(match);
+  if (filter === "confirmed") return match.confirmed;
+  if (filter === "reveal") return match.confirmed && !match.gameRevealed;
+  if (filter === "result") return match.confirmed && !match.result;
+  if (filter === "refund") return hasRefundNeeded(match);
+
+  return true;
+}
+
 function filteredOpsMatches() {
-  return appState.matches.filter((match) => {
-    if (activeOpsFilter === "payment") {
-      return match.allPlayers.some((player) => player.paymentStatus === "payment_pending" && !player.cancelled);
-    }
-
-    if (activeOpsFilter === "confirmed") return match.confirmed;
-    if (activeOpsFilter === "reveal") return match.confirmed && !match.gameRevealed;
-    if (activeOpsFilter === "refund") {
-      return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
-    }
-
-    return true;
-  });
+  return appState.matches.filter((match) => matchesOpsFilter(match, activeOpsFilter));
 }
 
 function renderOpsList() {
   const opsFilters = [
     { value: "all", label: "전체" },
+    { value: "week", label: "이번 주" },
+    { value: "month", label: "이번 달" },
+    { value: "open", label: "신청 가능" },
     { value: "payment", label: "입금 대기" },
-    { value: "confirmed", label: "확정" },
+    { value: "confirmed", label: "확정/마감" },
     { value: "reveal", label: "게임 공개 대기" },
+    { value: "result", label: "결과 대기" },
     { value: "refund", label: "환불 필요" },
   ];
   const filteredMatches = filteredOpsMatches();
@@ -981,7 +1030,7 @@ function renderOpsList() {
         .map(
           (filter) => `
             <button class="${filter.value === activeOpsFilter ? "selected" : ""}" type="button" data-ops-filter="${filter.value}">
-              ${filter.label}
+              ${filter.label} <span>${appState.matches.filter((match) => matchesOpsFilter(match, filter.value)).length}</span>
             </button>
           `,
         )
