@@ -969,6 +969,33 @@ function isValidPhone(phone) {
   return /^010-\d{4}-\d{4}$/.test(phone);
 }
 
+function normalizeBirthDate(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (digits.length === 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  }
+
+  return String(value || "").trim();
+}
+
+function isValidBirthDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const [, year, month, day] = match;
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  const currentYear = new Date().getFullYear();
+
+  return (
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() + 1 === Number(month) &&
+    date.getUTCDate() === Number(day) &&
+    Number(year) >= 1900 &&
+    Number(year) <= currentYear
+  );
+}
+
 function validatePassword(password, confirmation) {
   const value = String(password || "");
 
@@ -1112,6 +1139,8 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && pathname === "/api/signup") {
     const body = await parseBody(request);
     requireField(body.nickname, "닉네임");
+    requireField(body.realName, "이름");
+    requireField(body.birthDate, "생년월일");
     requireField(body.phone, "전화번호");
     requireField(body.area, "주 활동지");
     requireField(body.password, "비밀번호");
@@ -1120,9 +1149,16 @@ async function handleApi(request, response, pathname) {
 
     const phone = normalizePhone(body.phone);
     const nickname = String(body.nickname).trim();
+    const realName = String(body.realName || "").trim();
+    const birthDate = normalizeBirthDate(body.birthDate);
 
     if (!isValidPhone(phone)) {
       sendJson(response, 400, { error: "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요." });
+      return;
+    }
+
+    if (!isValidBirthDate(birthDate)) {
+      sendJson(response, 400, { error: "생년월일은 YYYY-MM-DD 형식으로 입력해 주세요." });
       return;
     }
 
@@ -1138,6 +1174,8 @@ async function handleApi(request, response, pathname) {
       }
 
       existingMemberByPhone.nickname = nickname;
+      existingMemberByPhone.realName = realName;
+      existingMemberByPhone.birthDate = birthDate;
       existingMemberByPhone.area = String(body.area || "").trim();
       existingMemberByPhone.passwordHash = hashPassword(body.password);
       state.currentUserId = existingMemberByPhone.id;
@@ -1158,6 +1196,8 @@ async function handleApi(request, response, pathname) {
     const member = {
       id: `u-${String(state.members.length + 1).padStart(3, "0")}`,
       nickname,
+      realName,
+      birthDate,
       phone,
       area: String(body.area || "").trim(),
       passwordHash: hashPassword(body.password),

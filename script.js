@@ -105,6 +105,14 @@ function formatPhoneInput(value) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
+function formatBirthDateInput(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
 function formatEventTime(value) {
   if (!value) return "시간 없음";
 
@@ -796,6 +804,8 @@ function renderMemberRoster() {
   roster.innerHTML = `
     <div class="member-roster-row member-roster-header">
       <span>닉네임</span>
+      <span>이름</span>
+      <span>생년월일</span>
       <span>전화번호</span>
       <span>활동지</span>
       <span>전적</span>
@@ -809,6 +819,8 @@ function renderMemberRoster() {
         return `
           <div class="member-roster-row">
             <strong>${escapeHtml(member.nickname)}</strong>
+            <span>${escapeHtml(member.realName || "미등록")}</span>
+            <span>${escapeHtml(member.birthDate || "미등록")}</span>
             <span>${escapeHtml(member.phone)}</span>
             <span>${escapeHtml(member.area)}</span>
             <span>${member.wins}승 ${member.losses}패</span>
@@ -826,7 +838,7 @@ function buildMemberContactText() {
     .map((member) => {
       const total = member.wins + member.losses;
       const rate = total ? `${((member.wins / total) * 100).toFixed(1)}%` : "0.0%";
-      return `${member.nickname} / ${member.phone} / ${member.area} / ${member.wins}승 ${member.losses}패 / 승률 ${rate} / 신청 ${memberApplicationCount(member.id)}회`;
+      return `${member.nickname} / ${member.realName || "미등록"} / ${member.birthDate || "미등록"} / ${member.phone} / ${member.area} / ${member.wins}승 ${member.losses}패 / 승률 ${rate} / 신청 ${memberApplicationCount(member.id)}회`;
     })
     .join("\n");
 }
@@ -1202,6 +1214,12 @@ document.querySelector("#backFromAuthButton")?.addEventListener("click", closeAu
 document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => {
   input.addEventListener("input", () => {
     input.value = formatPhoneInput(input.value);
+  });
+});
+
+document.querySelectorAll('input[name="birthDate"]').forEach((input) => {
+  input.addEventListener("input", () => {
+    input.value = formatBirthDateInput(input.value);
   });
 });
 

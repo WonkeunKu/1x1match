@@ -14,6 +14,10 @@ create table if not exists members (
 alter table members
   add column if not exists password_hash text;
 
+alter table members
+  add column if not exists real_name text,
+  add column if not exists birth_date text;
+
 create table if not exists games (
   id text primary key,
   title text not null,

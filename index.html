@@ -115,6 +115,14 @@
                     <input type="text" name="nickname" placeholder="예: 지니어스42" required />
                   </label>
                   <label>
+                    이름
+                    <input type="text" name="realName" placeholder="입금 확인용 실명" autocomplete="name" required />
+                  </label>
+                  <label>
+                    생년월일
+                    <input type="text" name="birthDate" placeholder="예: 1998-03-21" inputmode="numeric" autocomplete="bday" maxlength="10" required />
+                  </label>
+                  <label>
                     전화번호
                     <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
                   </label>
@@ -132,7 +140,7 @@
                   </label>
                   <label class="check-line">
                     <input type="checkbox" name="privacyConsent" required />
-                    <span>닉네임, 전화번호, 주 활동지를 참가 신청과 운영 안내 목적으로 수집하는 데 동의합니다.</span>
+                    <span>이름, 생년월일, 닉네임, 전화번호, 주 활동지를 참가 신청, 입금 확인, 현장 본인 확인 목적으로 수집하는 데 동의합니다.</span>
                   </label>
                   <button class="primary-button" type="submit">가입하고 로그인</button>
                 </form>

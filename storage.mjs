@@ -143,7 +143,11 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
     async load() {
       const [members, games, matches, applications, results, notificationLogs, events] = await Promise.all([
-        list("members", "select=id,nickname,phone,area,password_hash,wins,losses"),
+        listWithFallback(
+          "members",
+          "select=id,nickname,real_name,birth_date,phone,area,password_hash,wins,losses",
+          "select=id,nickname,phone,area,password_hash,wins,losses",
+        ),
         list("games", "select=id,title,summary,rules,win_condition"),
         listWithFallback(
           "matches",
@@ -165,6 +169,8 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         members: members.map((member) => ({
           id: member.id,
           nickname: member.nickname,
+          realName: member.real_name || "",
+          birthDate: member.birth_date || "",
           phone: member.phone,
           area: member.area,
           passwordHash: member.password_hash,
@@ -210,19 +216,26 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
     async save(state) {
       const matches = state.matches || [];
+      const memberRows = (state.members || []).map((member) => ({
+        id: member.id,
+        nickname: member.nickname,
+        real_name: member.realName || null,
+        birth_date: member.birthDate || null,
+        phone: member.phone,
+        area: member.area,
+        password_hash: member.passwordHash || null,
+        wins: member.wins,
+        losses: member.losses,
+      }));
 
-      await upsert(
-        "members",
-        (state.members || []).map((member) => ({
-          id: member.id,
-          nickname: member.nickname,
-          phone: member.phone,
-          area: member.area,
-          password_hash: member.passwordHash || null,
-          wins: member.wins,
-          losses: member.losses,
-        })),
-      );
+      try {
+        await upsert("members", memberRows);
+      } catch (error) {
+        await upsert(
+          "members",
+          memberRows.map(({ real_name, birth_date, ...member }) => member),
+        );
+      }
 
       await upsert(
         "games",
