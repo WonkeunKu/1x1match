@@ -885,6 +885,14 @@ function publicState() {
       method: "bank_transfer",
       bankAccountLabel,
     },
+    system: state.isAdmin
+      ? {
+          storage: storage.name,
+          storageLabel: storage.name === "supabase" ? "Supabase DB" : "local JSON file",
+          paymentProvider: paymentProvider.name,
+          smsProvider: smsProvider.name,
+        }
+      : null,
   };
 }
 

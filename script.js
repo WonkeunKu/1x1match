@@ -1242,6 +1242,7 @@ function renderAdmin() {
 
   adminLoginForm.hidden = true;
   adminContent.hidden = false;
+  renderAdminSystemStatus();
 
   const metrics = [
     ["전체 회원", appState.members?.length || 0, "all"],
@@ -1284,6 +1285,33 @@ function renderAdmin() {
         .join("")}
     </ul>
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
+  `;
+}
+
+function renderAdminSystemStatus() {
+  const panel = document.querySelector("#adminSystemStatus");
+  if (!panel) return;
+
+  const system = appState.system || {};
+  const storage = system.storage || "json";
+  const isSupabase = storage === "supabase";
+  const storageLabel = system.storageLabel || (isSupabase ? "Supabase DB" : "local JSON file");
+  const storageMessage = isSupabase
+    ? "현재 운영 데이터가 Supabase DB에 저장됩니다."
+    : "현재 운영 데이터가 서버 파일에 저장됩니다. 실제 운영 전 Supabase 연결을 확인해 주세요.";
+
+  panel.innerHTML = `
+    <div class="system-status-card ${isSupabase ? "stable" : "warning"}">
+      <div>
+        <span>데이터 저장소</span>
+        <strong>${escapeHtml(storageLabel)}</strong>
+        <p>${storageMessage}</p>
+      </div>
+      <div class="system-status-meta">
+        <span>결제: ${escapeHtml(system.paymentProvider || "mock")}</span>
+        <span>문자: ${escapeHtml(system.smsProvider || "mock")}</span>
+      </div>
+    </div>
   `;
 }
 
