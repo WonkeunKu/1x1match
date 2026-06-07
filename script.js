@@ -24,6 +24,7 @@ let authReturnView = "apply";
 let activeApplyArea = "";
 let activeApplyDate = "";
 let activeApplyTimeMatchId = "";
+let activeApplyMonthKey = "";
 
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
@@ -311,6 +312,93 @@ function selectableApplyMatches() {
   return [...appState.matches].sort((a, b) => matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR"));
 }
 
+function dateKeyFromDate(date) {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateKeyFromMatch(match) {
+  return dateKeyFromDate(parseMatchDate(match));
+}
+
+function monthKeyFromDate(date) {
+  if (!date) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthKeyFromMatch(match) {
+  return monthKeyFromDate(parseMatchDate(match));
+}
+
+function monthLabel(date) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
+
+function buildApplyCalendar(areaMatches, activeDateLabel, activeMonthKey) {
+  const datedMatches = areaMatches
+    .map((match) => ({ match, date: parseMatchDate(match), key: dateKeyFromMatch(match), monthKey: monthKeyFromMatch(match) }))
+    .filter((item) => item.date && item.key);
+
+  if (!datedMatches.length) return "";
+
+  const monthKeys = [...new Set(datedMatches.map((item) => item.monthKey))];
+  const selectedItem =
+    datedMatches.find((item) => item.monthKey === activeMonthKey) ||
+    datedMatches.find((item) => item.match.date === activeDateLabel) ||
+    datedMatches[0];
+  const selectedMonthIndex = monthKeys.indexOf(selectedItem.monthKey);
+  const prevMonthKey = selectedMonthIndex > 0 ? monthKeys[selectedMonthIndex - 1] : "";
+  const nextMonthKey = selectedMonthIndex < monthKeys.length - 1 ? monthKeys[selectedMonthIndex + 1] : "";
+  const monthStart = new Date(selectedItem.date.getFullYear(), selectedItem.date.getMonth(), 1);
+  const monthEnd = new Date(selectedItem.date.getFullYear(), selectedItem.date.getMonth() + 1, 0);
+  const firstDay = monthStart.getDay();
+  const daysInMonth = monthEnd.getDate();
+  const cells = [];
+
+  for (let i = 0; i < firstDay; i += 1) {
+    cells.push(`<span class="apply-calendar-day empty" aria-hidden="true"></span>`);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const cellDate = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+    const key = dateKeyFromDate(cellDate);
+    const matchesForDay = datedMatches.filter((item) => item.key === key).map((item) => item.match);
+    const availableCount = matchesForDay.filter((match) => match.playerCount < 2 && !match.appliedByMe).length;
+    const totalCount = matchesForDay.length;
+    const label = matchesForDay[0]?.date || "";
+    const selected = label && label === activeDateLabel;
+    const disabled = !totalCount;
+    const closed = totalCount > 0 && availableCount === 0;
+
+    cells.push(`
+      <button class="apply-calendar-day ${selected ? "selected" : ""} ${closed ? "closed" : ""}" type="button" data-apply-date="${label}" ${disabled ? "disabled" : ""}>
+        <span>${day}</span>
+        <small>${totalCount ? (closed ? "마감" : `${availableCount}개`) : ""}</small>
+      </button>
+    `);
+  }
+
+  return `
+    <div class="apply-calendar">
+      <div class="apply-calendar-head">
+        <button type="button" data-apply-month="${prevMonthKey}" ${prevMonthKey ? "" : "disabled"}>‹</button>
+        <strong>${monthLabel(monthStart)}</strong>
+        <button type="button" data-apply-month="${nextMonthKey}" ${nextMonthKey ? "" : "disabled"}>›</button>
+        <span>신청 가능한 날짜를 선택하세요</span>
+      </div>
+      <div class="apply-calendar-weekdays">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="apply-calendar-grid">
+        ${cells.join("")}
+      </div>
+    </div>
+  `;
+}
+
 function syncApplySelection(matches) {
   const areas = [...new Set(matches.map((match) => getMatchArea(match)))];
   if (!areas.length) {
@@ -325,11 +413,23 @@ function syncApplySelection(matches) {
   }
 
   const areaMatches = matches.filter((match) => getMatchArea(match) === activeApplyArea);
-  const dates = [...new Set(areaMatches.map((match) => match.date))];
+  const datedAreaMatches = areaMatches
+    .map((match) => ({ match, monthKey: monthKeyFromMatch(match) }))
+    .filter((item) => item.monthKey);
+  const monthKeys = [...new Set(datedAreaMatches.map((item) => item.monthKey))];
+  if (!monthKeys.includes(activeApplyMonthKey)) {
+    activeApplyMonthKey =
+      datedAreaMatches.find((item) => item.match.playerCount < 2 && !item.match.appliedByMe)?.monthKey || monthKeys[0] || "";
+  }
+
+  const monthMatches = activeApplyMonthKey
+    ? datedAreaMatches.filter((item) => item.monthKey === activeApplyMonthKey).map((item) => item.match)
+    : areaMatches;
+  const dates = [...new Set(monthMatches.map((match) => match.date))];
   if (!dates.includes(activeApplyDate)) {
     activeApplyDate =
       dates.find((date) =>
-        areaMatches.some((match) => match.date === date && match.playerCount < 2 && !match.appliedByMe),
+        monthMatches.some((match) => match.date === date && match.playerCount < 2 && !match.appliedByMe),
       ) ||
       dates[0] ||
       "";
@@ -357,7 +457,6 @@ function renderApplySelector() {
 
   const areas = [...new Set(matches.map((match) => getMatchArea(match)))];
   const areaMatches = matches.filter((match) => getMatchArea(match) === activeApplyArea);
-  const dates = [...new Set(areaMatches.map((match) => match.date))];
   const timeMatches = areaMatches.filter((match) => match.date === activeApplyDate);
   const selectedMatch = timeMatches.find((match) => match.id === activeApplyTimeMatchId);
   hiddenInput.value = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe ? selectedMatch.id : "";
@@ -379,17 +478,7 @@ function renderApplySelector() {
     </div>
     <div class="apply-step">
       <strong>날짜</strong>
-      <div class="apply-option-grid apply-option-grid--date">
-        ${dates
-          .map(
-            (date) => `
-              <button class="${date === activeApplyDate ? "selected" : ""}" type="button" data-apply-date="${date}">
-                ${date}
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
+      ${buildApplyCalendar(areaMatches, activeApplyDate, activeApplyMonthKey)}
     </div>
     <div class="apply-step">
       <strong>시간</strong>
@@ -1526,6 +1615,7 @@ document.addEventListener("click", (event) => {
   activeApplyArea = areaButton.dataset.applyArea;
   activeApplyDate = "";
   activeApplyTimeMatchId = "";
+  activeApplyMonthKey = "";
   isPaymentConfirmOpen = false;
   renderMatches();
   renderAuth();
@@ -1538,6 +1628,20 @@ document.addEventListener("click", (event) => {
   if (!dateButton) return;
 
   activeApplyDate = dateButton.dataset.applyDate;
+  activeApplyTimeMatchId = "";
+  isPaymentConfirmOpen = false;
+  renderMatches();
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+});
+
+document.addEventListener("click", (event) => {
+  const monthButton = event.target.closest("[data-apply-month]");
+  if (!monthButton || monthButton.disabled || !monthButton.dataset.applyMonth) return;
+
+  activeApplyMonthKey = monthButton.dataset.applyMonth;
+  activeApplyDate = "";
   activeApplyTimeMatchId = "";
   isPaymentConfirmOpen = false;
   renderMatches();
