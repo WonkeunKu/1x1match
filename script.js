@@ -139,6 +139,21 @@ function formatEventTime(value) {
   }).format(date);
 }
 
+function formatRevealSchedule(match) {
+  if (!match?.gameRevealAt) return "게임은 시작 24시간 전에 자동 공개됩니다.";
+  const date = new Date(match.gameRevealAt);
+  if (Number.isNaN(date.getTime())) return "게임은 시작 24시간 전에 자동 공개됩니다.";
+
+  return `${new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date)} 자동 공개 예정`;
+}
+
 function renderIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
     const path = icons[node.dataset.icon];
@@ -743,7 +758,7 @@ function renderMyPageApplication(match, user) {
   const gameLabel = match.confirmed
     ? match.gameRevealed && match.game
       ? match.game.title
-      : "게임 공개 대기"
+      : formatRevealSchedule(match)
     : "매치 확정 후 공개";
   const resultLabel = match.result
     ? match.result.winnerId === user.id
@@ -906,9 +921,9 @@ function renderNoticesLegacy() {
       const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
       const gameCategory = match.gameRevealed && match.game ? getGameCategory(match.game) : "";
       const gameBody =
-        match.gameRevealed && match.game
-          ? `${match.game.summary} 이번 매치의 상세 규칙이 공개되었습니다.`
-          : "시작 24시간 전에 운영자가 게임과 규칙을 공개합니다.";
+    match.gameRevealed && match.game
+      ? `${match.game.summary} ?? ??? ?? ??? ???????.`
+      : formatRevealSchedule(match);
       const playerNames = match.players.map((player) => player.nickname);
 
       return `
@@ -1794,6 +1809,7 @@ function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
   const isManualReveal = match.gameRevealMode === "manual";
   const isAutoReveal = match.gameRevealMode === "auto";
+  const revealScheduleLabel = formatRevealSchedule(match);
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
@@ -1895,6 +1911,7 @@ function renderOpsCard(match) {
         <div class="ops-actions">
           <div class="ops-action-group">
             <span>게임</span>
+            <small>${match.confirmed ? (match.gameRevealed ? "참가자에게 게임이 공개되었습니다." : revealScheduleLabel) : "매치 확정 후 게임을 예약할 수 있습니다."}</small>
             <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
             <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
             ${

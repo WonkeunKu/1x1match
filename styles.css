@@ -2445,6 +2445,13 @@ select:disabled {
   font-weight: 900;
 }
 
+.ops-action-group > small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
 .ops-action-group select {
   width: 150px;
 }
