@@ -21,6 +21,10 @@ let activeMemberId = null;
 let visibleEventCount = 8;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
+let opsSearchQuery = "";
+let opsSortMode = "dateAsc";
+let opsDateFrom = "";
+let opsDateTo = "";
 let activeApplyArea = "";
 let activeApplyDate = "";
 let activeApplyTimeMatchId = "";
@@ -1216,8 +1220,41 @@ function matchesOpsFilter(match, filter) {
   return true;
 }
 
+function matchSearchText(match) {
+  const gameTitle = match.game?.title || "";
+  const playerText = match.allPlayers.map((player) => `${player.nickname} ${player.phone} ${player.area}`).join(" ");
+  return `${match.date} ${match.time} ${match.location} ${match.statusLabel} ${gameTitle} ${playerText} ${match.adminNote || ""}`.toLowerCase();
+}
+
+function isMatchInOpsDateRange(match) {
+  const dateKey = dateKeyFromMatch(match);
+  if (!dateKey) return true;
+  if (opsDateFrom && dateKey < opsDateFrom) return false;
+  if (opsDateTo && dateKey > opsDateTo) return false;
+  return true;
+}
+
+function sortOpsMatches(matches) {
+  return [...matches].sort((a, b) => {
+    const dateCompare = matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR");
+    if (opsSortMode === "dateDesc") return -dateCompare;
+    if (opsSortMode === "area") return getMatchArea(a).localeCompare(getMatchArea(b), "ko-KR") || dateCompare;
+    if (opsSortMode === "status") return a.statusLabel.localeCompare(b.statusLabel, "ko-KR") || dateCompare;
+    if (opsSortMode === "players") return b.playerCount - a.playerCount || dateCompare;
+    return dateCompare;
+  });
+}
+
 function filteredOpsMatches() {
-  return appState.matches.filter((match) => matchesOpsFilter(match, activeOpsFilter));
+  const query = opsSearchQuery.trim().toLowerCase();
+  return sortOpsMatches(
+    appState.matches.filter(
+      (match) =>
+        matchesOpsFilter(match, activeOpsFilter) &&
+        isMatchInOpsDateRange(match) &&
+        (!query || matchSearchText(match).includes(query)),
+    ),
+  );
 }
 
 function renderOpsList() {
@@ -1236,6 +1273,37 @@ function renderOpsList() {
   if (activeOpsMatchId && !filteredMatches.some((match) => match.id === activeOpsMatchId)) {
     activeOpsMatchId = null;
   }
+  const controlsMarkup = `
+    <div class="ops-control-bar">
+      <label>
+        검색
+        <input type="search" id="opsSearchInput" value="${escapeHtml(opsSearchQuery)}" placeholder="날짜, 장소, 닉네임, 전화번호, 게임명" autocomplete="off" />
+      </label>
+      <label>
+        정렬
+        <select id="opsSortSelect">
+          <option value="dateAsc" ${opsSortMode === "dateAsc" ? "selected" : ""}>가까운 날짜순</option>
+          <option value="dateDesc" ${opsSortMode === "dateDesc" ? "selected" : ""}>늦은 날짜순</option>
+          <option value="area" ${opsSortMode === "area" ? "selected" : ""}>지역순</option>
+          <option value="status" ${opsSortMode === "status" ? "selected" : ""}>상태순</option>
+          <option value="players" ${opsSortMode === "players" ? "selected" : ""}>인원 많은순</option>
+        </select>
+      </label>
+      <label>
+        시작일
+        <input type="date" id="opsDateFrom" value="${opsDateFrom}" />
+      </label>
+      <label>
+        종료일
+        <input type="date" id="opsDateTo" value="${opsDateTo}" />
+      </label>
+      <button class="secondary-button" type="button" id="opsFilterReset">필터 초기화</button>
+    </div>
+    <div class="ops-result-summary">
+      <strong>${filteredMatches.length}개</strong>
+      <span>조건에 맞는 매치</span>
+    </div>
+  `;
   const filterMarkup = `
     <div class="ops-filter segmented">
       ${opsFilters
@@ -1251,9 +1319,9 @@ function renderOpsList() {
   `;
   const matchesMarkup = filteredMatches.length
     ? filteredMatches.map(renderOpsCard).join("")
-    : `<article class="ops-card empty-state"><strong>해당 상태의 매치가 없습니다</strong><p>다른 필터를 선택해 주세요.</p></article>`;
+    : `<article class="ops-card empty-state"><strong>조건에 맞는 매치가 없습니다</strong><p>검색어, 날짜 범위, 상태 필터를 다시 확인해 주세요.</p></article>`;
 
-  document.querySelector("#opsList").innerHTML = filterMarkup + matchesMarkup;
+  document.querySelector("#opsList").innerHTML = controlsMarkup + filterMarkup + matchesMarkup;
 }
 
 function renderOpsCard(match) {
@@ -1676,6 +1744,53 @@ document.addEventListener("click", (event) => {
   if (!filterButton) return;
 
   activeOpsFilter = filterButton.dataset.opsFilter;
+  activeOpsMatchId = null;
+  renderAdmin();
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.id !== "opsSearchInput") return;
+
+  const cursorPosition = event.target.selectionStart;
+  opsSearchQuery = event.target.value;
+  activeOpsMatchId = null;
+  renderOpsList();
+  const input = document.querySelector("#opsSearchInput");
+  input?.focus();
+  input?.setSelectionRange(cursorPosition, cursorPosition);
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.id === "opsSortSelect") {
+    opsSortMode = event.target.value;
+    activeOpsMatchId = null;
+    renderOpsList();
+    return;
+  }
+
+  if (event.target.id === "opsDateFrom") {
+    opsDateFrom = event.target.value;
+    activeOpsMatchId = null;
+    renderOpsList();
+    return;
+  }
+
+  if (event.target.id === "opsDateTo") {
+    opsDateTo = event.target.value;
+    activeOpsMatchId = null;
+    renderOpsList();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  const resetButton = event.target.closest("#opsFilterReset");
+  if (!resetButton) return;
+
+  opsSearchQuery = "";
+  opsSortMode = "dateAsc";
+  opsDateFrom = "";
+  opsDateTo = "";
+  activeOpsFilter = "all";
   activeOpsMatchId = null;
   renderAdmin();
 });
