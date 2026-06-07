@@ -15,6 +15,7 @@ let gameSearchQuery = "";
 let activeGameCategoryFilter = "all";
 let isGameDetailOpen = false;
 let activeAreaFilter = "all";
+let activeNoticeAreaFilter = "all";
 let activeOpsFilter = "all";
 let activeOpsMatchId = null;
 let activeMemberId = null;
@@ -310,6 +311,25 @@ function matchSortValue(match) {
 
 function matchCapacityLabel(match) {
   return match.playerCount >= 2 ? "마감" : `${match.playerCount}/2`;
+}
+
+function noticeAreaMatches(match, filter) {
+  return filter === "all" || getMatchArea(match) === filter;
+}
+
+function groupMatchesByDate(matches) {
+  return matches.reduce((groups, match) => {
+    const key = dateKeyFromMatch(match) || match.date;
+    const group = groups.find((item) => item.key === key);
+
+    if (group) {
+      group.matches.push(match);
+    } else {
+      groups.push({ key, label: match.date, matches: [match] });
+    }
+
+    return groups;
+  }, []);
 }
 
 function selectableApplyMatches() {
@@ -713,7 +733,7 @@ function renderMatches() {
   submitButton.disabled = appState.isAuthenticated && !document.querySelector("#dateSelect")?.value;
 }
 
-function renderNotices() {
+function renderNoticesLegacy() {
   const confirmedMatches = appState.matches.filter((match) => match.confirmed);
 
   document.querySelector("#noticeBoard").innerHTML = confirmedMatches
@@ -747,6 +767,108 @@ function renderNotices() {
       `;
     })
     .join("");
+}
+
+function renderNoticeCard(match) {
+  const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
+  const gameCategory = match.gameRevealed && match.game ? getGameCategory(match.game) : "";
+  const gameBody =
+    match.gameRevealed && match.game
+      ? `${match.game.summary} 이번 매치의 상세 규칙이 공개되었습니다.`
+      : "시작 24시간 전에 운영자가 게임과 규칙을 공개합니다.";
+  const playerNames = match.players.map((player) => player.nickname);
+
+  return `
+    <article class="notice-main notice-card">
+      <div class="notice-card-top">
+        <div class="status-pill ${
+          match.gameRevealed ? `revealed-pill notice-game-pill notice-game-pill--${gameCategory}` : "confirmed"
+        }">${gameLabel}</div>
+        <span class="notice-area">${getMatchArea(match)}</span>
+      </div>
+      <h3>${match.time}</h3>
+      <div class="notice-meta">
+        <span>${match.location}</span>
+        <span>${match.playerCount}/2명</span>
+      </div>
+      <p>${gameBody}</p>
+      <div class="player-row">
+        <span>${playerNames[0] || "참가자 1"}</span>
+        <strong>VS</strong>
+        <span>${playerNames[1] || "참가자 2"}</span>
+      </div>
+      ${
+        match.gameRevealed && match.game
+          ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
+          : ""
+      }
+    </article>
+  `;
+}
+
+function renderNotices() {
+  const board = document.querySelector("#noticeBoard");
+  const confirmedMatches = appState.matches
+    .filter((match) => match.confirmed)
+    .sort((a, b) => matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR"));
+  const areas = ["all", ...new Set(confirmedMatches.map(getMatchArea))];
+
+  if (!areas.includes(activeNoticeAreaFilter)) {
+    activeNoticeAreaFilter = "all";
+  }
+
+  const filteredMatches = confirmedMatches.filter((match) => noticeAreaMatches(match, activeNoticeAreaFilter));
+  const groups = groupMatchesByDate(filteredMatches);
+  const areaButtons = areas
+    .map((area) => {
+      const label = area === "all" ? "전체" : area;
+      return `
+        <button class="${area === activeNoticeAreaFilter ? "selected" : ""}" type="button" data-notice-area-filter="${area}">
+          ${label}
+        </button>
+      `;
+    })
+    .join("");
+
+  const emptyMessage = confirmedMatches.length
+    ? `
+      <article class="notice-main empty-state">
+        <strong>조건에 맞는 확정 공지가 없습니다</strong>
+        <p>다른 지역을 선택해 주세요.</p>
+      </article>
+    `
+    : `
+      <article class="notice-main empty-state">
+        <strong>확정된 매치가 없습니다</strong>
+        <p>2명이 모이면 이곳에 확정 공지가 표시됩니다.</p>
+      </article>
+    `;
+
+  board.innerHTML = `
+    <div class="notice-toolbar">
+      <div class="segmented notice-area-filter">${areaButtons}</div>
+      <span class="notice-count">${filteredMatches.length}개 확정 매치</span>
+    </div>
+    ${
+      groups.length
+        ? groups
+            .map(
+              (group) => `
+                <section class="notice-date-group">
+                  <div class="notice-date-head">
+                    <h3>${group.label}</h3>
+                    <span>${group.matches.length}개 매치</span>
+                  </div>
+                  <div class="notice-card-list">
+                    ${group.matches.map(renderNoticeCard).join("")}
+                  </div>
+                </section>
+              `,
+            )
+            .join("")
+        : emptyMessage
+    }
+  `;
 }
 
 function renderRankings() {
@@ -1800,6 +1922,14 @@ document.addEventListener("click", (event) => {
   activeAreaFilter = filterButton.dataset.areaFilter;
   renderAreaFilters();
   renderMatches();
+});
+
+document.addEventListener("click", (event) => {
+  const filterButton = event.target.closest("[data-notice-area-filter]");
+  if (!filterButton) return;
+
+  activeNoticeAreaFilter = filterButton.dataset.noticeAreaFilter;
+  renderNotices();
 });
 
 document.addEventListener("click", (event) => {
