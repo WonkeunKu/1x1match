@@ -1258,6 +1258,44 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/request-password-reset") {
+    const body = await parseBody(request);
+    requireField(body.realName, "이름");
+    requireField(body.birthDate, "생년월일");
+    requireField(body.phone, "전화번호");
+
+    const realName = String(body.realName || "").trim();
+    const birthDate = normalizeBirthDate(body.birthDate);
+    const phone = normalizePhone(body.phone);
+
+    if (!isValidBirthDate(birthDate)) {
+      sendJson(response, 400, { error: "생년월일은 YYYY-MM-DD 형식으로 입력해 주세요." });
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      sendJson(response, 400, { error: "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요." });
+      return;
+    }
+
+    const member = state.members.find(
+      (candidate) =>
+        String(candidate.realName || "").trim() === realName &&
+        normalizeBirthDate(candidate.birthDate) === birthDate &&
+        normalizePhone(candidate.phone) === phone,
+    );
+
+    if (!member) {
+      sendJson(response, 404, { error: "입력한 정보와 일치하는 회원을 찾을 수 없습니다." });
+      return;
+    }
+
+    logEvent(`${member.nickname}님이 비밀번호 초기화를 요청했습니다. 본인 확인 정보: ${realName} / ${birthDate} / ${phone}`);
+    await persistState();
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/restore-session") {
     const body = await parseBody(request);
     const session = verifySessionToken(body.token);

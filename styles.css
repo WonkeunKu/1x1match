@@ -332,6 +332,21 @@ h3 {
   border: 1px solid rgba(255, 74, 57, 0.2);
   border-radius: 8px;
   background: linear-gradient(135deg, #1c1715, #120f0f);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.user-chip:hover,
+.user-chip:focus-visible {
+  border-color: rgba(255, 204, 122, 0.34);
+  background: linear-gradient(135deg, rgba(80, 24, 25, 0.82), #161111);
+  box-shadow: 0 12px 28px rgba(181, 31, 36, 0.16);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .view {
@@ -1835,6 +1850,56 @@ select:disabled {
   border-top: 0;
 }
 
+.mypage-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 14px;
+}
+
+.mypage-card {
+  padding: 18px;
+  border: 1px solid rgba(255, 74, 57, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(30, 22, 20, 0.96), rgba(18, 14, 14, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.mypage-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mypage-card h3 {
+  margin-top: 8px;
+}
+
+.mypage-card p {
+  color: var(--muted);
+}
+
+.mypage-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mypage-history > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 7, 7, 0.52);
+}
+
+.mypage-history span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .member-edit-form > div {
   grid-column: 1 / -1;
 }
@@ -2538,6 +2603,7 @@ select:disabled {
   .member-edit-actions,
   .profile-edit-actions,
   .member-detail-grid,
+  .mypage-grid,
   .member-history-row,
   .member-history-row div:last-child,
   .final-check-grid {
@@ -2549,6 +2615,10 @@ select:disabled {
   }
 
   .member-detail-head {
+    display: grid;
+  }
+
+  .mypage-card-head {
     display: grid;
   }
 

@@ -198,6 +198,7 @@ function renderAll() {
   renderNavigation();
   renderUser();
   renderAuth();
+  renderMyPage();
   renderPaymentGuide();
   renderAreaFilters();
   renderMyApplications();
@@ -579,12 +580,17 @@ function renderUser() {
     }
     userChip.hidden = true;
     userChip.innerHTML = "";
+    userChip.removeAttribute("role");
+    userChip.removeAttribute("tabindex");
     return;
   }
 
   const user = appState.user;
   if (authButton) authButton.hidden = true;
   userChip.hidden = false;
+  userChip.setAttribute("role", "button");
+  userChip.setAttribute("tabindex", "0");
+  userChip.setAttribute("title", "마이페이지");
   userChip.innerHTML = `
     <span class="avatar">${user.nickname.slice(0, 1)}</span>
     <div>
@@ -625,36 +631,8 @@ function renderAuth() {
       <h3>${user.nickname}</h3>
       <p>${user.phone} · 주 활동지 ${user.area}</p>
     </div>
-    <button class="secondary-button" type="button" id="logoutButton">로그아웃</button>
+    <button class="secondary-button" type="button" data-logout-button>로그아웃</button>
   `;
-  memberCard.insertAdjacentHTML(
-    "beforeend",
-    `
-      <form class="profile-edit-form" id="profileEditForm">
-        <label>
-          닉네임
-          <input type="text" name="nickname" value="${escapeHtml(user.nickname)}" required />
-        </label>
-        <label>
-          이름
-          <input type="text" name="realName" value="${escapeHtml(user.realName || "")}" required />
-        </label>
-        <label>
-          생년월일
-          <input type="text" name="birthDate" value="${escapeHtml(user.birthDate || "")}" inputmode="numeric" maxlength="10" required />
-        </label>
-        <label>
-          전화번호
-          <input type="tel" name="phone" value="${escapeHtml(user.phone)}" inputmode="numeric" maxlength="13" required />
-        </label>
-        <label>
-          주 활동지
-          <input type="text" name="area" value="${escapeHtml(user.area)}" required />
-        </label>
-        <button class="primary-button" type="submit">내 정보 저장</button>
-      </form>
-    `,
-  );
   applyButton.disabled = false;
   applyButton.innerHTML = isPaymentConfirmOpen
     ? `<span data-icon="card"></span> 신청 완료`
@@ -663,6 +641,93 @@ function renderAuth() {
   finalPaymentCheck.hidden = !isPaymentConfirmOpen;
   refundConsent.disabled = !isPaymentConfirmOpen;
   if (!isPaymentConfirmOpen) refundConsent.checked = false;
+}
+
+function renderMyPage() {
+  const panel = document.querySelector("#mypageContent");
+  if (!panel) return;
+
+  if (!appState.isAuthenticated) {
+    panel.innerHTML = `
+      <section class="mypage-card">
+        <span class="status-pill pending">로그인 필요</span>
+        <h3>회원 정보는 로그인 후 확인할 수 있습니다.</h3>
+        <p>상단의 로그인 버튼을 눌러 먼저 회원 인증을 진행해 주세요.</p>
+        <button class="primary-button" type="button" data-open-auth-from-mypage>로그인하기</button>
+      </section>
+    `;
+    return;
+  }
+
+  const user = appState.user;
+  const mine = appState.matches.filter((match) => match.hasMyApplication);
+  const nextMatches = mine
+    .slice()
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+    .slice(0, 5);
+
+  panel.innerHTML = `
+    <div class="mypage-grid">
+      <section class="mypage-card">
+        <div class="mypage-card-head">
+          <div>
+            <span class="status-pill confirmed">내 정보</span>
+            <h3>${escapeHtml(user.nickname)}</h3>
+            <p>${user.wins}승 ${user.losses}패 · 주 활동지 ${escapeHtml(user.area)}</p>
+          </div>
+          <button class="secondary-button" type="button" data-logout-button>로그아웃</button>
+        </div>
+        <form class="profile-edit-form" id="profileEditForm">
+          <label>
+            닉네임
+            <input type="text" name="nickname" value="${escapeHtml(user.nickname)}" required />
+          </label>
+          <label>
+            이름
+            <input type="text" name="realName" value="${escapeHtml(user.realName || "")}" required />
+          </label>
+          <label>
+            생년월일
+            <input type="text" name="birthDate" value="${escapeHtml(user.birthDate || "")}" inputmode="numeric" maxlength="10" required />
+          </label>
+          <label>
+            전화번호
+            <input type="tel" name="phone" value="${escapeHtml(user.phone)}" inputmode="numeric" maxlength="13" required />
+          </label>
+          <label>
+            주 활동지
+            <input type="text" name="area" value="${escapeHtml(user.area)}" required />
+          </label>
+          <div class="profile-edit-actions">
+            <button class="primary-button" type="submit">정보 저장</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="mypage-card">
+        <span class="status-pill revealed">내 신청 이력</span>
+        <h3>${mine.length}개 매치 신청</h3>
+        ${
+          nextMatches.length
+            ? `
+              <div class="mypage-history">
+                ${nextMatches
+                  .map(
+                    (match) => `
+                      <div>
+                        <strong>${formatDateLabel(match.date)} ${match.time}</strong>
+                        <span>${escapeHtml(match.area)} · ${escapeHtml(match.venue)} · ${match.players.length}/${match.capacity}명</span>
+                      </div>
+                    `,
+                  )
+                  .join("")}
+              </div>
+            `
+            : `<p>아직 신청한 매치가 없습니다.</p>`
+        }
+      </section>
+    </div>
+  `;
 }
 
 function renderMyApplications() {
@@ -1921,6 +1986,16 @@ document.querySelector("#openAuthButton")?.addEventListener("click", () => {
   openAuthView();
 });
 
+document.querySelector("#userChip")?.addEventListener("click", () => {
+  setActiveView("mypage");
+});
+
+document.querySelector("#userChip")?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  setActiveView("mypage");
+});
+
 document.querySelector("#backFromAuthButton")?.addEventListener("click", closeAuthView);
 
 document.querySelectorAll('input[type="tel"][name="phone"]').forEach((input) => {
@@ -1956,6 +2031,12 @@ document.querySelector("#dateSelect")?.addEventListener("change", () => {
 });
 
 document.addEventListener("click", (event) => {
+  const mypageAuthButton = event.target.closest("[data-open-auth-from-mypage]");
+  if (mypageAuthButton) {
+    openAuthView();
+    return;
+  }
+
   const areaButton = event.target.closest("[data-apply-area]");
   if (!areaButton) return;
 
@@ -2073,7 +2154,13 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("input", (event) => {
-  if (!event.target.closest("[data-update-member]") && !event.target.closest("#profileEditForm")) return;
+  if (
+    !event.target.closest("[data-update-member]") &&
+    !event.target.closest("#profileEditForm") &&
+    !event.target.closest("#resetForm")
+  ) {
+    return;
+  }
 
   if (event.target.name === "phone") {
     event.target.value = formatPhoneInput(event.target.value);
@@ -2157,6 +2244,19 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
     renderAll();
     closeAuthView();
     showToast("로그인되었습니다. 참가 신청을 진행할 수 있습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.querySelector("#resetForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+
+  try {
+    await submitForm("/api/request-password-reset", form);
+    form.reset();
+    showToast("비밀번호 초기화 요청이 운영자에게 전달되었습니다.");
   } catch (error) {
     showToast(error.message);
   }
@@ -2323,7 +2423,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const logoutButton = event.target.closest("#logoutButton");
+  const logoutButton = event.target.closest("[data-logout-button]");
   if (logoutButton) {
     appState = await request("/api/logout", { method: "POST", body: "{}" });
     clearSession();

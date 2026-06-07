@@ -91,6 +91,7 @@
                 <div class="auth-tabs" role="tablist" aria-label="회원 메뉴">
                   <button class="selected" type="button" data-auth-tab="login">로그인</button>
                   <button type="button" data-auth-tab="signup">회원가입</button>
+                  <button type="button" data-auth-tab="reset">비밀번호 찾기</button>
                 </div>
 
                 <form class="auth-form active" id="loginForm">
@@ -105,6 +106,24 @@
                     <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required />
                   </label>
                   <button class="primary-button" type="submit">로그인</button>
+                </form>
+
+                <form class="auth-form" id="resetForm">
+                  <h3>비밀번호 초기화 요청</h3>
+                  <p>가입할 때 등록한 정보가 일치하면 운영자에게 초기화 요청이 전달됩니다.</p>
+                  <label>
+                    이름
+                    <input type="text" name="realName" placeholder="입금자명과 같은 실명" autocomplete="name" required />
+                  </label>
+                  <label>
+                    생년월일
+                    <input type="text" name="birthDate" placeholder="예: 1998-03-21" inputmode="numeric" autocomplete="bday" maxlength="10" required />
+                  </label>
+                  <label>
+                    전화번호
+                    <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" maxlength="13" required />
+                  </label>
+                  <button class="primary-button" type="submit">초기화 요청 보내기</button>
                 </form>
 
                 <form class="auth-form" id="signupForm">
@@ -187,6 +206,17 @@
           <section class="my-applications" id="myApplications"></section>
 
           <div class="match-grid" id="matchGrid"></div>
+        </section>
+
+        <section id="mypage" class="view">
+          <div class="section-head">
+            <div>
+              <h2>마이페이지</h2>
+              <p>회원 정보와 신청 이력을 확인하고, 필요한 정보를 직접 수정합니다.</p>
+            </div>
+          </div>
+
+          <div id="mypageContent"></div>
         </section>
 
         <section id="notice" class="view">
