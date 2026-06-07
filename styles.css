@@ -1738,13 +1738,96 @@ select:disabled {
 }
 
 .metric {
+  width: 100%;
+  border: 1px solid rgba(255, 74, 57, 0.13);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(35, 29, 27, 0.98), rgba(20, 16, 15, 0.98));
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
   justify-content: space-between;
   min-height: 94px;
   padding: 18px;
+  cursor: pointer;
+}
+
+.metric:hover,
+.metric.selected {
+  border-color: rgba(255, 74, 57, 0.46);
+  background:
+    linear-gradient(180deg, rgba(68, 35, 31, 0.98), rgba(32, 19, 18, 0.98));
 }
 
 .metric strong {
   font-size: 30px;
+}
+
+.admin-action-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid rgba(184, 135, 45, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(36, 22, 20, 0.96), rgba(16, 12, 12, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.admin-action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-action-head span {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-action-head h3 {
+  margin: 4px 0 0;
+}
+
+.admin-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-action-item {
+  display: grid;
+  gap: 7px;
+  min-height: 118px;
+  padding: 14px;
+  border: 1px solid rgba(255, 248, 239, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 6, 6, 0.72);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.admin-action-item.active {
+  border-color: rgba(255, 74, 57, 0.34);
+}
+
+.admin-action-item strong {
+  font-size: 16px;
+}
+
+.admin-action-item span {
+  color: var(--amber);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.admin-action-item small {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .ops-list {
@@ -2265,6 +2348,7 @@ select:disabled {
   .admin-grid,
   .policy-grid,
   .privacy-detail-grid,
+  .admin-action-grid,
   .game-layout,
   .member-card,
   .member-detail-grid,
@@ -2364,6 +2448,14 @@ select:disabled {
   }
 
   .ops-control-bar .secondary-button {
+    width: 100%;
+  }
+
+  .admin-action-head {
+    display: grid;
+  }
+
+  .admin-action-head .secondary-button {
     width: 100%;
   }
 

@@ -957,24 +957,25 @@ function renderAdmin() {
   adminContent.hidden = false;
 
   const metrics = [
-    ["전체 회원", appState.members?.length || 0],
-    ["오늘 신규 신청", appState.metrics.todayApplications],
-    ["확정 매치", appState.metrics.confirmed],
-    ["환불 검토", appState.metrics.refundTargets],
-    ["게임 공개 대기", appState.metrics.revealWaiting],
+    ["전체 회원", appState.members?.length || 0, "all"],
+    ["입금 대기", appState.matches.filter(hasPaymentPending).length, "payment"],
+    ["게임 공개 대기", appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length, "reveal"],
+    ["결과 입력 대기", appState.matches.filter((match) => match.confirmed && !match.result).length, "result"],
+    ["환불 필요", appState.matches.filter(hasRefundNeeded).length, "refund"],
   ];
 
   document.querySelector("#adminMetrics").innerHTML = metrics
     .map(
-      ([label, value]) => `
-        <article class="metric">
+      ([label, value, filter]) => `
+        <button class="metric ${activeOpsFilter === filter ? "selected" : ""}" type="button" data-ops-jump="${filter}">
           <span>${label}</span>
           <strong>${value}</strong>
-        </article>
+        </button>
       `,
     )
     .join("");
 
+  renderAdminActionPanel();
   renderMemberRoster();
   renderOpsList();
 
@@ -996,6 +997,68 @@ function renderAdmin() {
         .join("")}
     </ul>
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
+  `;
+}
+
+function adminActionItems() {
+  const items = [
+    {
+      filter: "payment",
+      title: "입금 확인",
+      count: appState.matches.filter(hasPaymentPending).length,
+      detail: "참가 신청 후 입금 확인이 필요한 매치",
+    },
+    {
+      filter: "reveal",
+      title: "게임 공개",
+      count: appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length,
+      detail: "확정됐지만 아직 게임이 공개되지 않은 매치",
+    },
+    {
+      filter: "result",
+      title: "결과 입력",
+      count: appState.matches.filter((match) => match.confirmed && !match.result).length,
+      detail: "경기 결과가 아직 기록되지 않은 매치",
+    },
+    {
+      filter: "refund",
+      title: "환불 처리",
+      count: appState.matches.filter(hasRefundNeeded).length,
+      detail: "환불 예약 또는 환불 확인이 필요한 매치",
+    },
+  ];
+
+  return items;
+}
+
+function renderAdminActionPanel() {
+  const panel = document.querySelector("#adminActionPanel");
+  if (!panel) return;
+
+  const items = adminActionItems();
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+
+  panel.innerHTML = `
+    <div class="admin-action-head">
+      <div>
+        <span>운영 체크리스트</span>
+        <h3>${total ? `처리할 일 ${total}개` : "현재 급한 처리 항목 없음"}</h3>
+      </div>
+      <button class="secondary-button" type="button" data-ops-jump="all">전체 매치 보기</button>
+    </div>
+    <div class="admin-action-grid">
+      ${items
+        .map(
+          (item) => `
+            <button class="admin-action-item ${item.count ? "active" : ""}" type="button" data-ops-jump="${item.filter}">
+              <strong>${item.title}</strong>
+              <span>${item.count}개</span>
+              <small>${item.detail}</small>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
   `;
 }
 
@@ -1746,6 +1809,19 @@ document.addEventListener("click", (event) => {
   activeOpsFilter = filterButton.dataset.opsFilter;
   activeOpsMatchId = null;
   renderAdmin();
+});
+
+document.addEventListener("click", (event) => {
+  const jumpButton = event.target.closest("[data-ops-jump]");
+  if (!jumpButton) return;
+
+  activeOpsFilter = jumpButton.dataset.opsJump;
+  opsSearchQuery = "";
+  opsDateFrom = "";
+  opsDateTo = "";
+  activeOpsMatchId = null;
+  renderAdmin();
+  document.querySelector("#opsList")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.addEventListener("input", (event) => {
