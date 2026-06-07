@@ -1792,6 +1792,8 @@ function renderOpsList() {
 
 function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
+  const isManualReveal = match.gameRevealMode === "manual";
+  const isAutoReveal = match.gameRevealMode === "auto";
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
@@ -1896,9 +1898,11 @@ function renderOpsCard(match) {
             <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
             <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
             ${
-              match.gameRevealed
+              isManualReveal
                 ? `<button class="secondary-button danger-button" type="button" data-hide-game="${match.id}">공개 취소</button>`
-                : `<button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>게임 공개</button>`
+                : isAutoReveal
+                  ? `<button class="secondary-button" type="button" disabled>자동 공개됨</button>`
+                  : `<button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>선택 게임 예약</button>`
             }
           </div>
           <div class="ops-action-group">
@@ -1930,7 +1934,7 @@ function renderOpsCard(match) {
                 <strong>${recommendedGame ? recommendedGame.title : "아직 추천된 게임 없음"}</strong>
                 <p>${
                   recommendedGame
-                    ? `${recommendedGame.summary} 운영자가 게임 공개를 눌러야 참가자에게 공지됩니다.`
+                    ? `${recommendedGame.summary} 선택 게임 예약 후 시작 24시간 전에 자동 공개됩니다.`
                     : "랜덤 추천 버튼을 누르면 사이트가 게임을 하나 고릅니다. 마음에 들면 게임 공개, 아니면 다시 추천하거나 선택창에서 직접 바꿔 공개할 수 있습니다."
                 }</p>
               </div>
@@ -2665,7 +2669,7 @@ document.addEventListener("click", async (event) => {
 
   const completePaymentButton = event.target.closest("[data-complete-payment]");
   if (completePaymentButton) {
-    if (!window.confirm("이 참가자의 입금을 확인 처리할까요?")) return;
+    if (!window.confirm("입금 확인 완료로 처리할까요?")) return;
 
     appState = await request("/api/complete-payment", {
       method: "POST",
@@ -2695,7 +2699,7 @@ document.addEventListener("click", async (event) => {
 
   const revealButton = event.target.closest("[data-reveal]");
   if (revealButton) {
-    if (!window.confirm("선택한 게임을 참가자 공지에 공개할까요?")) return;
+    if (!window.confirm("선택한 게임을 예약할까요? 참가자에게는 시작 24시간 전에 자동 공개됩니다.")) return;
 
     const matchId = revealButton.dataset.reveal;
     const gameId = document.querySelector(`[data-game-select="${matchId}"]`).value;
@@ -2704,7 +2708,7 @@ document.addEventListener("click", async (event) => {
       body: JSON.stringify({ matchId, gameId }),
     });
     renderAll();
-    showToast("게임과 규칙이 공지 화면에 공개되었습니다.");
+    showToast("선택한 게임을 예약했습니다. 시작 24시간 전에 자동 공개됩니다.");
   }
 
   const hideGameButton = event.target.closest("[data-hide-game]");
@@ -2726,7 +2730,7 @@ document.addEventListener("click", async (event) => {
       body: JSON.stringify({ matchId: recommendGameButton.dataset.recommendGame }),
     });
     renderAll();
-    showToast("랜덤 추천 게임을 골랐습니다. 확인 후 게임 공개를 눌러주세요.");
+    showToast("랜덤 추천 게임을 지정했습니다. 시작 24시간 전에 자동 공개됩니다.");
   }
 
   const resultButton = event.target.closest("[data-result]");

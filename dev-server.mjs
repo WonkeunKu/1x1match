@@ -905,6 +905,27 @@ function requireAdmin(response) {
   return true;
 }
 
+function matchStartDate(match) {
+  const datePart = String(match.id || "").slice(0, 10);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : "";
+  const time = /^\d{2}:\d{2}$/.test(String(match.time || "")) ? match.time : "00:00";
+  if (!date) return null;
+
+  const start = new Date(`${date}T${time}:00+09:00`);
+  return Number.isNaN(start.getTime()) ? null : start;
+}
+
+function isAutoGameRevealOpen(match) {
+  const start = matchStartDate(match);
+  if (!start) return false;
+
+  return start.getTime() - Date.now() <= 24 * 60 * 60 * 1000;
+}
+
+function isGamePublic(match, confirmed) {
+  return Boolean(match.gameRevealed || (confirmed && match.gameId && isAutoGameRevealOpen(match)));
+}
+
 function decorateMatch(match) {
   const allPlayers = match.applications.map((application) => {
     const member = state.members.find((candidate) => candidate.id === application.memberId);
@@ -918,7 +939,8 @@ function decorateMatch(match) {
   const players = allPlayers.filter((player) => !player.cancelled && player.paymentStatus === "paid");
   const confirmed = players.length >= 2;
   const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
-  const visibleGame = match.gameRevealed || state.isAdmin ? game : null;
+  const gamePublic = isGamePublic(match, confirmed);
+  const visibleGame = gamePublic || state.isAdmin ? game : null;
   const myApplication = state.currentUserId ? allPlayers.find((player) => player.memberId === state.currentUserId) : null;
 
   return {
@@ -931,6 +953,9 @@ function decorateMatch(match) {
     statusLabel: confirmed ? "확정" : players.length === 1 ? "1명 대기" : "신청 가능",
     gameId: visibleGame ? match.gameId : null,
     game: visibleGame,
+    gameRevealed: gamePublic,
+    gameRevealMode: match.gameRevealed ? "manual" : gamePublic ? "auto" : "scheduled",
+    gameRevealAt: matchStartDate(match) ? new Date(matchStartDate(match).getTime() - 24 * 60 * 60 * 1000).toISOString() : null,
     adminNote: state.isAdmin ? match.adminNote || "" : undefined,
     notificationLog: match.notificationLog || [],
     appliedByMe: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId && !item.cancelled)),
@@ -948,7 +973,7 @@ function decorateMatch(match) {
 function buildMetrics() {
   const waiting = state.matches.filter((match) => activePaidApplications(match).length < 2).length;
   const confirmed = state.matches.filter((match) => activePaidApplications(match).length >= 2).length;
-  const revealWaiting = state.matches.filter((match) => activePaidApplications(match).length >= 2 && !match.gameRevealed).length;
+  const revealWaiting = state.matches.filter((match) => activePaidApplications(match).length >= 2 && !isGamePublic(match, true)).length;
   const refundTargets = state.matches.filter((match) =>
     match.applications.some((application) => ["refund_requested", "refund_scheduled"].includes(application.paymentStatus)),
   ).length;
@@ -1988,7 +2013,7 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    if (match.gameRevealed) {
+    if (isGamePublic(match, true)) {
       sendJson(response, 409, { error: "이미 게임이 공개된 매치입니다." });
       return;
     }
@@ -2023,12 +2048,9 @@ async function handleApi(request, response, pathname) {
     }
 
     match.gameId = game.id;
-    match.gameRevealed = true;
+    match.gameRevealed = false;
     match.notificationLog ||= [];
-    if (activePaidApplications(match).length >= 2 && !match.notificationLog.includes("game-revealed-ready")) {
-      match.notificationLog.push("game-revealed-ready");
-    }
-    logEvent(`${match.date} ${match.time} 매치 게임으로 ${game.title}을 공개했습니다.`);
+    logEvent(`${match.date} ${match.time} 매치 게임으로 ${game.title}을 예약했습니다. 시작 24시간 전에 자동 공개됩니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
