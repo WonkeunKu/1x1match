@@ -1205,6 +1205,72 @@ select:disabled {
   line-height: 1.7;
 }
 
+.privacy-detail-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid rgba(190, 40, 43, 0.36);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(36, 22, 20, 0.96), rgba(16, 12, 12, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.privacy-detail-head {
+  display: grid;
+  gap: 8px;
+}
+
+.privacy-detail-head span {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(190, 40, 43, 0.18);
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.privacy-detail-head h3,
+.privacy-detail-head p {
+  margin: 0;
+}
+
+.privacy-detail-head p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.privacy-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.privacy-detail-grid article {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid rgba(255, 248, 239, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 6, 6, 0.78);
+}
+
+.privacy-detail-grid strong,
+.privacy-detail-grid p {
+  margin: 0;
+}
+
+.privacy-detail-grid strong {
+  color: var(--text);
+}
+
+.privacy-detail-grid p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
 .admin-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
@@ -1887,6 +1953,7 @@ select:disabled {
 
   .match-grid,
   .policy-grid,
+  .privacy-detail-grid,
   .admin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1952,6 +2019,7 @@ select:disabled {
   .notice-board,
   .admin-grid,
   .policy-grid,
+  .privacy-detail-grid,
   .game-layout,
   .member-card,
   .member-detail-grid,
