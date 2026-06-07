@@ -965,6 +965,14 @@ function normalizePhone(phone) {
   return digits;
 }
 
+function normalizeNickname(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function nicknameKey(value) {
+  return normalizeNickname(value).toLocaleLowerCase("ko-KR");
+}
+
 function isValidPhone(phone) {
   return /^010-\d{4}-\d{4}$/.test(phone);
 }
@@ -1148,7 +1156,8 @@ async function handleApi(request, response, pathname) {
     requireConsent(body.privacyConsent, "개인정보 수집 및 이용");
 
     const phone = normalizePhone(body.phone);
-    const nickname = String(body.nickname).trim();
+    const nickname = normalizeNickname(body.nickname);
+    const nicknameComparisonKey = nicknameKey(nickname);
     const realName = String(body.realName || "").trim();
     const birthDate = normalizeBirthDate(body.birthDate);
 
@@ -1164,8 +1173,8 @@ async function handleApi(request, response, pathname) {
 
     validatePassword(body.password, body.passwordConfirm);
 
-    const existingMemberByPhone = state.members.find((member) => member.phone === phone);
-    const existingMemberByNickname = state.members.find((member) => member.nickname === nickname);
+    const existingMemberByPhone = state.members.find((member) => normalizePhone(member.phone) === phone);
+    const existingMemberByNickname = state.members.find((member) => nicknameKey(member.nickname) === nicknameComparisonKey);
 
     if (existingMemberByPhone && !existingMemberByPhone.passwordHash) {
       if (existingMemberByNickname && existingMemberByNickname.id !== existingMemberByPhone.id) {
@@ -1186,10 +1195,13 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    const exists = Boolean(existingMemberByPhone || existingMemberByNickname);
+    if (existingMemberByPhone) {
+      sendJson(response, 409, { error: "이미 가입된 전화번호입니다. 로그인해 주세요." });
+      return;
+    }
 
-    if (exists) {
-      sendJson(response, 409, { error: "이미 가입된 닉네임 또는 전화번호입니다. 로그인해 주세요." });
+    if (existingMemberByNickname) {
+      sendJson(response, 409, { error: "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요." });
       return;
     }
 

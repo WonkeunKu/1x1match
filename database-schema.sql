@@ -18,6 +18,9 @@ alter table members
   add column if not exists real_name text,
   add column if not exists birth_date text;
 
+create unique index if not exists members_nickname_lower_unique
+  on members (lower(nickname));
+
 create table if not exists games (
   id text primary key,
   title text not null,
