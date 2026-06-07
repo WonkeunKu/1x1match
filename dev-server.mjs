@@ -31,8 +31,10 @@ function loadLocalEnv() {
 
 loadLocalEnv();
 
-const storageDriver = process.env.STORAGE_DRIVER || "json";
+const storageDriver =
+  process.env.STORAGE_DRIVER || (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? "supabase" : "json");
 const storage = createStorage({ driver: storageDriver, jsonPath: storagePath });
+const jsonStorage = storage.name === "supabase" ? createStorage({ driver: "json", jsonPath: storagePath }) : null;
 const paymentProvider = createPaymentProvider({ provider: process.env.PAYMENT_PROVIDER || "mock" });
 const smsProvider = createSmsProvider({ provider: process.env.SMS_PROVIDER || "mock" });
 const adminPassword = process.env.ADMIN_PASSWORD || "mindmatch-admin";
@@ -785,24 +787,38 @@ async function loadStoredState() {
   try {
     const stored = await storage.load();
     if (stored) {
-      Object.assign(state, stored);
-      const storedGamesById = new Map((state.games || []).map((game) => [game.id, game]));
-      const defaultGameIds = new Set(defaultGames.map((game) => game.id));
-      state.games = [
-        ...defaultGames.map((game) => ({
-          ...storedGamesById.get(game.id),
-          ...game,
-          rules: [...game.rules],
-        })),
-        ...(state.games || []).filter((game) => !defaultGameIds.has(game.id)),
-      ];
-      state.isAdmin = false;
+      hydrateStoredState(stored);
+      return;
+    }
+
+    if (jsonStorage) {
+      const localStored = await jsonStorage.load();
+      if (localStored) {
+        hydrateStoredState(localStored);
+        await storage.save(state);
+        console.log("Migrated local JSON data to Supabase storage.");
+      }
     }
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.warn(`저장 데이터를 불러오지 못했습니다: ${error.message}`);
     }
   }
+}
+
+function hydrateStoredState(stored) {
+  Object.assign(state, stored);
+  const storedGamesById = new Map((state.games || []).map((game) => [game.id, game]));
+  const defaultGameIds = new Set(defaultGames.map((game) => game.id));
+  state.games = [
+    ...defaultGames.map((game) => ({
+      ...storedGamesById.get(game.id),
+      ...game,
+      rules: [...game.rules],
+    })),
+    ...(state.games || []).filter((game) => !defaultGameIds.has(game.id)),
+  ];
+  state.isAdmin = false;
 }
 
 async function persistState() {
@@ -895,6 +911,7 @@ function decorateMatch(match) {
   const confirmed = players.length >= 2;
   const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
   const visibleGame = match.gameRevealed || state.isAdmin ? game : null;
+  const myApplication = state.currentUserId ? allPlayers.find((player) => player.memberId === state.currentUserId) : null;
 
   return {
     ...match,
@@ -910,6 +927,13 @@ function decorateMatch(match) {
     notificationLog: match.notificationLog || [],
     appliedByMe: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId && !item.cancelled)),
     hasMyApplication: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId)),
+    myApplication: myApplication
+      ? {
+          paymentStatus: myApplication.paymentStatus,
+          cancelled: Boolean(myApplication.cancelled),
+          paid: Boolean(myApplication.paid),
+        }
+      : null,
   };
 }
 

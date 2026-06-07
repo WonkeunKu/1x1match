@@ -648,10 +648,9 @@ function renderMyPage() {
 
   const user = appState.user;
   const mine = appState.matches.filter((match) => match.hasMyApplication);
-  const nextMatches = mine
+  const applicationMatches = mine
     .slice()
-    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
-    .slice(0, 5);
+    .sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
   panel.innerHTML = `
     <div class="mypage-grid">
@@ -718,18 +717,11 @@ function renderMyPage() {
         <span class="status-pill revealed">내 신청 이력</span>
         <h3>${mine.length}개 매치 신청</h3>
         ${
-          nextMatches.length
+          applicationMatches.length
             ? `
-              <div class="mypage-history">
-                ${nextMatches
-                  .map(
-                    (match) => `
-                      <div>
-                        <strong>${formatDateLabel(match.date)} ${match.time}</strong>
-                        <span>${escapeHtml(match.area)} · ${escapeHtml(match.venue)} · ${match.players.length}/${match.capacity}명</span>
-                      </div>
-                    `,
-                  )
+              <div class="mypage-history mypage-history--detailed">
+                ${applicationMatches
+                  .map((match) => renderMyPageApplication(match, user))
                   .join("")}
               </div>
             `
@@ -737,6 +729,56 @@ function renderMyPage() {
         }
       </section>
     </div>
+  `;
+}
+
+function renderMyPageApplication(match, user) {
+  const application =
+    match.myApplication || match.allPlayers?.find((player) => player.memberId === user.id) || {
+      paymentStatus: "payment_pending",
+      cancelled: false,
+    };
+  const paymentLabel = application.cancelled ? "신청 취소됨" : paymentStatusLabel(application.paymentStatus);
+  const confirmLabel = application.cancelled ? "취소됨" : match.confirmed ? "확정" : `${match.players.length}/${match.capacity}명 모집 중`;
+  const gameLabel = match.confirmed
+    ? match.gameRevealed && match.game
+      ? match.game.title
+      : "게임 공개 대기"
+    : "매치 확정 후 공개";
+  const resultLabel = match.result
+    ? match.result.winnerId === user.id
+      ? "승리"
+      : match.result.loserId === user.id
+        ? "패배"
+        : "결과 입력됨"
+    : match.confirmed
+      ? "결과 대기"
+      : "-";
+  const paymentClass = application.cancelled
+    ? "cancelled"
+    : application.paymentStatus === "paid"
+      ? "confirmed"
+      : ["refund_requested", "refund_scheduled", "refunded"].includes(application.paymentStatus)
+        ? "refunding"
+        : "pending";
+  const gameCategory = match.game ? getGameCategory(match.game) : "";
+
+  return `
+    <article class="mypage-application-card">
+      <div class="mypage-application-main">
+        <div>
+          <strong>${formatDateLabel(match.date)} ${match.time}</strong>
+          <span>${escapeHtml(match.area)} · ${escapeHtml(match.venue)}</span>
+        </div>
+        <span class="status-pill ${paymentClass}">${paymentLabel}</span>
+      </div>
+      <div class="mypage-application-status">
+        <span><strong>확정</strong>${confirmLabel}</span>
+        <span><strong>게임</strong><em class="${gameCategory ? `notice-game-pill notice-game-pill--${gameCategory}` : ""}">${escapeHtml(gameLabel)}</em></span>
+        <span><strong>결과</strong>${resultLabel}</span>
+        <span><strong>인원</strong>${match.players.length}/${match.capacity}명</span>
+      </div>
+    </article>
   `;
 }
 

@@ -1933,6 +1933,12 @@ select:disabled {
   margin-top: 14px;
 }
 
+.mypage-history--detailed {
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .mypage-history > div {
   display: grid;
   gap: 4px;
@@ -1945,6 +1951,61 @@ select:disabled {
 .mypage-history span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.mypage-application-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 7, 7, 0.58);
+}
+
+.mypage-application-main {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mypage-application-main > div {
+  display: grid;
+  gap: 5px;
+}
+
+.mypage-application-main strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.mypage-application-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mypage-application-status > span {
+  display: grid;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mypage-application-status strong {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mypage-application-status em {
+  align-self: start;
+  font-style: normal;
 }
 
 .member-edit-form > div {
@@ -2651,6 +2712,7 @@ select:disabled {
   .profile-edit-actions,
   .member-detail-grid,
   .mypage-grid,
+  .mypage-application-status,
   .member-history-row,
   .member-history-row div:last-child,
   .final-check-grid {
@@ -2666,6 +2728,10 @@ select:disabled {
   }
 
   .mypage-card-head {
+    display: grid;
+  }
+
+  .mypage-application-main {
     display: grid;
   }
 
