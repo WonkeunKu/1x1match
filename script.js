@@ -602,7 +602,6 @@ function renderUser() {
 
 function renderAuth() {
   const guestAuth = document.querySelector("#guestAuth");
-  const memberCard = document.querySelector("#memberCard");
   const applyButton = document.querySelector("#applyForm button[type='submit']");
   const dateSelect = document.querySelector("#dateSelect");
   const finalPaymentCheck = document.querySelector("#finalPaymentCheck");
@@ -610,8 +609,6 @@ function renderAuth() {
 
   if (!appState.isAuthenticated) {
     guestAuth.hidden = false;
-    memberCard.hidden = true;
-    memberCard.innerHTML = "";
     applyButton.disabled = false;
     applyButton.innerHTML = `<span data-icon="card"></span> 로그인하고 신청`;
     dateSelect.disabled = false;
@@ -622,17 +619,7 @@ function renderAuth() {
     return;
   }
 
-  const user = appState.user;
   guestAuth.hidden = true;
-  memberCard.hidden = false;
-  memberCard.innerHTML = `
-    <div>
-      <span class="status-pill confirmed">로그인됨</span>
-      <h3>${user.nickname}</h3>
-      <p>${user.phone} · 주 활동지 ${user.area}</p>
-    </div>
-    <button class="secondary-button" type="button" data-logout-button>로그아웃</button>
-  `;
   applyButton.disabled = false;
   applyButton.innerHTML = isPaymentConfirmOpen
     ? `<span data-icon="card"></span> 신청 완료`
@@ -700,6 +687,29 @@ function renderMyPage() {
           </label>
           <div class="profile-edit-actions">
             <button class="primary-button" type="submit">정보 저장</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="mypage-card">
+        <span class="status-pill pending">비밀번호</span>
+        <h3>비밀번호 변경</h3>
+        <p>현재 비밀번호를 확인한 뒤 새 비밀번호로 변경합니다.</p>
+        <form class="profile-edit-form" id="passwordChangeForm">
+          <label>
+            현재 비밀번호
+            <input type="password" name="currentPassword" placeholder="현재 비밀번호" autocomplete="current-password" required />
+          </label>
+          <label>
+            새 비밀번호
+            <input type="password" name="newPassword" placeholder="영문, 숫자, 특수문자 포함 8자 이상" autocomplete="new-password" required />
+          </label>
+          <label>
+            새 비밀번호 확인
+            <input type="password" name="newPasswordConfirm" placeholder="새 비밀번호를 한 번 더 입력" autocomplete="new-password" required />
+          </label>
+          <div class="profile-edit-actions">
+            <button class="primary-button" type="submit">비밀번호 변경</button>
           </div>
         </form>
       </section>
@@ -2342,6 +2352,36 @@ document.addEventListener("submit", async (event) => {
     saveSession();
     renderAll();
     showToast("내 정보를 수정했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("#passwordChangeForm");
+  if (!form) return;
+
+  event.preventDefault();
+
+  const newPassword = form.elements.newPassword.value;
+  const newPasswordConfirm = form.elements.newPasswordConfirm.value;
+
+  if (newPassword !== newPasswordConfirm) {
+    showToast("새 비밀번호와 확인 입력이 일치하지 않습니다.");
+    return;
+  }
+
+  if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+    showToast("비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
+    return;
+  }
+
+  try {
+    appState = await submitForm("/api/change-password", form);
+    saveSession();
+    form.reset();
+    renderAll();
+    showToast("비밀번호를 변경했습니다.");
   } catch (error) {
     showToast(error.message);
   }

@@ -1396,6 +1396,32 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/change-password") {
+    const member = currentUser();
+    const body = await parseBody(request);
+
+    if (!member) {
+      sendJson(response, 401, { error: "로그인 후 비밀번호를 변경할 수 있습니다." });
+      return;
+    }
+
+    requireField(body.currentPassword, "현재 비밀번호");
+    requireField(body.newPassword, "새 비밀번호");
+    requireField(body.newPasswordConfirm, "새 비밀번호 확인");
+
+    if (!verifyPassword(body.currentPassword, member.passwordHash)) {
+      sendJson(response, 401, { error: "현재 비밀번호가 올바르지 않습니다." });
+      return;
+    }
+
+    validatePassword(body.newPassword, body.newPasswordConfirm);
+    member.passwordHash = hashPassword(body.newPassword);
+    logEvent(`${member.nickname}님이 비밀번호를 변경했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/admin/update-member") {
     if (!requireAdmin(response)) return;
 

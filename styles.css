@@ -552,7 +552,7 @@ h3 {
 }
 
 .apply-grid {
-  grid-template-columns: minmax(320px, 1.3fr) minmax(240px, 0.7fr);
+  grid-template-columns: minmax(320px, 1fr);
   align-items: stretch;
 }
 
@@ -1852,7 +1852,7 @@ select:disabled {
 
 .mypage-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
 }
 
