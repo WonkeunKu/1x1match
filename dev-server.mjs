@@ -1304,6 +1304,136 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/update-profile") {
+    const member = currentUser();
+    const body = await parseBody(request);
+
+    if (!member) {
+      sendJson(response, 401, { error: "로그인 후 회원 정보를 수정할 수 있습니다." });
+      return;
+    }
+
+    requireField(body.nickname, "닉네임");
+    requireField(body.realName, "이름");
+    requireField(body.birthDate, "생년월일");
+    requireField(body.phone, "전화번호");
+    requireField(body.area, "주 활동지");
+
+    const nickname = normalizeNickname(body.nickname);
+    const phone = normalizePhone(body.phone);
+    const birthDate = normalizeBirthDate(body.birthDate);
+    const nicknameComparisonKey = nicknameKey(nickname);
+
+    if (!isValidPhone(phone)) {
+      sendJson(response, 400, { error: "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요." });
+      return;
+    }
+
+    if (!isValidBirthDate(birthDate)) {
+      sendJson(response, 400, { error: "생년월일은 YYYY-MM-DD 형식으로 입력해 주세요." });
+      return;
+    }
+
+    const duplicatePhone = state.members.find((candidate) => candidate.id !== member.id && normalizePhone(candidate.phone) === phone);
+    const duplicateNickname = state.members.find((candidate) => candidate.id !== member.id && nicknameKey(candidate.nickname) === nicknameComparisonKey);
+
+    if (duplicatePhone) {
+      sendJson(response, 409, { error: "이미 사용 중인 전화번호입니다." });
+      return;
+    }
+
+    if (duplicateNickname) {
+      sendJson(response, 409, { error: "이미 사용 중인 닉네임입니다." });
+      return;
+    }
+
+    member.nickname = nickname;
+    member.realName = String(body.realName || "").trim();
+    member.birthDate = birthDate;
+    member.phone = phone;
+    member.area = String(body.area || "").trim();
+    logEvent(`${member.nickname}님이 회원 정보를 수정했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/update-member") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const url = new URL(request.url, "http://127.0.0.1");
+    const member = findMember(url.searchParams.get("memberId"));
+
+    if (!member) {
+      sendJson(response, 404, { error: "수정할 회원을 찾을 수 없습니다." });
+      return;
+    }
+
+    requireField(body.nickname, "닉네임");
+    requireField(body.realName, "이름");
+    requireField(body.birthDate, "생년월일");
+    requireField(body.phone, "전화번호");
+    requireField(body.area, "주 활동지");
+
+    const nickname = normalizeNickname(body.nickname);
+    const phone = normalizePhone(body.phone);
+    const birthDate = normalizeBirthDate(body.birthDate);
+    const nicknameComparisonKey = nicknameKey(nickname);
+
+    if (!isValidPhone(phone)) {
+      sendJson(response, 400, { error: "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요." });
+      return;
+    }
+
+    if (!isValidBirthDate(birthDate)) {
+      sendJson(response, 400, { error: "생년월일은 YYYY-MM-DD 형식으로 입력해 주세요." });
+      return;
+    }
+
+    const duplicatePhone = state.members.find((candidate) => candidate.id !== member.id && normalizePhone(candidate.phone) === phone);
+    const duplicateNickname = state.members.find((candidate) => candidate.id !== member.id && nicknameKey(candidate.nickname) === nicknameComparisonKey);
+
+    if (duplicatePhone) {
+      sendJson(response, 409, { error: "이미 사용 중인 전화번호입니다." });
+      return;
+    }
+
+    if (duplicateNickname) {
+      sendJson(response, 409, { error: "이미 사용 중인 닉네임입니다." });
+      return;
+    }
+
+    member.nickname = nickname;
+    member.realName = String(body.realName || "").trim();
+    member.birthDate = birthDate;
+    member.phone = phone;
+    member.area = String(body.area || "").trim();
+    logEvent(`운영자가 ${member.nickname}님의 회원 정보를 수정했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/reset-member-password") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const member = findMember(body.memberId);
+
+    if (!member) {
+      sendJson(response, 404, { error: "비밀번호를 초기화할 회원을 찾을 수 없습니다." });
+      return;
+    }
+
+    validatePassword(body.newPassword, body.newPassword);
+    member.passwordHash = hashPassword(body.newPassword);
+    logEvent(`운영자가 ${member.nickname}님의 비밀번호를 초기화했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/apply") {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);

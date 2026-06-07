@@ -591,8 +591,8 @@ h3 {
 }
 
 .member-card {
-  display: flex;
-  align-items: center;
+  display: grid;
+  align-items: start;
   justify-content: space-between;
   gap: 14px;
   min-height: 100%;
@@ -1691,6 +1691,10 @@ select:disabled {
   background: #100d0d;
 }
 
+.member-roster-filter input {
+  width: 100%;
+}
+
 .member-roster-row {
   display: grid;
   grid-template-columns:
@@ -1814,6 +1818,52 @@ select:disabled {
 .member-detail-grid strong {
   color: var(--muted);
   font-size: 12px;
+}
+
+.member-edit-form,
+.profile-edit-form {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.profile-edit-form {
+  grid-template-columns: 1fr;
+  padding: 0;
+  border-top: 0;
+}
+
+.member-edit-form > div {
+  grid-column: 1 / -1;
+}
+
+.member-edit-form h4,
+.member-edit-form p {
+  margin: 0;
+}
+
+.member-edit-form p {
+  color: var(--muted);
+}
+
+.member-edit-actions,
+.profile-edit-actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.member-edit-actions {
+  grid-column: 1 / -1;
+}
+
+.secondary-button.danger {
+  border-color: rgba(255, 74, 57, 0.42);
+  background: rgba(181, 31, 36, 0.14);
+  color: #ffb8ad;
 }
 
 .member-history {
@@ -2483,6 +2533,10 @@ select:disabled {
   .admin-action-grid,
   .game-layout,
   .member-card,
+  .member-edit-form,
+  .profile-edit-form,
+  .member-edit-actions,
+  .profile-edit-actions,
   .member-detail-grid,
   .member-history-row,
   .member-history-row div:last-child,

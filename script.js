@@ -19,6 +19,7 @@ let activeNoticeAreaFilter = "all";
 let activeOpsFilter = "all";
 let activeOpsMatchId = null;
 let activeMemberId = null;
+let memberSearchQuery = "";
 let visibleEventCount = 8;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
@@ -626,6 +627,34 @@ function renderAuth() {
     </div>
     <button class="secondary-button" type="button" id="logoutButton">로그아웃</button>
   `;
+  memberCard.insertAdjacentHTML(
+    "beforeend",
+    `
+      <form class="profile-edit-form" id="profileEditForm">
+        <label>
+          닉네임
+          <input type="text" name="nickname" value="${escapeHtml(user.nickname)}" required />
+        </label>
+        <label>
+          이름
+          <input type="text" name="realName" value="${escapeHtml(user.realName || "")}" required />
+        </label>
+        <label>
+          생년월일
+          <input type="text" name="birthDate" value="${escapeHtml(user.birthDate || "")}" inputmode="numeric" maxlength="10" required />
+        </label>
+        <label>
+          전화번호
+          <input type="tel" name="phone" value="${escapeHtml(user.phone)}" inputmode="numeric" maxlength="13" required />
+        </label>
+        <label>
+          주 활동지
+          <input type="text" name="area" value="${escapeHtml(user.area)}" required />
+        </label>
+        <button class="primary-button" type="submit">내 정보 저장</button>
+      </form>
+    `,
+  );
   applyButton.disabled = false;
   applyButton.innerHTML = isPaymentConfirmOpen
     ? `<span data-icon="card"></span> 신청 완료`
@@ -1230,6 +1259,14 @@ function memberResultLabel(member, match) {
   return "미참여";
 }
 
+function memberMatchesSearch(member, query) {
+  const keyword = String(query || "").trim().toLocaleLowerCase("ko-KR");
+  if (!keyword) return true;
+
+  return [member.nickname, member.realName, member.birthDate, member.phone, member.area]
+    .some((value) => String(value || "").toLocaleLowerCase("ko-KR").includes(keyword));
+}
+
 function renderMemberDetail() {
   const detail = document.querySelector("#memberDetail");
   if (!detail) return;
@@ -1268,6 +1305,36 @@ function renderMemberDetail() {
       <span><strong>승률</strong>${rate}</span>
       <span><strong>신청</strong>${applications.length}회</span>
     </div>
+    <form class="member-edit-form" data-update-member="${member.id}">
+      <div>
+        <h4>회원 정보 수정</h4>
+        <p>닉네임과 전화번호는 다른 회원과 중복될 수 없습니다.</p>
+      </div>
+      <label>
+        닉네임
+        <input type="text" name="nickname" value="${escapeHtml(member.nickname)}" required />
+      </label>
+      <label>
+        이름
+        <input type="text" name="realName" value="${escapeHtml(member.realName || "")}" required />
+      </label>
+      <label>
+        생년월일
+        <input type="text" name="birthDate" value="${escapeHtml(member.birthDate || "")}" inputmode="numeric" maxlength="10" required />
+      </label>
+      <label>
+        전화번호
+        <input type="tel" name="phone" value="${escapeHtml(member.phone)}" inputmode="numeric" maxlength="13" required />
+      </label>
+      <label>
+        주 활동지
+        <input type="text" name="area" value="${escapeHtml(member.area)}" required />
+      </label>
+      <div class="member-edit-actions">
+        <button class="secondary-button danger" type="button" data-reset-member-password="${member.id}">비밀번호 초기화</button>
+        <button class="primary-button" type="submit">정보 저장</button>
+      </div>
+    </form>
     <div class="member-history">
       <div class="member-history-head">
         <h4>신청 이력</h4>
@@ -1306,15 +1373,23 @@ function renderMemberDetail() {
 function renderMemberRoster() {
   const roster = document.querySelector("#memberRoster");
   if (!roster) return;
+  const searchInput = document.querySelector("#memberSearchInput");
+  if (searchInput && searchInput.value !== memberSearchQuery) {
+    searchInput.value = memberSearchQuery;
+  }
 
-  const members = [...(appState.members || [])].sort((a, b) => {
+  const allMembers = [...(appState.members || [])].sort((a, b) => {
     const aTotal = a.wins + a.losses;
     const bTotal = b.wins + b.losses;
     return bTotal - aTotal || b.wins - a.wins || a.nickname.localeCompare(b.nickname, "ko-KR");
   });
+  const members = allMembers.filter((member) => memberMatchesSearch(member, memberSearchQuery));
 
   if (!members.length) {
-    roster.innerHTML = `<div class="member-roster-empty">가입 회원이 없습니다.</div>`;
+    activeMemberId = null;
+    roster.innerHTML = `<div class="member-roster-empty">${
+      allMembers.length ? "검색 조건에 맞는 회원이 없습니다." : "가입 회원이 없습니다."
+    }</div>`;
     renderMemberDetail();
     return;
   }
@@ -1985,6 +2060,30 @@ document.addEventListener("input", (event) => {
   input?.setSelectionRange(cursorPosition, cursorPosition);
 });
 
+document.addEventListener("input", (event) => {
+  if (event.target.id !== "memberSearchInput") return;
+
+  const cursorPosition = event.target.selectionStart;
+  memberSearchQuery = event.target.value;
+  activeMemberId = null;
+  renderMemberRoster();
+  const input = document.querySelector("#memberSearchInput");
+  input?.focus();
+  input?.setSelectionRange(cursorPosition, cursorPosition);
+});
+
+document.addEventListener("input", (event) => {
+  if (!event.target.closest("[data-update-member]") && !event.target.closest("#profileEditForm")) return;
+
+  if (event.target.name === "phone") {
+    event.target.value = formatPhoneInput(event.target.value);
+  }
+
+  if (event.target.name === "birthDate") {
+    event.target.value = formatBirthDateInput(event.target.value);
+  }
+});
+
 document.addEventListener("change", (event) => {
   if (event.target.id === "opsSortSelect") {
     opsSortMode = event.target.value;
@@ -2117,6 +2216,37 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
   }
 });
 
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-update-member]");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    appState = await submitForm(`/api/admin/update-member?memberId=${encodeURIComponent(form.dataset.updateMember)}`, form);
+    renderAll();
+    showToast("회원 정보를 수정했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("#profileEditForm");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    appState = await submitForm("/api/update-profile", form);
+    saveSession();
+    renderAll();
+    showToast("내 정보를 수정했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
 document.querySelector("#adminLoginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -2164,6 +2294,32 @@ document.addEventListener("click", async (event) => {
   if (closeMemberDetailButton) {
     activeMemberId = null;
     renderMemberRoster();
+    return;
+  }
+
+  const resetMemberPasswordButton = event.target.closest("[data-reset-member-password]");
+  if (resetMemberPasswordButton) {
+    const memberId = resetMemberPasswordButton.dataset.resetMemberPassword;
+    const member = (appState.members || []).find((item) => item.id === memberId);
+    const newPassword = window.prompt(`${member?.nickname || "회원"}의 새 임시 비밀번호를 입력해 주세요.`);
+
+    if (newPassword === null) return;
+
+    if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      showToast("임시 비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.");
+      return;
+    }
+
+    try {
+      appState = await request("/api/admin/reset-member-password", {
+        method: "POST",
+        body: JSON.stringify({ memberId, newPassword }),
+      });
+      renderAll();
+      showToast("회원 비밀번호를 초기화했습니다. 임시 비밀번호를 회원에게 전달해 주세요.");
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 
