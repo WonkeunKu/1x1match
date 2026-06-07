@@ -238,9 +238,9 @@ function renderPaymentGuide() {
   if (!guide) return;
 
   guide.innerHTML = `
-    <strong>참가비 1,000원 계좌이체</strong>
+    <strong>6월 시범운영 참가비 1,000원</strong>
     <span>${appState.payment?.bankAccountLabel || "운영자 공지 예정"}</span>
-    <small>입금자명은 회원가입 닉네임과 같게 보내주세요. 운영자가 입금 확인 후 매치가 확정됩니다.</small>
+    <small>정상 참가비는 5,000원이며 6월만 1,000원으로 할인됩니다. 카페 진행 시 음료 비용은 별도입니다. 입금자명은 회원가입 닉네임과 같게 보내주세요.</small>
   `;
 }
 
@@ -1067,7 +1067,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "payment-guide",
       type: "입금 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 참가 신청이 접수되었습니다. 참가비 1,000원을 ${account}으로 입금해 주세요. 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 참가 신청이 접수되었습니다. 정상 참가비는 5,000원이지만 6월 시범운영 기간에는 1,000원입니다. ${account}으로 입금해 주세요. 카페 진행 시 음료 비용은 별도입니다. 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
     });
   }
 
@@ -1092,7 +1092,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "refund-pending",
       type: "미달 환불 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} 매치가 시작 24시간 전까지 2명 미달이면 참가비 1,000원이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
+      body: `[1VS1매치] ${match.date} ${match.time} 매치가 시작 24시간 전까지 2명 미달이면 6월 시범운영 참가비 1,000원이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
     });
   }
 
@@ -1133,7 +1133,8 @@ function buildPromoText(matchId) {
     "",
     "두 명이 모이면 1:1 두뇌 서바이벌 게임이 열립니다.",
     "게임은 매치 24시간 전에 공개됩니다.",
-    "참가비 1,000원, 2명 미달 시 환불",
+    "정상 참가비 5,000원, 6월 시범운영 1,000원",
+    "카페 진행 시 음료 비용 별도, 2명 미달 시 참가비 환불",
     "",
     "신청: https://www.1x1match.com",
   ].join("\n");
@@ -1443,7 +1444,7 @@ document.addEventListener("click", async (event) => {
       body: JSON.stringify({ matchId }),
     });
     renderAll();
-    showToast("신청을 취소했습니다. 참가비 1,000원은 환불 예정으로 처리됩니다.");
+    showToast("신청을 취소했습니다. 시범운영 참가비 1,000원은 환불 예정으로 처리됩니다.");
   }
 
   const completePaymentButton = event.target.closest("[data-complete-payment]");
@@ -1595,7 +1596,7 @@ document.addEventListener("click", async (event) => {
       body: JSON.stringify({ matchId }),
     });
     renderAll();
-    showToast("미매칭 신청자의 1,000원 환불이 예약되었습니다.");
+    showToast("미매칭 신청자의 시범운영 참가비 1,000원 환불이 예약되었습니다.");
   }
 
   const undoRefundButton = event.target.closest("[data-undo-refund]");
