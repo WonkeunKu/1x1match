@@ -2432,6 +2432,8 @@ async function submitForm(path, form) {
 }
 
 function validateRequiredFormFields(form, fields) {
+  clearFormError(form);
+
   for (const [name, label] of fields) {
     const field = form.elements[name];
     if (field && typeof field.value === "string") {
@@ -2439,8 +2441,7 @@ function validateRequiredFormFields(form, fields) {
     }
 
     if (!field?.value) {
-      showToast(`${label}을 입력해 주세요.`);
-      field?.focus();
+      setFormError(form, `${label}을 입력해 주세요.`, field);
       return false;
     }
   }
@@ -2448,12 +2449,50 @@ function validateRequiredFormFields(form, fields) {
   return true;
 }
 
+function clearFormError(form) {
+  form.querySelectorAll(".field-error").forEach((node) => node.remove());
+  form.querySelectorAll(".has-error").forEach((node) => node.classList.remove("has-error"));
+}
+
+function setFormError(form, message, field) {
+  showToast(message);
+  clearFormError(form);
+
+  const targetField = field || null;
+  targetField?.classList.add("has-error");
+  const label = targetField?.closest("label");
+  const error = document.createElement("span");
+  error.className = "field-error";
+  error.textContent = message;
+
+  if (label) {
+    label.append(error);
+  } else {
+    form.prepend(error);
+  }
+
+  targetField?.focus();
+}
+
+function inferErrorField(form, message) {
+  if (/전화번호/.test(message)) return form.elements.phone;
+  if (/닉네임/.test(message)) return form.elements.nickname;
+  if (/생년월일/.test(message)) return form.elements.birthDate;
+  if (/비밀번호 확인|확인 입력|일치/.test(message)) {
+    return form.elements.passwordConfirm || form.elements.newPasswordConfirm;
+  }
+  if (/비밀번호/.test(message)) return form.elements.password || form.elements.newPassword || form.elements.currentPassword;
+  if (/이름/.test(message)) return form.elements.realName;
+  if (/활동지/.test(message)) return form.elements.area;
+  if (/개인정보|동의/.test(message)) return form.elements.privacyConsent;
+  return null;
+}
+
 function validateMemberIdentityFields(form) {
   if (form.elements.phone) {
     form.elements.phone.value = formatPhoneInput(form.elements.phone.value);
     if (!isValidPhoneInput(form.elements.phone.value)) {
-      showToast("전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.");
-      form.elements.phone.focus();
+      setFormError(form, "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.", form.elements.phone);
       return false;
     }
   }
@@ -2461,8 +2500,7 @@ function validateMemberIdentityFields(form) {
   if (form.elements.birthDate) {
     form.elements.birthDate.value = formatBirthDateInput(form.elements.birthDate.value);
     if (!isValidBirthDateInput(form.elements.birthDate.value)) {
-      showToast("생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요.");
-      form.elements.birthDate.focus();
+      setFormError(form, "생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요.", form.elements.birthDate);
       return false;
     }
   }
@@ -2685,6 +2723,9 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  const editableForm = event.target.closest("form");
+  if (editableForm) clearFormError(editableForm);
+
   if (
     !event.target.closest("[data-update-member]") &&
     !event.target.closest("#signupForm") &&
@@ -2756,8 +2797,7 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
   if (!validateMemberIdentityFields(form)) return;
 
   if (!form.elements.privacyConsent.checked) {
-    showToast("개인정보 수집 및 이용에 동의해 주세요.");
-    form.elements.privacyConsent.focus();
+    setFormError(form, "개인정보 수집 및 이용에 동의해 주세요.", form.elements.privacyConsent);
     return;
   }
 
@@ -2765,12 +2805,12 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
   const passwordConfirm = form.elements.passwordConfirm.value;
 
   if (password !== passwordConfirm) {
-    showToast("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+    setFormError(form, "비밀번호와 비밀번호 확인이 일치하지 않습니다.", form.elements.passwordConfirm);
     return;
   }
 
   if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-    showToast("비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
+    setFormError(form, "비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.", form.elements.password);
     return;
   }
 
@@ -2782,7 +2822,7 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
     closeAuthView();
     showToast("회원가입이 완료되었습니다. 이제 날짜만 선택해서 신청할 수 있습니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 
@@ -2792,8 +2832,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
   form.elements.phone.value = formatPhoneInput(form.elements.phone.value);
 
   if (!isValidPhoneInput(form.elements.phone.value)) {
-    showToast("전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.");
-    form.elements.phone.focus();
+    setFormError(form, "전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.", form.elements.phone);
     return;
   }
 
@@ -2805,7 +2844,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
     closeAuthView();
     showToast("로그인되었습니다. 참가 신청을 진행할 수 있습니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 
@@ -2819,7 +2858,7 @@ document.querySelector("#resetForm")?.addEventListener("submit", async (event) =
     form.reset();
     showToast("비밀번호 초기화 요청이 운영자에게 전달되었습니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 
@@ -2859,7 +2898,7 @@ document.querySelector("#applyForm").addEventListener("submit", async (event) =>
     renderAll();
     showToast("신청이 접수되었습니다. 2명이 채워진 날짜는 확정 문자 발송 로그에 기록됩니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 
@@ -2873,7 +2912,7 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
     renderAll();
     showToast("웹 신청용 새 매치를 열었습니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 
@@ -2969,12 +3008,12 @@ document.addEventListener("submit", async (event) => {
   const newPasswordConfirm = form.elements.newPasswordConfirm.value;
 
   if (newPassword !== newPasswordConfirm) {
-    showToast("새 비밀번호와 확인 입력이 일치하지 않습니다.");
+    setFormError(form, "새 비밀번호와 확인 입력이 일치하지 않습니다.", form.elements.newPasswordConfirm);
     return;
   }
 
   if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
-    showToast("비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
+    setFormError(form, "비밀번호는 영문, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.", form.elements.newPassword);
     return;
   }
 
@@ -2985,7 +3024,7 @@ document.addEventListener("submit", async (event) => {
     renderAll();
     showToast("비밀번호를 변경했습니다.");
   } catch (error) {
-    showToast(error.message);
+    setFormError(form, error.message, inferErrorField(form, error.message));
   }
 });
 

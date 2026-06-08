@@ -1018,6 +1018,20 @@ textarea {
   font: inherit;
 }
 
+input.has-error,
+select.has-error,
+textarea.has-error {
+  border-color: rgba(216, 39, 47, 0.86);
+  box-shadow: 0 0 0 2px rgba(216, 39, 47, 0.18);
+}
+
+.field-error {
+  color: #ffb7ad;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 input,
 select {
   height: 44px;
