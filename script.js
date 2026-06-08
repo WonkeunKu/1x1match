@@ -2877,11 +2877,22 @@ document.addEventListener("click", async (event) => {
 
   const messageSentButton = event.target.closest("[data-message-sent]");
   if (messageSentButton) {
+    const matchId = messageSentButton.dataset.messageSent;
+    const messageKey = messageSentButton.dataset.messageKey;
+    const match = appState.matches.find((candidate) => candidate.id === matchId);
+
+    if (messageKey === "game-revealed" && match && !exactMatchVenue(match)) {
+      const confirmed = window.confirm(
+        "정확한 장소가 아직 저장되지 않았습니다. 게임 공개 안내 문자 발송 완료로 체크할까요?",
+      );
+      if (!confirmed) return;
+    }
+
     appState = await request("/api/mark-message-sent", {
       method: "POST",
       body: JSON.stringify({
-        matchId: messageSentButton.dataset.messageSent,
-        messageKey: messageSentButton.dataset.messageKey,
+        matchId,
+        messageKey,
       }),
     });
     renderAll();
