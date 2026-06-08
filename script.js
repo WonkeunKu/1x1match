@@ -1287,6 +1287,7 @@ function renderAdmin() {
     ["전체 회원", appState.members?.length || 0, "all"],
     ["입금 대기", appState.matches.filter(hasPaymentPending).length, "payment"],
     ["게임 공개 대기", appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length, "reveal"],
+    ["장소 미입력", appState.matches.filter(needsExactVenue).length, "venue"],
     ["게임 안내 문자", appState.matches.filter(needsGameRevealMessage).length, "gameMessage"],
     ["결과 입력 대기", appState.matches.filter((match) => match.confirmed && !match.result).length, "result"],
     ["환불 필요", appState.matches.filter(hasRefundNeeded).length, "refund"],
@@ -1409,6 +1410,12 @@ function adminActionItems() {
       title: "게임 공개",
       count: appState.matches.filter((match) => match.confirmed && !match.gameRevealed).length,
       detail: "확정됐지만 아직 게임이 공개되지 않은 매치",
+    },
+    {
+      filter: "venue",
+      title: "정확한 장소",
+      count: appState.matches.filter(needsExactVenue).length,
+      detail: "확정됐지만 실제 카페 장소가 아직 저장되지 않은 매치",
     },
     {
       filter: "gameMessage",
@@ -1722,6 +1729,10 @@ function needsGameRevealMessage(match) {
   return Boolean(match.confirmed && match.gameRevealed && match.game && !match.notificationLog?.includes("game-revealed"));
 }
 
+function needsExactVenue(match) {
+  return Boolean(match.confirmed && !exactMatchVenue(match));
+}
+
 function matchesOpsFilter(match, filter) {
   if (filter === "week") return isMatchThisWeek(match);
   if (filter === "month") return isMatchThisMonth(match);
@@ -1730,6 +1741,7 @@ function matchesOpsFilter(match, filter) {
   if (filter === "confirmed") return match.confirmed;
   if (filter === "reveal") return match.confirmed && !match.gameRevealed;
   if (filter === "gameMessage") return needsGameRevealMessage(match);
+  if (filter === "venue") return needsExactVenue(match);
   if (filter === "result") return match.confirmed && !match.result;
   if (filter === "refund") return hasRefundNeeded(match);
 
@@ -1739,7 +1751,7 @@ function matchesOpsFilter(match, filter) {
 function matchSearchText(match) {
   const gameTitle = match.game?.title || "";
   const playerText = match.allPlayers.map((player) => `${player.nickname} ${player.phone} ${player.area}`).join(" ");
-  return `${match.date} ${match.time} ${match.location} ${match.statusLabel} ${gameTitle} ${playerText} ${match.adminNote || ""}`.toLowerCase();
+  return `${match.date} ${match.time} ${match.location} ${match.exactVenue || ""} ${match.statusLabel} ${gameTitle} ${playerText} ${match.adminNote || ""}`.toLowerCase();
 }
 
 function isMatchInOpsDateRange(match) {
@@ -1782,6 +1794,7 @@ function renderOpsList() {
     { value: "payment", label: "입금 대기" },
     { value: "confirmed", label: "확정/마감" },
     { value: "reveal", label: "게임 공개 대기" },
+    { value: "venue", label: "장소 미입력" },
     { value: "gameMessage", label: "게임 안내 문자" },
     { value: "result", label: "결과 대기" },
     { value: "refund", label: "환불 필요" },
@@ -1844,6 +1857,7 @@ function renderOpsList() {
 function renderOpsCard(match) {
   const needsReveal = match.confirmed && !match.gameRevealed;
   const needsGameMessage = needsGameRevealMessage(match);
+  const needsVenue = needsExactVenue(match);
   const isManualReveal = match.gameRevealMode === "manual";
   const isAutoReveal = match.gameRevealMode === "auto";
   const revealScheduleLabel = formatRevealSchedule(match);
@@ -1855,6 +1869,7 @@ function renderOpsCard(match) {
   const issueLabels = [
     paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
     needsReveal ? "게임 공개 대기" : "",
+    needsVenue ? "장소 미입력" : "",
     needsGameMessage ? "게임 안내 문자 대기" : "",
     needsRefund ? "환불 필요" : "",
     resultRecorded ? "결과 입력됨" : "",
