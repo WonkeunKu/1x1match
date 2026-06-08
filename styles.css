@@ -1343,7 +1343,18 @@ select:disabled {
 }
 
 .game-category-filter {
+  grid-column: 1 / -1;
   justify-self: start;
+  width: 100%;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  scrollbar-width: thin;
+}
+
+.game-category-filter button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .game-search {
