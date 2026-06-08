@@ -956,6 +956,7 @@ function decorateMatch(match) {
     gameRevealed: gamePublic,
     gameRevealMode: match.gameRevealed ? "manual" : gamePublic ? "auto" : "scheduled",
     gameRevealAt: matchStartDate(match) ? new Date(matchStartDate(match).getTime() - 24 * 60 * 60 * 1000).toISOString() : null,
+    exactVenue: state.isAdmin || gamePublic ? match.exactVenue || "" : "",
     adminNote: state.isAdmin ? match.adminNote || "" : undefined,
     notificationLog: match.notificationLog || [],
     appliedByMe: Boolean(state.currentUserId && match.applications.some((item) => item.memberId === state.currentUserId && !item.cancelled)),
@@ -1214,6 +1215,7 @@ function adminExportPayload() {
         gameId: match.gameId,
         gameTitle: game?.title || "",
         gameRevealed: Boolean(match.gameRevealed),
+        exactVenue: match.exactVenue || "",
         result: match.result
           ? {
               winnerId: match.result.winnerId,
@@ -1860,6 +1862,7 @@ async function handleApi(request, response, pathname) {
       location: String(body.location).trim(),
       gameId: null,
       gameRevealed: false,
+      exactVenue: "",
       adminNote: "",
       applications: [],
       result: null,
@@ -1883,6 +1886,24 @@ async function handleApi(request, response, pathname) {
 
     match.adminNote = String(body.adminNote || "").trim().slice(0, 600);
     logEvent(`${match.date} ${match.time} 운영자 메모를 저장했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/update-match-venue") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "선택한 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    match.exactVenue = String(body.exactVenue || "").trim().slice(0, 160);
+    logEvent(`${match.date} ${match.time} 정확한 장소를 저장했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;

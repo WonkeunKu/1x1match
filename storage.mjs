@@ -151,7 +151,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         list("games", "select=id,title,summary,rules,win_condition"),
         listWithFallback(
           "matches",
-          "select=id,display_date,match_date,match_time,location,game_id,game_revealed,admin_note&order=match_date.asc,match_time.asc",
+          "select=id,display_date,match_date,match_time,location,game_id,game_revealed,exact_venue,admin_note&order=match_date.asc,match_time.asc",
           "select=id,display_date,match_date,match_time,location,game_id,game_revealed&order=match_date.asc,match_time.asc",
         ),
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
@@ -194,6 +194,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
             location: match.location,
             gameId: match.game_id,
             gameRevealed: match.game_revealed,
+            exactVenue: match.exact_venue || "",
             adminNote: match.admin_note || "",
             applications: applications
               .filter((application) => application.match_id === match.id)
@@ -256,6 +257,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           location: match.location,
           game_id: match.gameId,
           game_revealed: Boolean(match.gameRevealed),
+          exact_venue: match.exactVenue || "",
           admin_note: match.adminNote || "",
         }));
 
@@ -264,7 +266,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       } catch (error) {
         await upsert(
           "matches",
-          matchRows.map(({ admin_note, ...match }) => match),
+          matchRows.map(({ admin_note, exact_venue, ...match }) => match),
         );
       }
 

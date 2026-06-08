@@ -273,7 +273,7 @@ function renderPaymentGuide() {
   if (!guide) return;
   const account = paymentAccountText();
   const match = selectedApplyMatch();
-  const matchLine = match ? `${match.date} ${match.time} · ${publicMatchLocation(match)}` : "선택한 매치";
+  const matchLine = match ? `${match.date} ${match.time} · ${displayMatchLocation(match)}` : "선택한 매치";
   const playerLine = match ? `현재 ${match.playerCount}/2명 신청` : "선택 후 확인 가능";
 
   guide.innerHTML = `
@@ -313,8 +313,21 @@ function publicMatchLocation(match) {
   return area ? `${area} 일대 카페` : "신촌/강남 일대 카페";
 }
 
+function exactMatchVenue(match) {
+  return match?.exactVenue?.trim() || "";
+}
+
+function displayMatchLocation(match) {
+  return match?.gameRevealed && exactMatchVenue(match) ? exactMatchVenue(match) : publicMatchLocation(match);
+}
+
 function exactVenueNotice() {
   return "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.";
+}
+
+function gameRevealVenueNotice(match) {
+  const venue = exactMatchVenue(match);
+  return venue ? `정확한 장소는 ${venue}입니다.` : "정확한 장소도 함께 공지됩니다.";
 }
 
 function visibleMatches() {
@@ -548,7 +561,7 @@ function renderApplySelector() {
               <button class="${match.id === activeApplyTimeMatchId ? "selected" : ""}" type="button" data-apply-time="${match.id}" ${closed ? "disabled" : ""}>
                 <span>${match.time}</span>
                 <small>${matchCapacityLabel(match)}</small>
-                <em>${publicMatchLocation(match)}</em>
+                <em>${displayMatchLocation(match)}</em>
               </button>
             `;
           })
@@ -559,7 +572,7 @@ function renderApplySelector() {
       <div>
         <span>선택한 매치</span>
         <strong>${selectedMatch ? `${selectedMatch.date} ${selectedMatch.time}` : "날짜와 시간을 선택해 주세요"}</strong>
-        <small>${selectedMatch ? publicMatchLocation(selectedMatch) : "지역, 날짜, 시간 순서로 선택합니다."}</small>
+        <small>${selectedMatch ? displayMatchLocation(selectedMatch) : "지역, 날짜, 시간 순서로 선택합니다."}</small>
       </div>
       <div>
         <span>잔여석</span>
@@ -851,7 +864,7 @@ function renderMyApplications() {
             <article class="my-application-item">
               <div>
                 <strong>${match.date} ${match.time}</strong>
-                <span>${publicMatchLocation(match)}</span>
+                <span>${displayMatchLocation(match)}</span>
                 <span>${applicationStatusLabel} · ${paymentLabel} · ${gameLabel}</span>
                 ${
                   myPayment === "payment_pending"
@@ -905,7 +918,7 @@ function renderMatches() {
                 <strong>${match.date}</strong>
                 <span>${match.time}</span>
               </div>
-              <p>${publicMatchLocation(match)}</p>
+              <p>${displayMatchLocation(match)}</p>
               <span class="status-pill ${match.status}">${match.appliedByMe ? "내 신청" : match.statusLabel}</span>
               <div class="compact-slots" aria-label="참가 슬롯">
                 <span>${match.playerCount}/2명</span>
@@ -978,7 +991,7 @@ function renderNoticeCard(match) {
       </div>
       <h3>${match.time}</h3>
       <div class="notice-meta">
-        <span>${publicMatchLocation(match)}</span>
+        <span>${displayMatchLocation(match)}</span>
         <span>${match.playerCount}/2명</span>
       </div>
       <p>${gameBody}</p>
@@ -1985,6 +1998,16 @@ function renderOpsCard(match) {
           : ""
       }
       <div class="admin-note-box">
+        <label for="exact-venue-${match.id}">정확한 장소</label>
+        <input id="exact-venue-${match.id}" data-exact-venue-input="${match.id}" maxlength="160" value="${escapeHtml(
+          exactMatchVenue(match),
+        )}" placeholder="예: 신촌 ○○카페 2층, 예약자 구원근" />
+        <div>
+          <span>게임 공개 시점부터 참가자에게 보이고, 게임 공개 안내 문자에도 들어갑니다.</span>
+          <button class="secondary-button" type="button" data-save-exact-venue="${match.id}">장소 저장</button>
+        </div>
+      </div>
+      <div class="admin-note-box">
         <label for="admin-note-${match.id}">운영자 메모</label>
         <textarea id="admin-note-${match.id}" data-admin-note-input="${match.id}" maxlength="600" placeholder="예: 카페 예약 완료, 입금자명 확인 필요, 참가자 요청사항">${escapeHtml(match.adminNote || "")}</textarea>
         <div>
@@ -2048,7 +2071,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "game-revealed",
       type: "게임 공개 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치의 게임은 "${match.game.title}"입니다. 정확한 장소도 함께 공지됩니다. 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치의 게임은 "${match.game.title}"입니다. ${gameRevealVenueNotice(match)} 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
     });
   }
 
@@ -2697,6 +2720,18 @@ document.addEventListener("click", async (event) => {
     });
     renderAll();
     showToast("운영자 메모를 저장했습니다.");
+  }
+
+  const saveExactVenueButton = event.target.closest("[data-save-exact-venue]");
+  if (saveExactVenueButton) {
+    const matchId = saveExactVenueButton.dataset.saveExactVenue;
+    const exactVenue = document.querySelector(`[data-exact-venue-input="${matchId}"]`)?.value || "";
+    appState = await request("/api/update-match-venue", {
+      method: "POST",
+      body: JSON.stringify({ matchId, exactVenue }),
+    });
+    renderAll();
+    showToast("정확한 장소를 저장했습니다.");
   }
 
   const cancelApplicationButton = event.target.closest("[data-cancel-application]");
