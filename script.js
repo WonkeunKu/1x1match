@@ -135,6 +135,28 @@ function formatBirthDateInput(value) {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
+function isValidPhoneInput(value) {
+  return /^010-\d{4}-\d{4}$/.test(formatPhoneInput(value));
+}
+
+function isValidBirthDateInput(value) {
+  const formatted = formatBirthDateInput(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(formatted);
+  if (!match) return false;
+
+  const [, year, month, day] = match;
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  const currentYear = new Date().getFullYear();
+
+  return (
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() + 1 === Number(month) &&
+    date.getUTCDate() === Number(day) &&
+    Number(year) >= 1900 &&
+    Number(year) <= currentYear
+  );
+}
+
 function formatEventTime(value) {
   if (!value) return "시간 없음";
 
@@ -2426,6 +2448,28 @@ function validateRequiredFormFields(form, fields) {
   return true;
 }
 
+function validateMemberIdentityFields(form) {
+  if (form.elements.phone) {
+    form.elements.phone.value = formatPhoneInput(form.elements.phone.value);
+    if (!isValidPhoneInput(form.elements.phone.value)) {
+      showToast("전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.");
+      form.elements.phone.focus();
+      return false;
+    }
+  }
+
+  if (form.elements.birthDate) {
+    form.elements.birthDate.value = formatBirthDateInput(form.elements.birthDate.value);
+    if (!isValidBirthDateInput(form.elements.birthDate.value)) {
+      showToast("생년월일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요.");
+      form.elements.birthDate.focus();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", () => {
     setActiveView(item.dataset.view);
@@ -2643,6 +2687,8 @@ document.addEventListener("input", (event) => {
 document.addEventListener("input", (event) => {
   if (
     !event.target.closest("[data-update-member]") &&
+    !event.target.closest("#signupForm") &&
+    !event.target.closest("#loginForm") &&
     !event.target.closest("#profileEditForm") &&
     !event.target.closest("#resetForm")
   ) {
@@ -2707,6 +2753,7 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
   ];
 
   if (!validateRequiredFormFields(form, requiredFields)) return;
+  if (!validateMemberIdentityFields(form)) return;
 
   if (!form.elements.privacyConsent.checked) {
     showToast("개인정보 수집 및 이용에 동의해 주세요.");
@@ -2741,9 +2788,17 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
 
 document.querySelector("#loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
+  form.elements.phone.value = formatPhoneInput(form.elements.phone.value);
+
+  if (!isValidPhoneInput(form.elements.phone.value)) {
+    showToast("전화번호는 010으로 시작하는 휴대폰 번호로 입력해 주세요.");
+    form.elements.phone.focus();
+    return;
+  }
 
   try {
-    appState = await submitForm("/api/login", event.currentTarget);
+    appState = await submitForm("/api/login", form);
     saveSession();
     isPaymentConfirmOpen = false;
     renderAll();
@@ -2757,6 +2812,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
 document.querySelector("#resetForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (!validateMemberIdentityFields(form)) return;
 
   try {
     await submitForm("/api/request-password-reset", form);
@@ -2866,6 +2922,7 @@ document.addEventListener("submit", async (event) => {
   ];
 
   if (!validateRequiredFormFields(form, requiredFields)) return;
+  if (!validateMemberIdentityFields(form)) return;
 
   try {
     appState = await submitForm(`/api/admin/update-member?memberId=${encodeURIComponent(form.dataset.updateMember)}`, form);
@@ -2890,6 +2947,7 @@ document.addEventListener("submit", async (event) => {
   ];
 
   if (!validateRequiredFormFields(form, requiredFields)) return;
+  if (!validateMemberIdentityFields(form)) return;
 
   try {
     appState = await submitForm("/api/update-profile", form);
