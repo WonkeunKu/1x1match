@@ -203,7 +203,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
-        list("event_logs", "select=message,created_at&order=created_at.desc&limit=50"),
+        list("event_logs", "select=message,created_at&order=created_at.desc&limit=1000"),
       ]);
 
       if (!members.length && !games.length && !matches.length) {

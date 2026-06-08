@@ -1447,6 +1447,8 @@ function renderAdminBackupPanel() {
       <div class="backup-actions">
         <button class="secondary-button" type="button" data-admin-export="csv">CSV 다운로드</button>
         <button class="secondary-button" type="button" data-admin-export="json">JSON 백업</button>
+        <button class="secondary-button" type="button" data-admin-export="events-csv">운영 로그 CSV</button>
+        <button class="secondary-button" type="button" data-admin-export="events-json">운영 로그 JSON</button>
       </div>
     </div>
   `;
@@ -1607,7 +1609,7 @@ async function downloadAdminExport(format) {
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") || "";
   const filenameMatch = disposition.match(/filename="([^"]+)"/);
-  const filename = filenameMatch?.[1] || `1vs1match-backup.${format === "csv" ? "csv" : "json"}`;
+  const filename = filenameMatch?.[1] || `1vs1match-backup.${format.includes("csv") ? "csv" : "json"}`;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

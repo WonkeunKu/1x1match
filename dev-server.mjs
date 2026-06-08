@@ -1457,6 +1457,16 @@ function adminApplicationsCsv() {
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
 }
 
+function adminEventsCsv() {
+  const rows = [["created_at", "message"]];
+
+  state.events.map(normalizeEvent).forEach((event) => {
+    rows.push([event.createdAt || "", event.message]);
+  });
+
+  return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
+}
+
 function messageForMatch(match, type) {
   const players = activePaidApplications(match).map((application) => findMember(application.memberId)).filter(Boolean);
 
@@ -1501,6 +1511,21 @@ async function handleApi(request, response, pathname) {
 
     if (format === "csv") {
       sendDownload(response, "text/csv", `1vs1match-applications-${date}.csv`, adminApplicationsCsv());
+      return;
+    }
+
+    if (format === "events-csv") {
+      sendDownload(response, "text/csv", `1vs1match-events-${date}.csv`, adminEventsCsv());
+      return;
+    }
+
+    if (format === "events-json") {
+      sendDownload(
+        response,
+        "application/json",
+        `1vs1match-events-${date}.json`,
+        JSON.stringify({ exportedAt: new Date().toISOString(), events: state.events.map(normalizeEvent) }, null, 2),
+      );
       return;
     }
 
