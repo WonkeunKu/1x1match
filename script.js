@@ -273,7 +273,7 @@ function renderPaymentGuide() {
   if (!guide) return;
   const account = paymentAccountText();
   const match = selectedApplyMatch();
-  const matchLine = match ? `${match.date} ${match.time} · ${match.location}` : "선택한 매치";
+  const matchLine = match ? `${match.date} ${match.time} · ${publicMatchLocation(match)}` : "선택한 매치";
   const playerLine = match ? `현재 ${match.playerCount}/2명 신청` : "선택 후 확인 가능";
 
   guide.innerHTML = `
@@ -287,6 +287,7 @@ function renderPaymentGuide() {
       <span><strong>6월 시범운영</strong>1,000원</span>
       <span><strong>입금 계좌</strong>${account}</span>
       <span><strong>현장 비용</strong>카페 음료 비용 별도</span>
+      <span><strong>정확한 장소</strong>${exactVenueNotice()}</span>
       <span><strong>입금자명</strong>회원가입 닉네임과 동일</span>
       <span><strong>환불 기준</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
     </div>
@@ -305,6 +306,15 @@ function selectedApplyMatch() {
 
 function getMatchArea(match) {
   return match.location.split(" ")[0];
+}
+
+function publicMatchLocation(match) {
+  const area = getMatchArea(match);
+  return area ? `${area} 일대 카페` : "신촌/강남 일대 카페";
+}
+
+function exactVenueNotice() {
+  return "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.";
 }
 
 function visibleMatches() {
@@ -538,7 +548,7 @@ function renderApplySelector() {
               <button class="${match.id === activeApplyTimeMatchId ? "selected" : ""}" type="button" data-apply-time="${match.id}" ${closed ? "disabled" : ""}>
                 <span>${match.time}</span>
                 <small>${matchCapacityLabel(match)}</small>
-                <em>${match.location}</em>
+                <em>${publicMatchLocation(match)}</em>
               </button>
             `;
           })
@@ -549,7 +559,7 @@ function renderApplySelector() {
       <div>
         <span>선택한 매치</span>
         <strong>${selectedMatch ? `${selectedMatch.date} ${selectedMatch.time}` : "날짜와 시간을 선택해 주세요"}</strong>
-        <small>${selectedMatch ? selectedMatch.location : "지역, 날짜, 시간 순서로 선택합니다."}</small>
+        <small>${selectedMatch ? publicMatchLocation(selectedMatch) : "지역, 날짜, 시간 순서로 선택합니다."}</small>
       </div>
       <div>
         <span>잔여석</span>
@@ -841,7 +851,7 @@ function renderMyApplications() {
             <article class="my-application-item">
               <div>
                 <strong>${match.date} ${match.time}</strong>
-                <span>${match.location}</span>
+                <span>${publicMatchLocation(match)}</span>
                 <span>${applicationStatusLabel} · ${paymentLabel} · ${gameLabel}</span>
                 ${
                   myPayment === "payment_pending"
@@ -895,7 +905,7 @@ function renderMatches() {
                 <strong>${match.date}</strong>
                 <span>${match.time}</span>
               </div>
-              <p>${match.location}</p>
+              <p>${publicMatchLocation(match)}</p>
               <span class="status-pill ${match.status}">${match.appliedByMe ? "내 신청" : match.statusLabel}</span>
               <div class="compact-slots" aria-label="참가 슬롯">
                 <span>${match.playerCount}/2명</span>
@@ -968,7 +978,7 @@ function renderNoticeCard(match) {
       </div>
       <h3>${match.time}</h3>
       <div class="notice-meta">
-        <span>${match.location}</span>
+        <span>${publicMatchLocation(match)}</span>
         <span>${match.playerCount}/2명</span>
       </div>
       <p>${gameBody}</p>
@@ -2013,7 +2023,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "recruiting",
       type: "모집 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. 신청: ${siteUrl}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. ${exactVenueNotice()} 신청: ${siteUrl}`,
     });
   }
 
@@ -2021,7 +2031,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "payment-guide",
       type: "입금 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 참가 신청이 접수되었습니다. 정상 참가비는 5,000원이지만 6월 시범운영 기간에는 1,000원입니다. ${account}으로 입금해 주세요. 카페 진행 시 음료 비용은 별도입니다. 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 참가 신청이 접수되었습니다. 정상 참가비는 5,000원이지만 6월 시범운영 기간에는 1,000원입니다. ${account}으로 입금해 주세요. 카페 진행 시 음료 비용은 별도입니다. ${exactVenueNotice()} 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
     });
   }
 
@@ -2030,7 +2040,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "confirmed",
       type: "매치 확정 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임은 시작 24시간 전에 공개됩니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임과 정확한 장소는 시작 24시간 전에 함께 공개됩니다.`,
     });
   }
 
@@ -2038,7 +2048,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "game-revealed",
       type: "게임 공개 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치의 게임은 "${match.game.title}"입니다. 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치의 게임은 "${match.game.title}"입니다. 정확한 장소도 함께 공지됩니다. 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
     });
   }
 
@@ -2054,7 +2064,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "refund-guide",
       type: "환불 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${match.location} 매치 환불 대상 안내입니다. 환불 대상: ${refundPlayers.map((player) => player.nickname).join(", ")}. 운영자가 입금 확인 후 순차적으로 환불 처리합니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 대상 안내입니다. 환불 대상: ${refundPlayers.map((player) => player.nickname).join(", ")}. 운영자가 입금 확인 후 순차적으로 환불 처리합니다.`,
     });
   }
 
@@ -2082,11 +2092,11 @@ function buildPromoText(matchId) {
     "[1VS1매치 참가자 모집]",
     "",
     `${match.date} ${match.time}`,
-    `${match.location}`,
+    `${publicMatchLocation(match)}`,
     statusLine,
     "",
     "두 명이 모이면 1:1 두뇌 서바이벌 게임이 열립니다.",
-    "게임은 매치 24시간 전에 공개됩니다.",
+    "게임과 정확한 장소는 매치 24시간 전에 함께 공개됩니다.",
     "정상 참가비 5,000원, 6월 시범운영 1,000원",
     "카페 진행 시 음료 비용 별도, 2명 미달 시 참가비 환불",
     "",
