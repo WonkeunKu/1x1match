@@ -2204,7 +2204,7 @@ function renderOpsCard(match) {
           <div>
             <div>
               <strong>${messageText.type}</strong>
-              <span>${messageSent ? "발송 완료" : "발송 대기"}</span>
+              <span>${messageSent ? "발송 완료" : "발송 대기"}${messageText.targetLabel ? ` · ${messageText.targetLabel}` : ""}</span>
             </div>
             <div class="message-actions">
               <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
@@ -2340,6 +2340,12 @@ function buildAdminMessages(match) {
   const refundRequestedPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refund_requested");
   const refundScheduledPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refund_scheduled");
   const refundedPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refunded");
+  const targetedMessageKey = (baseKey, players) =>
+    `${baseKey}:${players
+      .map((player) => player.memberId)
+      .sort()
+      .join(",")}`;
+  const targetLabel = (players) => `대상 ${players.map((player) => player.nickname).join(", ")}`;
 
   if (!match.confirmed) {
     messages.push({
@@ -2384,32 +2390,36 @@ function buildAdminMessages(match) {
 
   if (cancelRequestPlayers.length) {
     messages.push({
-      key: "cancel-request-received",
+      key: targetedMessageKey("cancel-request-received", cancelRequestPlayers),
       type: "취소 요청 접수",
+      targetLabel: targetLabel(cancelRequestPlayers),
       body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 신청 취소 요청이 접수되었습니다. 대상: ${cancelRequestPlayers.map((player) => player.nickname).join(", ")}. 운영자 확인 후 입금 전 신청은 취소 처리되고, 입금 완료 신청은 환불 요청으로 전환됩니다.`,
     });
   }
 
   if (refundRequestedPlayers.length) {
     messages.push({
-      key: "refund-requested-guide",
+      key: targetedMessageKey("refund-requested-guide", refundRequestedPlayers),
       type: "환불 요청 안내",
+      targetLabel: targetLabel(refundRequestedPlayers),
       body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 요청 대상 안내입니다. 대상: ${refundRequestedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.`,
     });
   }
 
   if (refundScheduledPlayers.length) {
     messages.push({
-      key: "refund-scheduled-guide",
+      key: targetedMessageKey("refund-scheduled-guide", refundScheduledPlayers),
       type: "환불 예정 안내",
+      targetLabel: targetLabel(refundScheduledPlayers),
       body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 예정 안내입니다. 대상: ${refundScheduledPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.`,
     });
   }
 
   if (refundedPlayers.length) {
     messages.push({
-      key: "refund-completed-guide",
+      key: targetedMessageKey("refund-completed-guide", refundedPlayers),
       type: "환불 완료 안내",
+      targetLabel: targetLabel(refundedPlayers),
       body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 완료 안내입니다. 대상: ${refundedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불 처리가 완료되었습니다.`,
     });
   }
