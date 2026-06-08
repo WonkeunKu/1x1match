@@ -64,6 +64,7 @@ const gameTagMap = {
   "battle-ascending": ["전략", "숫자", "순서"],
   "blind-betting": ["베팅", "카드", "심리"],
   "formula-maze": ["암기", "계산", "퍼즐"],
+  "office-territory": ["영역", "전략", "이동"],
 };
 
 const gameCategoryMap = {
@@ -98,6 +99,7 @@ const gameCategoryMap = {
   baghchal: "devils",
   "nine-mens-morris": "devils",
   hexagon: "devils",
+  "office-territory": "lifes",
 };
 
 const gameCategoryOptions = [
