@@ -2220,7 +2220,13 @@ createServer(async (request, response) => {
 
     await handleStatic(response, url.pathname);
   } catch (error) {
-    sendJson(response, 400, { error: error.message });
+    console.error(error);
+    const statusCode = error.message?.startsWith("Supabase request failed") ? 500 : 400;
+    const message =
+      statusCode === 500
+        ? "요청을 저장하는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        : error.message;
+    sendJson(response, statusCode, { error: message });
   }
 }).listen(port, host, () => {
   console.log(`1VS1매치 server listening on http://${host}:${port}`);

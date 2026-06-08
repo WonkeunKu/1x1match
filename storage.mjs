@@ -79,15 +79,31 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     }
   }
 
+  function uniqueRows(rows, conflict) {
+    const columns = String(conflict || "id")
+      .split(",")
+      .map((column) => column.trim())
+      .filter(Boolean);
+    const byKey = new Map();
+
+    rows.forEach((row) => {
+      const key = columns.map((column) => String(row[column] ?? "")).join("\u001f");
+      byKey.set(key, row);
+    });
+
+    return [...byKey.values()];
+  }
+
   async function upsert(table, rows, conflict = "id") {
-    if (!rows.length) return;
+    const unique = uniqueRows(rows, conflict);
+    if (!unique.length) return;
 
     await request(`/${table}?on_conflict=${conflict}`, {
       method: "POST",
       headers: {
         Prefer: "resolution=merge-duplicates,return=minimal",
       },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(unique),
     });
   }
 
