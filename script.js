@@ -24,6 +24,8 @@ let activeOpsMatchId = null;
 let activeMemberId = null;
 let memberSearchQuery = "";
 let visibleEventCount = 8;
+let activeEventLogFilter = "all";
+let eventLogSearchQuery = "";
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
 let opsSearchQuery = "";
@@ -1349,24 +1351,84 @@ function renderAdmin() {
   renderAdminActionPanel();
   renderMemberRoster();
   renderOpsList();
+  renderEventLog();
+}
+
+function eventLogCategory(message) {
+  const text = String(message || "");
+  if (/환불|취소 요청|신청 취소|취소했습니다|되돌렸습니다/.test(text)) return "refund";
+  if (/입금|결제/.test(text)) return "payment";
+  if (/문자|알림|발송/.test(text)) return "message";
+  if (/게임|추천|공개/.test(text)) return "game";
+  if (/회원|비밀번호|로그인|가입|삭제/.test(text)) return "member";
+  if (/매치|신규/.test(text)) return "match";
+  return "other";
+}
+
+function eventLogFilterOptions(events) {
+  const options = [
+    { value: "all", label: "전체" },
+    { value: "payment", label: "입금" },
+    { value: "refund", label: "취소/환불" },
+    { value: "message", label: "문자" },
+    { value: "game", label: "게임" },
+    { value: "member", label: "회원" },
+    { value: "match", label: "매치" },
+    { value: "other", label: "기타" },
+  ];
+
+  return options.map((option) => ({
+    ...option,
+    count: option.value === "all" ? events.length : events.filter((event) => eventLogCategory(event.message) === option.value).length,
+  }));
+}
+
+function renderEventLog() {
+  const panel = document.querySelector("#eventLog");
+  if (!panel) return;
 
   const events = appState.allEvents || appState.events || [];
-  const visibleEvents = events.slice(0, visibleEventCount);
-  const hasMoreEvents = visibleEventCount < events.length;
+  const entries = events.map((event) => (typeof event === "string" ? { message: event, createdAt: null } : event));
+  const filterOptions = eventLogFilterOptions(entries);
+  const query = eventLogSearchQuery.trim().toLowerCase();
+  const filteredEvents = entries.filter((event) => {
+    const categoryMatches = activeEventLogFilter === "all" || eventLogCategory(event.message) === activeEventLogFilter;
+    return categoryMatches && (!query || String(event.message || "").toLowerCase().includes(query));
+  });
+  const visibleEvents = filteredEvents.slice(0, visibleEventCount);
+  const hasMoreEvents = visibleEventCount < filteredEvents.length;
 
-  document.querySelector("#eventLog").innerHTML = `
+  panel.innerHTML = `
     <div class="event-log-head">
       <h3>운영 로그</h3>
-      <span>${visibleEvents.length}/${events.length}</span>
+      <span>${visibleEvents.length}/${filteredEvents.length}</span>
     </div>
-    <ul>
-      ${visibleEvents
-        .map((event) => {
-          const entry = typeof event === "string" ? { message: event, createdAt: null } : event;
-          return `<li><time>${formatEventTime(entry.createdAt)}</time><span>${entry.message}</span></li>`;
-        })
-        .join("")}
-    </ul>
+    <div class="event-log-controls">
+      <input type="search" id="eventLogSearchInput" value="${escapeHtml(eventLogSearchQuery)}" placeholder="로그 검색" autocomplete="off" />
+      <div class="ops-filter segmented">
+        ${filterOptions
+          .map(
+            (option) => `
+              <button class="${activeEventLogFilter === option.value ? "selected" : ""}" type="button" data-event-log-filter="${option.value}">
+                ${option.label} <span>${option.count}</span>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+    ${
+      visibleEvents.length
+        ? `<ul>
+            ${visibleEvents
+              .map(
+                (entry) =>
+                  `<li><time>${formatEventTime(entry.createdAt)}</time><span><b>${filterOptions.find((option) => option.value === eventLogCategory(entry.message))?.label || "기타"}</b>${escapeHtml(entry.message)}</span></li>`,
+              )
+              .join("")}
+          </ul>`
+        : `<div class="event-log-empty">조건에 맞는 운영 로그가 없습니다.</div>`
+    }
     ${hasMoreEvents ? `<button class="secondary-button event-more-button" type="button" data-show-more-events>더 보기</button>` : ""}
   `;
 }
@@ -2748,6 +2810,15 @@ document.addEventListener("click", (event) => {
   renderAdminGameManager();
 });
 
+document.addEventListener("click", (event) => {
+  const filterButton = event.target.closest("[data-event-log-filter]");
+  if (!filterButton) return;
+
+  activeEventLogFilter = filterButton.dataset.eventLogFilter;
+  visibleEventCount = 8;
+  renderEventLog();
+});
+
 document.addEventListener("input", (event) => {
   if (event.target.id !== "opsSearchInput") return;
 
@@ -2768,6 +2839,18 @@ document.addEventListener("input", (event) => {
   activeAdminGameId = null;
   renderAdminGameManager();
   const input = document.querySelector("#adminGameSearchInput");
+  input?.focus();
+  input?.setSelectionRange(cursorPosition, cursorPosition);
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.id !== "eventLogSearchInput") return;
+
+  const cursorPosition = event.target.selectionStart;
+  eventLogSearchQuery = event.target.value;
+  visibleEventCount = 8;
+  renderEventLog();
+  const input = document.querySelector("#eventLogSearchInput");
   input?.focus();
   input?.setSelectionRange(cursorPosition, cursorPosition);
 });
