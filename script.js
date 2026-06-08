@@ -65,6 +65,7 @@ const gameTagMap = {
   "blind-betting": ["베팅", "카드", "심리"],
   "formula-maze": ["암기", "계산", "퍼즐"],
   "office-territory": ["영역", "전략", "이동"],
+  "gold-silver-bronze": ["베팅", "무게", "심리"],
 };
 
 const gameCategoryMap = {
@@ -100,6 +101,7 @@ const gameCategoryMap = {
   "nine-mens-morris": "devils",
   hexagon: "devils",
   "office-territory": "lifes",
+  "gold-silver-bronze": "timehotel",
 };
 
 const gameCategoryOptions = [
