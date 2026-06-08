@@ -2679,6 +2679,35 @@ document.addEventListener("click", (event) => {
 document.querySelector("#signupForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  const requiredFields = [
+    ["nickname", "닉네임"],
+    ["realName", "이름"],
+    ["birthDate", "생년월일"],
+    ["phone", "전화번호"],
+    ["area", "주 활동지"],
+    ["password", "비밀번호"],
+    ["passwordConfirm", "비밀번호 확인"],
+  ];
+
+  for (const [name, label] of requiredFields) {
+    const field = form.elements[name];
+    if (field && typeof field.value === "string") {
+      field.value = field.value.trim();
+    }
+
+    if (!field?.value) {
+      showToast(`${label}을 입력해 주세요.`);
+      field?.focus();
+      return;
+    }
+  }
+
+  if (!form.elements.privacyConsent.checked) {
+    showToast("개인정보 수집 및 이용에 동의해 주세요.");
+    form.elements.privacyConsent.focus();
+    return;
+  }
+
   const password = form.elements.password.value;
   const passwordConfirm = form.elements.passwordConfirm.value;
 
