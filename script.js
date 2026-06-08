@@ -66,6 +66,7 @@ const gameTagMap = {
   "formula-maze": ["암기", "계산", "퍼즐"],
   "office-territory": ["영역", "전략", "이동"],
   "gold-silver-bronze": ["베팅", "무게", "심리"],
+  "arithmetic-lotto": ["계산", "숫자", "순발력"],
 };
 
 const gameCategoryMap = {
@@ -102,6 +103,7 @@ const gameCategoryMap = {
   hexagon: "devils",
   "office-territory": "lifes",
   "gold-silver-bronze": "timehotel",
+  "arithmetic-lotto": "timehotel",
 };
 
 const gameCategoryOptions = [
