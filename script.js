@@ -2409,6 +2409,23 @@ async function submitForm(path, form) {
   });
 }
 
+function validateRequiredFormFields(form, fields) {
+  for (const [name, label] of fields) {
+    const field = form.elements[name];
+    if (field && typeof field.value === "string") {
+      field.value = field.value.trim();
+    }
+
+    if (!field?.value) {
+      showToast(`${label}을 입력해 주세요.`);
+      field?.focus();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", () => {
     setActiveView(item.dataset.view);
@@ -2689,18 +2706,7 @@ document.querySelector("#signupForm").addEventListener("submit", async (event) =
     ["passwordConfirm", "비밀번호 확인"],
   ];
 
-  for (const [name, label] of requiredFields) {
-    const field = form.elements[name];
-    if (field && typeof field.value === "string") {
-      field.value = field.value.trim();
-    }
-
-    if (!field?.value) {
-      showToast(`${label}을 입력해 주세요.`);
-      field?.focus();
-      return;
-    }
-  }
+  if (!validateRequiredFormFields(form, requiredFields)) return;
 
   if (!form.elements.privacyConsent.checked) {
     showToast("개인정보 수집 및 이용에 동의해 주세요.");
@@ -2851,6 +2857,15 @@ document.addEventListener("submit", async (event) => {
   if (!form) return;
 
   event.preventDefault();
+  const requiredFields = [
+    ["nickname", "닉네임"],
+    ["realName", "이름"],
+    ["birthDate", "생년월일"],
+    ["phone", "전화번호"],
+    ["area", "주 활동지"],
+  ];
+
+  if (!validateRequiredFormFields(form, requiredFields)) return;
 
   try {
     appState = await submitForm(`/api/admin/update-member?memberId=${encodeURIComponent(form.dataset.updateMember)}`, form);
@@ -2866,6 +2881,15 @@ document.addEventListener("submit", async (event) => {
   if (!form) return;
 
   event.preventDefault();
+  const requiredFields = [
+    ["nickname", "닉네임"],
+    ["realName", "이름"],
+    ["birthDate", "생년월일"],
+    ["phone", "전화번호"],
+    ["area", "주 활동지"],
+  ];
+
+  if (!validateRequiredFormFields(form, requiredFields)) return;
 
   try {
     appState = await submitForm("/api/update-profile", form);
