@@ -959,13 +959,19 @@ function normalizeEvent(event) {
   }
 
   return {
+    id: event?.id || null,
     message: String(event?.message || ""),
     createdAt: event?.createdAt || event?.created_at || null,
   };
 }
 
+function createEventId() {
+  return `event-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
+}
+
 function logEvent(message) {
   state.events.unshift({
+    id: createEventId(),
     message,
     createdAt: new Date().toISOString(),
   });
@@ -1458,10 +1464,10 @@ function adminApplicationsCsv() {
 }
 
 function adminEventsCsv() {
-  const rows = [["created_at", "message"]];
+  const rows = [["id", "created_at", "message"]];
 
   state.events.map(normalizeEvent).forEach((event) => {
-    rows.push([event.createdAt || "", event.message]);
+    rows.push([event.id || "", event.createdAt || "", event.message]);
   });
 
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;

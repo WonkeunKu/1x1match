@@ -176,6 +176,31 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     );
   }
 
+  function hashText(value) {
+    let hash = 0;
+    const text = String(value || "");
+
+    for (let index = 0; index < text.length; index += 1) {
+      hash = (hash << 5) - hash + text.charCodeAt(index);
+      hash |= 0;
+    }
+
+    return Math.abs(hash).toString(36);
+  }
+
+  function buildEventLogs(events) {
+    return (events || []).map((event) => {
+      const entry = typeof event === "string" ? { message: event, createdAt: null } : event;
+      const createdAt = entry.createdAt || new Date().toISOString();
+
+      return {
+        id: entry.id || `event-${createdAt.replace(/\W/g, "")}-${hashText(entry.message)}`,
+        message: entry.message,
+        created_at: createdAt,
+      };
+    });
+  }
+
   return {
     name: "supabase",
     schemaStatus,
@@ -203,7 +228,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
-        list("event_logs", "select=message,created_at&order=created_at.desc&limit=1000"),
+        list("event_logs", "select=id,message,created_at&order=created_at.desc&limit=1000"),
       ]);
 
       if (!members.length && !games.length && !matches.length) {
@@ -257,6 +282,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           };
         }),
         events: events.map((event) => ({
+          id: event.id,
           message: event.message,
           createdAt: event.created_at,
         })),
@@ -331,22 +357,11 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       await deleteAll("notification_logs");
       await deleteAll("match_results", "match_id");
       await deleteAll("applications");
-      await deleteAll("event_logs");
 
       await upsert("applications", buildApplications(matches));
       await upsert("match_results", buildResults(matches), "match_id");
       await upsert("notification_logs", buildNotificationLogs(matches));
-      await upsert(
-        "event_logs",
-        (state.events || []).map((event, index) => {
-          const entry = typeof event === "string" ? { message: event, createdAt: null } : event;
-          return {
-          id: `event-${String(index).padStart(4, "0")}`,
-          message: entry.message,
-          created_at: entry.createdAt || new Date().toISOString(),
-        };
-        }),
-      );
+      await upsert("event_logs", buildEventLogs(state.events));
     },
 
     async deleteMember(memberId) {
