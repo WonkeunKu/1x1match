@@ -1016,7 +1016,9 @@ function decorateMatch(match) {
       area: member?.area || "-",
     };
   });
-  const players = allPlayers.filter((player) => !player.cancelled && player.paymentStatus === "paid");
+  const players = allPlayers.filter(
+    (player) => !player.cancelled && (player.paymentStatus === "paid" || player.paymentStatus === "cancel_requested_paid"),
+  );
   const confirmed = players.length >= 2;
   const game = state.games.find((candidate) => candidate.id === match.gameId) || null;
   const gamePublic = isGamePublic(match, confirmed);
@@ -1261,7 +1263,9 @@ function findMember(memberId) {
 }
 
 function activePaidApplications(match) {
-  return match.applications.filter((item) => !item.cancelled && item.paymentStatus === "paid");
+  return match.applications.filter(
+    (item) => !item.cancelled && (item.paymentStatus === "paid" || item.paymentStatus === "cancel_requested_paid"),
+  );
 }
 
 function csvCell(value) {
@@ -1938,33 +1942,95 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    if (activePaidApplications(match).length >= 2) {
-      sendJson(response, 409, { error: "이미 확정된 매치는 직접 취소할 수 없습니다. 운영자에게 문의해 주세요." });
-      return;
-    }
-
-    const beforeCount = match.applications.length;
     const application = match.applications.find((item) => item.memberId === member.id);
 
     if (!application) {
-      sendJson(response, 404, { error: "취소할 신청 내역이 없습니다." });
+      sendJson(response, 404, { error: "취소 요청할 신청 내역이 없습니다." });
       return;
     }
 
-    if (application.paymentStatus === "payment_pending") {
-      match.applications = match.applications.filter((item) => item.memberId !== member.id);
-      logEvent(`${member.nickname}님이 ${match.date} ${match.time} 결제 대기 신청을 취소했습니다.`);
-    } else {
+    if (application.cancelled) {
+      sendJson(response, 409, { error: "이미 취소된 신청입니다." });
+      return;
+    }
+
+    if (["cancel_requested_pending", "cancel_requested_paid"].includes(application.paymentStatus)) {
+      sendJson(response, 409, { error: "이미 취소 요청이 접수되었습니다." });
+      return;
+    }
+
+    if (!["payment_pending", "paid"].includes(application.paymentStatus)) {
+      sendJson(response, 409, { error: "현재 상태에서는 취소 요청을 보낼 수 없습니다." });
+      return;
+    }
+
+    application.paymentStatus = application.paymentStatus === "paid" ? "cancel_requested_paid" : "cancel_requested_pending";
+    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치 신청 취소를 요청했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/approve-cancel-request") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+    const member = findMember(body.memberId);
+    const application = match?.applications.find((item) => item.memberId === body.memberId);
+
+    if (!match || !member || !application) {
+      sendJson(response, 404, { error: "승인할 취소 요청을 찾을 수 없습니다." });
+      return;
+    }
+
+    if (!["cancel_requested_pending", "cancel_requested_paid"].includes(application.paymentStatus)) {
+      sendJson(response, 409, { error: "취소 요청 상태가 아닙니다." });
+      return;
+    }
+
+    application.cancelled = true;
+    if (application.paymentStatus === "cancel_requested_paid") {
       application.paymentStatus = "refund_requested";
-      application.cancelled = true;
-      logEvent(`${member.nickname}님이 ${match.date} ${match.time} 신청 취소와 환불을 요청했습니다.`);
+      application.paid = true;
+      logEvent(`${member.nickname}님의 ${match.date} ${match.time} 취소 요청을 승인하고 환불 요청으로 넘겼습니다.`);
+    } else {
+      application.paymentStatus = "payment_pending";
+      application.paid = false;
+      logEvent(`${member.nickname}님의 ${match.date} ${match.time} 결제 대기 취소 요청을 승인했습니다.`);
     }
 
-    if (beforeCount === 0) {
-      sendJson(response, 404, { error: "취소할 신청 내역이 없습니다." });
+    match.notificationLog = (match.notificationLog || []).filter((key) => !["confirmed-ready", "confirmed"].includes(key));
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/reject-cancel-request") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+    const member = findMember(body.memberId);
+    const application = match?.applications.find((item) => item.memberId === body.memberId);
+
+    if (!match || !member || !application) {
+      sendJson(response, 404, { error: "취소 요청을 찾을 수 없습니다." });
       return;
     }
 
+    if (application.paymentStatus === "cancel_requested_paid") {
+      application.paymentStatus = "paid";
+      application.paid = true;
+    } else if (application.paymentStatus === "cancel_requested_pending") {
+      application.paymentStatus = "payment_pending";
+      application.paid = false;
+    } else {
+      sendJson(response, 409, { error: "취소 요청 상태가 아닙니다." });
+      return;
+    }
+
+    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 취소 요청을 반려했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;

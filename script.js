@@ -804,7 +804,9 @@ function renderMyPageApplication(match, user) {
     ? "cancelled"
     : application.paymentStatus === "paid"
       ? "confirmed"
-      : ["refund_requested", "refund_scheduled", "refunded"].includes(application.paymentStatus)
+      : ["cancel_requested_pending", "cancel_requested_paid", "refund_requested", "refund_scheduled", "refunded"].includes(
+            application.paymentStatus,
+          )
         ? "refunding"
         : "pending";
   const gameCategory = match.game ? getGameCategory(match.game) : "";
@@ -866,7 +868,9 @@ function renderMyApplications() {
           const paymentLabel = paymentStatusLabel(myPayment);
           const applicationStatusLabel = myApplication?.cancelled ? "취소됨" : match.statusLabel;
           const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
-          const canCancel = !match.confirmed && !["refund_requested", "refund_scheduled", "refunded"].includes(myPayment);
+          const canCancel =
+            !myApplication?.cancelled &&
+            !["cancel_requested_pending", "cancel_requested_paid", "refund_requested", "refund_scheduled", "refunded"].includes(myPayment);
 
           return `
             <article class="my-application-item">
@@ -882,7 +886,7 @@ function renderMyApplications() {
               </div>
               ${
                 canCancel
-                  ? `<button class="secondary-button" type="button" data-cancel-application="${match.id}">신청 취소</button>`
+                  ? `<button class="secondary-button" type="button" data-cancel-application="${match.id}">취소 요청</button>`
                   : ""
               }
             </article>
@@ -897,6 +901,8 @@ function paymentStatusLabel(status) {
   const labels = {
     payment_pending: "입금 확인 대기",
     paid: "입금 확인 완료",
+    cancel_requested_pending: "취소 승인 대기",
+    cancel_requested_paid: "취소 승인 대기",
     refund_requested: "환불 요청",
     refund_scheduled: "환불 예정",
     refunded: "환불 완료",
@@ -1298,6 +1304,7 @@ function renderAdmin() {
     ["장소 미입력", appState.matches.filter(needsExactVenue).length, "venue"],
     ["게임 안내 문자", appState.matches.filter(needsGameRevealMessage).length, "gameMessage"],
     ["결과 입력 대기", appState.matches.filter((match) => match.confirmed && !match.result).length, "result"],
+    ["취소 요청", appState.matches.filter(hasCancelRequest).length, "cancelRequest"],
     ["환불 필요", appState.matches.filter(hasRefundNeeded).length, "refund"],
   ];
 
@@ -1436,6 +1443,12 @@ function adminActionItems() {
       title: "결과 입력",
       count: appState.matches.filter((match) => match.confirmed && !match.result).length,
       detail: "경기 결과가 아직 기록되지 않은 매치",
+    },
+    {
+      filter: "cancelRequest",
+      title: "취소 요청",
+      count: appState.matches.filter(hasCancelRequest).length,
+      detail: "참가자가 직접 보낸 신청 취소 요청",
     },
     {
       filter: "refund",
@@ -1734,6 +1747,10 @@ function hasRefundNeeded(match) {
   return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
 }
 
+function hasCancelRequest(match) {
+  return match.allPlayers.some((player) => ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus));
+}
+
 function needsGameRevealMessage(match) {
   return Boolean(match.confirmed && match.gameRevealed && match.game && !match.notificationLog?.includes("game-revealed"));
 }
@@ -1756,6 +1773,7 @@ function matchesOpsFilter(match, filter) {
   if (filter === "gameMessage") return needsGameRevealMessage(match);
   if (filter === "venue") return needsExactVenue(match);
   if (filter === "result") return match.confirmed && !match.result;
+  if (filter === "cancelRequest") return hasCancelRequest(match);
   if (filter === "refund") return hasRefundNeeded(match);
 
   return true;
@@ -1803,6 +1821,7 @@ function renderOpsList() {
     { value: "upcoming", label: "오늘 이후" },
     { value: "confirmed", label: "확정만" },
     { value: "venue", label: "장소 미입력" },
+    { value: "cancelRequest", label: "취소 요청" },
     { value: "gameMessage", label: "문자 미발송" },
   ];
   const opsFilters = [
@@ -1817,6 +1836,7 @@ function renderOpsList() {
     { value: "venue", label: "장소 미입력" },
     { value: "gameMessage", label: "게임 안내 문자" },
     { value: "result", label: "결과 대기" },
+    { value: "cancelRequest", label: "취소 요청" },
     { value: "refund", label: "환불 필요" },
   ];
   const filteredMatches = filteredOpsMatches();
@@ -1894,6 +1914,7 @@ function renderOpsCard(match) {
   const isManualReveal = match.gameRevealMode === "manual";
   const isAutoReveal = match.gameRevealMode === "auto";
   const revealScheduleLabel = formatRevealSchedule(match);
+  const hasCancelRequests = hasCancelRequest(match);
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
@@ -1904,6 +1925,7 @@ function renderOpsCard(match) {
     needsReveal ? "게임 공개 대기" : "",
     needsVenue ? "장소 미입력" : "",
     needsGameMessage ? "문자 미발송" : "",
+    hasCancelRequests ? "취소 요청" : "",
     needsRefund ? "환불 필요" : "",
     resultRecorded ? "결과 입력됨" : "",
   ].filter(Boolean);
@@ -1953,6 +1975,12 @@ function renderOpsCard(match) {
                 ${
                   player.paymentStatus === "paid" && !player.cancelled
                     ? `<button class="inline-action danger" type="button" data-undo-payment="${match.id}" data-member-id="${player.memberId}">입금 취소</button>`
+                    : ""
+                }
+                ${
+                  ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus)
+                    ? `<button class="inline-action danger" type="button" data-approve-cancel-request="${match.id}" data-member-id="${player.memberId}">취소 승인</button>
+                       <button class="inline-action" type="button" data-reject-cancel-request="${match.id}" data-member-id="${player.memberId}">요청 반려</button>`
                     : ""
                 }
               </span>
@@ -2094,7 +2122,7 @@ function buildAdminMessages(match) {
   const account = paymentAccountText();
   const activeApplicants = match.allPlayers.filter((player) => !player.cancelled);
   const paymentPendingPlayers = activeApplicants.filter((player) => player.paymentStatus === "payment_pending");
-  const refundPlayers = activeApplicants.filter((player) =>
+  const refundPlayers = match.allPlayers.filter((player) =>
     ["refund_requested", "refund_scheduled", "refunded"].includes(player.paymentStatus),
   );
 
@@ -2827,13 +2855,45 @@ document.addEventListener("click", async (event) => {
 
   const cancelApplicationButton = event.target.closest("[data-cancel-application]");
   if (cancelApplicationButton) {
+    if (!window.confirm("신청 취소 요청을 운영자에게 보낼까요? 입금 완료 건은 운영자 승인 후 환불 요청으로 처리됩니다.")) return;
+
     const matchId = cancelApplicationButton.dataset.cancelApplication;
     appState = await request("/api/cancel-application", {
       method: "POST",
       body: JSON.stringify({ matchId }),
     });
     renderAll();
-    showToast("신청을 취소했습니다. 시범운영 참가비 1,000원은 환불 예정으로 처리됩니다.");
+    showToast("신청 취소 요청을 보냈습니다. 운영자 확인 후 처리됩니다.");
+  }
+
+  const approveCancelRequestButton = event.target.closest("[data-approve-cancel-request]");
+  if (approveCancelRequestButton) {
+    if (!window.confirm("취소 요청을 승인할까요? 입금 완료 건은 환불 요청 상태로 넘어갑니다.")) return;
+
+    appState = await request("/api/admin/approve-cancel-request", {
+      method: "POST",
+      body: JSON.stringify({
+        matchId: approveCancelRequestButton.dataset.approveCancelRequest,
+        memberId: approveCancelRequestButton.dataset.memberId,
+      }),
+    });
+    renderAll();
+    showToast("취소 요청을 승인했습니다.");
+  }
+
+  const rejectCancelRequestButton = event.target.closest("[data-reject-cancel-request]");
+  if (rejectCancelRequestButton) {
+    if (!window.confirm("취소 요청을 반려하고 기존 신청 상태로 되돌릴까요?")) return;
+
+    appState = await request("/api/admin/reject-cancel-request", {
+      method: "POST",
+      body: JSON.stringify({
+        matchId: rejectCancelRequestButton.dataset.rejectCancelRequest,
+        memberId: rejectCancelRequestButton.dataset.memberId,
+      }),
+    });
+    renderAll();
+    showToast("취소 요청을 반려했습니다.");
   }
 
   const completePaymentButton = event.target.closest("[data-complete-payment]");
