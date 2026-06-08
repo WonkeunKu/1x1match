@@ -1744,6 +1744,51 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/delete-member") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const member = findMember(body.memberId);
+
+    if (!member) {
+      sendJson(response, 404, { error: "삭제할 회원을 찾을 수 없습니다." });
+      return;
+    }
+
+    if (String(body.confirmNickname || "").trim() !== member.nickname) {
+      sendJson(response, 400, { error: "삭제 확인을 위해 회원 닉네임을 정확히 입력해 주세요." });
+      return;
+    }
+
+    const deletedNickname = member.nickname;
+
+    state.matches.forEach((match) => {
+      if (match.result && [match.result.winnerId, match.result.loserId].includes(member.id)) {
+        const previousWinner = findMember(match.result.winnerId);
+        const previousLoser = findMember(match.result.loserId);
+        if (previousWinner) previousWinner.wins = Math.max(0, previousWinner.wins - 1);
+        if (previousLoser) previousLoser.losses = Math.max(0, previousLoser.losses - 1);
+        match.result = null;
+      }
+
+      match.applications = (match.applications || []).filter((application) => application.memberId !== member.id);
+      match.notificationLog = (match.notificationLog || []).filter((key) => key !== "confirmed-ready");
+    });
+
+    state.members = state.members.filter((candidate) => candidate.id !== member.id);
+
+    if (state.currentUserId === member.id) {
+      state.currentUserId = null;
+      state.isAdmin = false;
+    }
+
+    logEvent(`운영자가 ${deletedNickname} 회원을 완전히 삭제했습니다.`);
+    await persistState();
+    await storage.deleteMember?.(member.id);
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/apply") {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);

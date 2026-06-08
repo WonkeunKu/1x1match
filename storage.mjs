@@ -32,6 +32,10 @@ export function createJsonStorage({ path, omitKeys = [] }) {
 
       await writeFile(path, JSON.stringify(storedState, null, 2));
     },
+
+    async deleteMember() {
+      return null;
+    },
   };
 }
 
@@ -109,6 +113,17 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
   async function deleteAll(table, column = "id") {
     await request(`/${table}?${column}=not.is.null`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal",
+      },
+    });
+  }
+
+  async function deleteMemberRow(memberId) {
+    if (!memberId) return;
+
+    await request(`/members?id=eq.${encodeURIComponent(memberId)}`, {
       method: "DELETE",
       headers: {
         Prefer: "return=minimal",
@@ -305,6 +320,10 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         };
         }),
       );
+    },
+
+    async deleteMember(memberId) {
+      await deleteMemberRow(memberId);
     },
   };
 }

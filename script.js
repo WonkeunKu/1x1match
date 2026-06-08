@@ -1575,6 +1575,7 @@ function renderMemberDetail() {
       </label>
       <div class="member-edit-actions">
         <button class="secondary-button danger" type="button" data-reset-member-password="${member.id}">비밀번호 초기화</button>
+        <button class="secondary-button danger" type="button" data-delete-member="${member.id}">회원 완전 삭제</button>
         <button class="primary-button" type="submit">정보 저장</button>
       </div>
     </form>
@@ -2646,6 +2647,41 @@ document.addEventListener("click", async (event) => {
   if (closeMemberDetailButton) {
     activeMemberId = null;
     renderMemberRoster();
+    return;
+  }
+
+  const deleteMemberButton = event.target.closest("[data-delete-member]");
+  if (deleteMemberButton) {
+    const memberId = deleteMemberButton.dataset.deleteMember;
+    const member = (appState.members || []).find((item) => item.id === memberId);
+
+    if (!member) {
+      showToast("삭제할 회원을 찾을 수 없습니다.");
+      return;
+    }
+
+    const confirmNickname = window.prompt(
+      `${member.nickname} 회원을 완전히 삭제합니다.\n신청 이력과 입력된 경기 결과도 함께 정리됩니다.\n삭제하려면 회원 닉네임을 정확히 입력해 주세요.`,
+    );
+
+    if (confirmNickname === null) return;
+
+    if (confirmNickname.trim() !== member.nickname) {
+      showToast("닉네임이 일치하지 않아 삭제를 취소했습니다.");
+      return;
+    }
+
+    try {
+      appState = await request("/api/admin/delete-member", {
+        method: "POST",
+        body: JSON.stringify({ memberId, confirmNickname }),
+      });
+      activeMemberId = null;
+      renderAll();
+      showToast(`${member.nickname} 회원을 완전히 삭제했습니다.`);
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 
