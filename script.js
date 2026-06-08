@@ -106,6 +106,8 @@ const gameCategoryOptions = [
   { value: "devils", label: "데블스 플랜" },
   { value: "blood", label: "피의 게임" },
   { value: "death", label: "데스 게임" },
+  { value: "lifes", label: "Life's Game" },
+  { value: "timehotel", label: "더 타임 호텔" },
 ];
 
 function formatPhoneInput(value) {

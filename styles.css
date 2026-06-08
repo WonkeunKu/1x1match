@@ -543,6 +543,15 @@ h3 {
   background: linear-gradient(135deg, #304f95, #14254b);
 }
 
+.notice-game-pill--lifes {
+  color: #120f0f;
+  background: linear-gradient(135deg, #f3eee5, #9d9588);
+}
+
+.notice-game-pill--timehotel {
+  background: linear-gradient(135deg, #5d367b, #24122f);
+}
+
 .auth-grid,
 .apply-grid {
   display: grid;
@@ -1399,6 +1408,16 @@ select:disabled {
 .game-card--blood {
   --game-category-color: rgba(143, 35, 39, 0.9);
   --game-category-glow: rgba(143, 35, 39, 0.18);
+}
+
+.game-card--lifes {
+  --game-category-color: rgba(224, 216, 201, 0.9);
+  --game-category-glow: rgba(224, 216, 201, 0.13);
+}
+
+.game-card--timehotel {
+  --game-category-color: rgba(91, 55, 124, 0.92);
+  --game-category-glow: rgba(91, 55, 124, 0.18);
 }
 
 .game-card.active {
