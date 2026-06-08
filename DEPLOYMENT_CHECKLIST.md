@@ -43,6 +43,7 @@ npm start
 - Applying shows the bank transfer guide
 - Admin can confirm deposits with `입금 확인`
 - Two paid participants make a match confirmed
+- Supabase has the game admin migration from `supabase-add-game-admin-fields.sql`
 - Admin can copy confirmation/game notice messages manually
 - Admin password is not the local default
 - `.env.local` and secret keys are not uploaded publicly
