@@ -14,6 +14,9 @@ let activeGameId = null;
 let gameSearchQuery = "";
 let activeGameCategoryFilter = "all";
 let isGameDetailOpen = false;
+let adminGameSearchQuery = "";
+let adminGameCategoryFilter = "all";
+let activeAdminGameId = null;
 let activeAreaFilter = "all";
 let activeNoticeAreaFilter = "all";
 let activeOpsFilter = "all";
@@ -1378,7 +1381,32 @@ function renderAdminGameManager() {
   const panel = document.querySelector("#adminGameManager");
   if (!panel) return;
 
-  const games = [...appState.games].sort((a, b) => getGameCategory(a).localeCompare(getGameCategory(b), "ko-KR") || a.title.localeCompare(b.title, "ko-KR"));
+  const query = adminGameSearchQuery.trim().toLowerCase();
+  const sortedGames = [...appState.games].sort(
+    (a, b) => getGameCategory(a).localeCompare(getGameCategory(b), "ko-KR") || a.title.localeCompare(b.title, "ko-KR"),
+  );
+  const filteredGames = sortedGames.filter((game) => {
+    const categoryMatches = adminGameCategoryFilter === "all" || getGameCategory(game) === adminGameCategoryFilter;
+    const text = [game.title, game.summary, game.win, game.id, ...getGameTags(game), ...(game.rules || [])].join(" ").toLowerCase();
+    return categoryMatches && (!query || text.includes(query));
+  });
+
+  if (activeAdminGameId && !filteredGames.some((game) => game.id === activeAdminGameId)) {
+    activeAdminGameId = null;
+  }
+
+  const activeGame = filteredGames.find((game) => game.id === activeAdminGameId) || filteredGames[0] || null;
+  activeAdminGameId = activeGame?.id || null;
+  const categoryButtons = gameCategoryOptions
+    .map(
+      (option) => `
+        <button class="${adminGameCategoryFilter === option.value ? "selected" : ""}" type="button" data-admin-game-category="${option.value}">
+          ${option.label}
+          <span>${option.value === "all" ? appState.games.length : appState.games.filter((game) => getGameCategory(game) === option.value).length}</span>
+        </button>
+      `,
+    )
+    .join("");
 
   panel.innerHTML = `
     <div class="admin-game-head">
@@ -1386,7 +1414,7 @@ function renderAdminGameManager() {
         <h3>게임 관리</h3>
         <p>운영 게임을 추가하고, 규칙을 수정하거나 목록에서 숨깁니다.</p>
       </div>
-      <span class="status-pill confirmed">${games.filter((game) => !game.hidden).length}개 공개</span>
+      <span class="status-pill confirmed">${appState.games.filter((game) => !game.hidden).length}개 공개</span>
     </div>
     <form class="admin-game-form admin-game-form-new" data-create-game-form>
       <div>
@@ -1415,9 +1443,34 @@ function renderAdminGameManager() {
       </label>
       <button class="primary-button" type="submit">게임 추가</button>
     </form>
-    <div class="admin-game-list">
-      ${games.map(renderAdminGameEditor).join("")}
+    <div class="admin-game-controls">
+      <input type="search" id="adminGameSearchInput" value="${escapeHtml(adminGameSearchQuery)}" placeholder="게임명, 규칙, 태그 검색" autocomplete="off" />
+      <div class="ops-filter segmented">${categoryButtons}</div>
     </div>
+    <div class="admin-game-workspace">
+      <div class="admin-game-list">
+        ${
+          filteredGames.length
+            ? filteredGames.map((game) => renderAdminGameListItem(game, activeGame?.id === game.id)).join("")
+            : `<div class="game-empty">조건에 맞는 게임이 없습니다.</div>`
+        }
+      </div>
+      <div class="admin-game-editor">
+        ${activeGame ? renderAdminGameEditor(activeGame) : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminGameListItem(game, selected) {
+  return `
+    <button class="admin-game-list-item ${selected ? "selected" : ""} ${game.hidden ? "is-hidden" : ""}" type="button" data-admin-game-select="${game.id}">
+      <span>
+        <strong>${escapeHtml(game.title)}</strong>
+        <small>${game.hidden ? "숨김" : "공개"} · ${escapeHtml(game.id)}</small>
+      </span>
+      <b>${gameCategoryOptions.find((option) => option.value === getGameCategory(game))?.label || "미분류"}</b>
+    </button>
   `;
 }
 
@@ -2505,6 +2558,23 @@ document.addEventListener("click", (event) => {
   document.querySelector("#opsList")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+document.addEventListener("click", (event) => {
+  const categoryButton = event.target.closest("[data-admin-game-category]");
+  if (!categoryButton) return;
+
+  adminGameCategoryFilter = categoryButton.dataset.adminGameCategory;
+  activeAdminGameId = null;
+  renderAdminGameManager();
+});
+
+document.addEventListener("click", (event) => {
+  const gameButton = event.target.closest("[data-admin-game-select]");
+  if (!gameButton) return;
+
+  activeAdminGameId = gameButton.dataset.adminGameSelect;
+  renderAdminGameManager();
+});
+
 document.addEventListener("input", (event) => {
   if (event.target.id !== "opsSearchInput") return;
 
@@ -2513,6 +2583,18 @@ document.addEventListener("input", (event) => {
   activeOpsMatchId = null;
   renderOpsList();
   const input = document.querySelector("#opsSearchInput");
+  input?.focus();
+  input?.setSelectionRange(cursorPosition, cursorPosition);
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.id !== "adminGameSearchInput") return;
+
+  const cursorPosition = event.target.selectionStart;
+  adminGameSearchQuery = event.target.value;
+  activeAdminGameId = null;
+  renderAdminGameManager();
+  const input = document.querySelector("#adminGameSearchInput");
   input?.focus();
   input?.setSelectionRange(cursorPosition, cursorPosition);
 });

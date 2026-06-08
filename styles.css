@@ -1880,7 +1880,75 @@ select:disabled {
 
 .admin-game-list {
   display: grid;
-  gap: 12px;
+  align-content: start;
+  gap: 8px;
+  max-height: 720px;
+  overflow: auto;
+}
+
+.admin-game-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-game-workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.52fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.admin-game-editor {
+  min-width: 0;
+}
+
+.admin-game-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-game-list-item:hover,
+.admin-game-list-item.selected {
+  border-color: rgba(255, 74, 57, 0.38);
+  background: rgba(255, 74, 57, 0.08);
+}
+
+.admin-game-list-item.is-hidden {
+  opacity: 0.66;
+}
+
+.admin-game-list-item span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-game-list-item strong,
+.admin-game-list-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-game-list-item small {
+  color: var(--muted);
+}
+
+.admin-game-list-item b {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--accent-soft);
 }
 
 .admin-game-form {
@@ -2943,6 +3011,10 @@ select:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-game-workspace {
+    grid-template-columns: 1fr;
+  }
+
   .admin-login-panel {
     grid-template-columns: 1fr;
   }
@@ -2973,6 +3045,8 @@ select:disabled {
   .game-layout,
   .ops-main,
   .ops-card,
+  .admin-game-head,
+  .admin-game-row-head,
   .ops-actions {
     display: grid;
   }
