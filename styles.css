@@ -2808,6 +2808,12 @@ select:disabled {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.participant-row.cancel-requested {
+  padding: 10px 0;
+  border-top-color: rgba(201, 153, 53, 0.32);
+  background: linear-gradient(90deg, rgba(201, 153, 53, 0.08), transparent 72%);
+}
+
 .participant-row.cancelled {
   opacity: 0.72;
 }
@@ -2820,6 +2826,33 @@ select:disabled {
 .participant-empty {
   color: var(--muted);
   font-size: 13px;
+}
+
+.participant-row > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.participant-row > span:last-child small {
+  flex-basis: 100%;
+  color: #f3cf88;
+  font-weight: 800;
+}
+
+.participant-status {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.participant-status-alert {
+  color: #ffd38a;
+}
+
+.ops-cancel-request-card {
+  border-color: rgba(201, 153, 53, 0.52);
+  box-shadow: inset 4px 0 0 rgba(201, 153, 53, 0.82);
 }
 
 .message-preview {

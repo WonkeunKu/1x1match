@@ -2098,6 +2098,9 @@ function renderOpsCard(match) {
   const isAutoReveal = match.gameRevealMode === "auto";
   const revealScheduleLabel = formatRevealSchedule(match);
   const hasCancelRequests = hasCancelRequest(match);
+  const cancelRequestPlayers = match.allPlayers.filter((player) =>
+    ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus),
+  );
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
@@ -2108,7 +2111,7 @@ function renderOpsCard(match) {
     needsReveal ? "게임 공개 대기" : "",
     needsVenue ? "장소 미입력" : "",
     needsGameMessage ? "문자 미발송" : "",
-    hasCancelRequests ? "취소 요청" : "",
+    hasCancelRequests ? `취소 요청 ${cancelRequestPlayers.length}건` : "",
     needsRefund ? "환불 필요" : "",
     resultRecorded ? "결과 입력됨" : "",
   ].filter(Boolean);
@@ -2147,13 +2150,20 @@ function renderOpsCard(match) {
     ? match.allPlayers
         .map((player) => {
           const paymentLabel = paymentStatusLabel(player.paymentStatus);
+          const cancelRequestDetail =
+            player.paymentStatus === "cancel_requested_paid"
+              ? "승인 시 환불 요청으로 전환"
+              : player.paymentStatus === "cancel_requested_pending"
+                ? "승인 시 결제 대기 신청 취소"
+                : "";
           return `
-            <div class="participant-row ${player.cancelled ? "cancelled" : ""}">
+            <div class="participant-row ${player.cancelled ? "cancelled" : ""} ${cancelRequestDetail ? "cancel-requested" : ""}">
               <strong>${player.nickname}</strong>
               <span>${player.phone}</span>
               <span>${player.area}</span>
               <span>
-                ${paymentLabel}
+                <b class="participant-status ${cancelRequestDetail ? "participant-status-alert" : ""}">${paymentLabel}</b>
+                ${cancelRequestDetail ? `<small>${cancelRequestDetail}</small>` : ""}
                 ${
                   player.paymentStatus === "payment_pending" && !player.cancelled
                     ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
@@ -2245,6 +2255,16 @@ function renderOpsCard(match) {
           </div>
         </div>
       </div>
+      ${
+        cancelRequestPlayers.length
+          ? `<div class="ops-warning-card ops-cancel-request-card">
+              <strong>취소 요청 ${cancelRequestPlayers.length}건</strong>
+              <span>${cancelRequestPlayers
+                .map((player) => `${player.nickname}: ${player.paymentStatus === "cancel_requested_paid" ? "입금 완료, 승인 시 환불 요청" : "입금 전, 승인 시 신청 취소"}`)
+                .join(" · ")}</span>
+            </div>`
+          : ""
+      }
       ${
         needsVenue
           ? `<div class="ops-warning-card">
