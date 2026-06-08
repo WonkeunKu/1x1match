@@ -1117,6 +1117,16 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
+function generateMemberId() {
+  let id = "";
+
+  do {
+    id = `u-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
+  } while (state.members.some((member) => member.id === id));
+
+  return id;
+}
+
 function verifyPassword(password, storedHash) {
   if (!storedHash || !storedHash.includes(":")) return false;
 
@@ -1442,7 +1452,7 @@ async function handleApi(request, response, pathname) {
     }
 
     const member = {
-      id: `u-${String(state.members.length + 1).padStart(3, "0")}`,
+      id: generateMemberId(),
       nickname,
       realName,
       birthDate,
