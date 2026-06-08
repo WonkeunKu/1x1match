@@ -25,6 +25,8 @@ create table if not exists games (
   id text primary key,
   title text not null,
   summary text not null,
+  category text not null default 'uncategorized',
+  is_hidden boolean not null default false,
   rules jsonb not null default '[]'::jsonb,
   win_condition text not null,
   created_at timestamptz not null default now()

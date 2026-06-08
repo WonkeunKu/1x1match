@@ -418,6 +418,7 @@ h3 {
 .my-applications,
 .admin-login-panel,
 .admin-create-form,
+.admin-game-manager,
 .notice-main,
 .ranking-table,
 .game-detail,
@@ -1853,6 +1854,63 @@ select:disabled {
   margin-bottom: 0;
 }
 
+.admin-game-manager {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.admin-game-head,
+.admin-game-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-game-head h3 {
+  margin-bottom: 4px;
+}
+
+.admin-game-head p,
+.admin-game-form span {
+  color: var(--muted);
+}
+
+.admin-game-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-game-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.8fr) minmax(130px, 0.5fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-game-form.is-hidden {
+  opacity: 0.72;
+}
+
+.admin-game-form-new {
+  border-color: rgba(255, 74, 57, 0.22);
+}
+
+.admin-game-form .wide,
+.admin-game-row-head {
+  grid-column: 1 / -1;
+}
+
+.admin-game-form textarea {
+  min-height: 130px;
+}
+
 .member-roster-panel {
   display: grid;
   gap: 14px;
@@ -2881,6 +2939,10 @@ select:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-game-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-login-panel {
     grid-template-columns: 1fr;
   }
@@ -2938,6 +3000,7 @@ select:disabled {
   .apply-panel.compact,
   .apply-selection-summary,
   .admin-create-form,
+  .admin-game-form,
   .admin-login-panel,
   .my-application-list,
   .notice-board,

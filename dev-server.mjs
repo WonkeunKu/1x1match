@@ -862,6 +862,43 @@ const defaultGames = state.games.map((game) => ({
   ...game,
   rules: [...game.rules],
 }));
+const gameCategories = new Set(["death", "genius", "blood", "devils", "lifes", "timehotel", "uncategorized"]);
+const defaultGameCategoryMap = {
+  "doubles-plan": "death",
+  "love-wins-all-2": "death",
+  "forgotten-mines-2": "death",
+  "doubles-plan-2": "death",
+  "memory-dinner": "death",
+  "position-combo": "death",
+  "love-wins-all": "death",
+  "language-pieces": "death",
+  "show-me-the-coin": "death",
+  "forgotten-mines": "death",
+  "horse-race": "death",
+  "secret-prophecy": "death",
+  monorail: "genius",
+  "strategic-yut": "genius",
+  "same-number-finder": "genius",
+  "black-and-white": "genius",
+  "black-and-white-2": "genius",
+  "betting-black-and-white": "genius",
+  "twelve-shogi": "genius",
+  "number-shogi": "genius",
+  "kyeol-hap": "genius",
+  "mystery-number": "blood",
+  "battle-ascending": "blood",
+  "blind-betting": "blood",
+  "formula-maze": "blood",
+  "color-turn": "blood",
+  "secret-dice": "blood",
+  "big-small": "devils",
+  baghchal: "devils",
+  "nine-mens-morris": "devils",
+  hexagon: "devils",
+  "office-territory": "lifes",
+  "gold-silver-bronze": "timehotel",
+  "arithmetic-lotto": "timehotel",
+};
 
 async function loadStoredState() {
   try {
@@ -892,12 +929,12 @@ function hydrateStoredState(stored) {
   const defaultGameIds = new Set(defaultGames.map((game) => game.id));
   state.games = [
     ...defaultGames.map((game) => ({
-      ...storedGamesById.get(game.id),
       ...game,
-      rules: [...game.rules],
+      ...storedGamesById.get(game.id),
+      rules: [...(storedGamesById.get(game.id)?.rules || game.rules)],
     })),
     ...(state.games || []).filter((game) => !defaultGameIds.has(game.id)),
-  ];
+  ].map(normalizeGame);
   state.isAdmin = false;
 }
 
@@ -955,7 +992,7 @@ function publicState() {
     isAdmin: Boolean(state.isAdmin),
     members: state.isAdmin ? state.members.map(publicMember) : [],
     rankings,
-    games: state.games,
+    games: state.isAdmin ? state.games : state.games.filter((game) => !game.hidden),
     matches: state.matches.map((match) => decorateMatch(match)),
     events: events.slice(0, 8),
     allEvents: state.isAdmin ? events : [],
@@ -1115,6 +1152,36 @@ function normalizePhone(phone) {
 
 function normalizeNickname(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function slugifyGameId(value) {
+  const slug = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || `game-${Date.now()}`;
+}
+
+function normalizeGame(game) {
+  const id = String(game.id || slugifyGameId(game.title));
+  const category = gameCategories.has(game.category) ? game.category : defaultGameCategoryMap[id] || "uncategorized";
+
+  return {
+    id,
+    title: String(game.title || "").trim(),
+    summary: String(game.summary || "").trim(),
+    category,
+    hidden: Boolean(game.hidden),
+    rules: Array.isArray(game.rules)
+      ? game.rules.map((rule) => String(rule || "").trim()).filter(Boolean)
+      : String(game.rules || "")
+          .split(/\r?\n/)
+          .map((rule) => rule.trim())
+          .filter(Boolean),
+    win: String(game.win || game.winCondition || "").trim(),
+  };
 }
 
 function nicknameKey(value) {
@@ -2036,6 +2103,91 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/create-game") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    requireField(body.title, "게임명");
+    requireField(body.summary, "요약");
+    requireField(body.rules, "규칙");
+    requireField(body.win, "승리 조건");
+
+    const idBase = slugifyGameId(body.id || body.title);
+    let id = idBase;
+    let suffix = 2;
+    while (state.games.some((game) => game.id === id)) {
+      id = `${idBase}-${suffix}`;
+      suffix += 1;
+    }
+
+    const game = normalizeGame({
+      id,
+      title: body.title,
+      summary: body.summary,
+      category: body.category,
+      rules: body.rules,
+      win: body.win,
+      hidden: Boolean(body.hidden),
+    });
+    state.games.push(game);
+    logEvent(`운영자가 ${game.title} 게임을 추가했습니다.`);
+    await persistState();
+    sendJson(response, 201, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/update-game") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const game = state.games.find((candidate) => candidate.id === body.gameId);
+
+    if (!game) {
+      sendJson(response, 404, { error: "수정할 게임을 찾을 수 없습니다." });
+      return;
+    }
+
+    requireField(body.title, "게임명");
+    requireField(body.summary, "요약");
+    requireField(body.rules, "규칙");
+    requireField(body.win, "승리 조건");
+
+    Object.assign(
+      game,
+      normalizeGame({
+        ...game,
+        title: body.title,
+        summary: body.summary,
+        category: body.category,
+        rules: body.rules,
+        win: body.win,
+        hidden: Boolean(body.hidden),
+      }),
+    );
+    logEvent(`운영자가 ${game.title} 게임 정보를 수정했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/toggle-game-hidden") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    const game = state.games.find((candidate) => candidate.id === body.gameId);
+
+    if (!game) {
+      sendJson(response, 404, { error: "숨김 처리할 게임을 찾을 수 없습니다." });
+      return;
+    }
+
+    game.hidden = !game.hidden;
+    logEvent(`운영자가 ${game.title} 게임을 ${game.hidden ? "숨김" : "공개"} 처리했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/create-match") {
     if (!requireAdmin(response)) return;
 
@@ -2240,8 +2392,14 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    const candidates = state.games.filter((game) => game.id !== match.gameId);
-    const pool = candidates.length ? candidates : state.games;
+    const availableGames = state.games.filter((game) => !game.hidden);
+    const candidates = availableGames.filter((game) => game.id !== match.gameId);
+    const pool = candidates.length ? candidates : availableGames;
+
+    if (!pool.length) {
+      sendJson(response, 409, { error: "추천할 공개 게임이 없습니다." });
+      return;
+    }
     const game = pool[Math.floor(Math.random() * pool.length)];
 
     if (!game) {
@@ -2370,6 +2528,7 @@ async function handleStatic(response, pathname) {
 }
 
 await loadStoredState();
+state.games = state.games.map(normalizeGame);
 
 createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");

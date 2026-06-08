@@ -179,7 +179,11 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           "select=id,nickname,real_name,birth_date,phone,area,password_hash,wins,losses",
           "select=id,nickname,phone,area,password_hash,wins,losses",
         ),
-        list("games", "select=id,title,summary,rules,win_condition"),
+        listWithFallback(
+          "games",
+          "select=id,title,summary,rules,win_condition,category,is_hidden",
+          "select=id,title,summary,rules,win_condition",
+        ),
         listWithFallback(
           "matches",
           "select=id,display_date,match_date,match_time,location,game_id,game_revealed,exact_venue,admin_note&order=match_date.asc,match_time.asc",
@@ -212,6 +216,8 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           id: game.id,
           title: game.title,
           summary: game.summary,
+          category: game.category || "uncategorized",
+          hidden: Boolean(game.is_hidden),
           rules: game.rules || [],
           win: game.win_condition,
         })),
@@ -269,28 +275,36 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         );
       }
 
-      await upsert(
-        "games",
-        (state.games || []).map((game) => ({
-          id: game.id,
-          title: game.title,
-          summary: game.summary,
-          rules: game.rules || [],
-          win_condition: game.win,
-        })),
-      );
+      const gameRows = (state.games || []).map((game) => ({
+        id: game.id,
+        title: game.title,
+        summary: game.summary,
+        category: game.category || "uncategorized",
+        is_hidden: Boolean(game.hidden),
+        rules: game.rules || [],
+        win_condition: game.win,
+      }));
+
+      try {
+        await upsert("games", gameRows);
+      } catch (error) {
+        await upsert(
+          "games",
+          gameRows.map(({ category, is_hidden, ...game }) => game),
+        );
+      }
 
       const matchRows = matches.map((match) => ({
-          id: match.id,
-          match_date: normalizeMatchDate(match),
-          display_date: match.date,
-          match_time: match.time,
-          location: match.location,
-          game_id: match.gameId,
-          game_revealed: Boolean(match.gameRevealed),
-          exact_venue: match.exactVenue || "",
-          admin_note: match.adminNote || "",
-        }));
+        id: match.id,
+        match_date: normalizeMatchDate(match),
+        display_date: match.date,
+        match_time: match.time,
+        location: match.location,
+        game_id: match.gameId,
+        game_revealed: Boolean(match.gameRevealed),
+        exact_venue: match.exactVenue || "",
+        admin_note: match.adminNote || "",
+      }));
 
       try {
         await upsert("matches", matchRows);

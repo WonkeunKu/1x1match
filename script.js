@@ -1109,7 +1109,7 @@ function getGameTags(game) {
 }
 
 function getGameCategory(game) {
-  return gameCategoryMap[game.id] || "uncategorized";
+  return game?.category && game.category !== "uncategorized" ? game.category : gameCategoryMap[game.id] || "uncategorized";
 }
 
 function renderGameCategoryFilters() {
@@ -1142,10 +1142,11 @@ function renderGames(gameId, options = {}) {
   }
 
   const query = gameSearchQuery.trim().toLowerCase();
+  const publicGames = appState.games.filter((game) => !game.hidden);
   const categoryFilteredGames =
     activeGameCategoryFilter === "all"
-      ? appState.games
-      : appState.games.filter((game) => getGameCategory(game) === activeGameCategoryFilter);
+      ? publicGames
+      : publicGames.filter((game) => getGameCategory(game) === activeGameCategoryFilter);
   const visibleGames = query
     ? categoryFilteredGames.filter((game) =>
         [game.title, game.summary, game.win, ...getGameTags(game), ...(game.rules || [])]
@@ -1157,10 +1158,10 @@ function renderGames(gameId, options = {}) {
   const activeGame =
     visibleGames.find((game) => game.id === gameId) ||
     visibleGames.find((game) => game.id === activeGameId) ||
-    appState.games.find((game) => game.id === gameId) ||
-    appState.games.find((game) => game.id === activeGameId) ||
+    publicGames.find((game) => game.id === gameId) ||
+    publicGames.find((game) => game.id === activeGameId) ||
     visibleGames[0] ||
-    appState.games[0];
+    publicGames[0];
 
   activeGameId = activeGame?.id || null;
 
@@ -1296,6 +1297,7 @@ function renderAdmin() {
   adminContent.hidden = false;
   renderAdminSystemStatus();
   renderAdminBackupPanel();
+  renderAdminGameManager();
 
   const metrics = [
     ["전체 회원", appState.members?.length || 0, "all"],
@@ -1360,6 +1362,100 @@ function renderAdminBackupPanel() {
         <button class="secondary-button" type="button" data-admin-export="json">JSON 백업</button>
       </div>
     </div>
+  `;
+}
+
+function gameCategorySelectOptions(selected = "uncategorized") {
+  return [
+    ...gameCategoryOptions.filter((option) => option.value !== "all"),
+    { value: "uncategorized", label: "미분류" },
+  ]
+    .map((option) => `<option value="${option.value}" ${option.value === selected ? "selected" : ""}>${option.label}</option>`)
+    .join("");
+}
+
+function renderAdminGameManager() {
+  const panel = document.querySelector("#adminGameManager");
+  if (!panel) return;
+
+  const games = [...appState.games].sort((a, b) => getGameCategory(a).localeCompare(getGameCategory(b), "ko-KR") || a.title.localeCompare(b.title, "ko-KR"));
+
+  panel.innerHTML = `
+    <div class="admin-game-head">
+      <div>
+        <h3>게임 관리</h3>
+        <p>운영 게임을 추가하고, 규칙을 수정하거나 목록에서 숨깁니다.</p>
+      </div>
+      <span class="status-pill confirmed">${games.filter((game) => !game.hidden).length}개 공개</span>
+    </div>
+    <form class="admin-game-form admin-game-form-new" data-create-game-form>
+      <div>
+        <strong>새 게임 추가</strong>
+        <span>규칙은 줄마다 1개 항목으로 입력합니다.</span>
+      </div>
+      <label>
+        게임명
+        <input name="title" type="text" placeholder="예: 절대음감 경매" required />
+      </label>
+      <label>
+        분류
+        <select name="category">${gameCategorySelectOptions("uncategorized")}</select>
+      </label>
+      <label class="wide">
+        요약
+        <input name="summary" type="text" placeholder="게임 카드에 보일 한 줄 설명" required />
+      </label>
+      <label class="wide">
+        규칙
+        <textarea name="rules" rows="5" placeholder="1라운드 규칙&#10;2라운드 규칙" required></textarea>
+      </label>
+      <label class="wide">
+        승리 조건
+        <input name="win" type="text" placeholder="최종 승리 조건" required />
+      </label>
+      <button class="primary-button" type="submit">게임 추가</button>
+    </form>
+    <div class="admin-game-list">
+      ${games.map(renderAdminGameEditor).join("")}
+    </div>
+  `;
+}
+
+function renderAdminGameEditor(game) {
+  return `
+    <form class="admin-game-form ${game.hidden ? "is-hidden" : ""}" data-update-game-form="${game.id}">
+      <input name="gameId" type="hidden" value="${escapeHtml(game.id)}" />
+      <div class="admin-game-row-head">
+        <div>
+          <strong>${escapeHtml(game.title)}</strong>
+          <span>${game.hidden ? "숨김" : "공개"} · ${escapeHtml(game.id)}</span>
+        </div>
+        <button class="secondary-button ${game.hidden ? "" : "danger-button"}" type="button" data-toggle-game-hidden="${game.id}">
+          ${game.hidden ? "복구" : "숨김"}
+        </button>
+      </div>
+      <label>
+        게임명
+        <input name="title" type="text" value="${escapeHtml(game.title)}" required />
+      </label>
+      <label>
+        분류
+        <select name="category">${gameCategorySelectOptions(getGameCategory(game))}</select>
+      </label>
+      <label class="wide">
+        요약
+        <input name="summary" type="text" value="${escapeHtml(game.summary)}" required />
+      </label>
+      <label class="wide">
+        규칙
+        <textarea name="rules" rows="6" required>${escapeHtml((game.rules || []).join("\n"))}</textarea>
+      </label>
+      <label class="wide">
+        승리 조건
+        <input name="win" type="text" value="${escapeHtml(game.win)}" required />
+      </label>
+      <button class="secondary-button" type="submit">수정 저장</button>
+    </form>
   `;
 }
 
@@ -1953,7 +2049,11 @@ function renderOpsCard(match) {
 
   const recommendedGame = needsReveal ? match.game : null;
   const gameOptions = appState.games
-    .map((game) => `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}</option>`)
+    .filter((game) => !game.hidden || match.game?.id === game.id)
+    .map(
+      (game) =>
+        `<option value="${game.id}" ${match.game?.id === game.id ? "selected" : ""}>${game.title}${game.hidden ? " (숨김)" : ""}</option>`,
+    )
     .join("");
   const winnerOptions = match.players.map((player) => `<option value="${player.memberId}">${player.nickname}</option>`).join("");
   const participantList = match.allPlayers.length
@@ -2593,6 +2693,37 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
 });
 
 document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-create-game-form]");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    appState = await submitForm("/api/admin/create-game", form);
+    form.reset();
+    renderAll();
+    showToast("새 게임을 추가했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-update-game-form]");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    appState = await submitForm(`/api/admin/update-game?gameId=${encodeURIComponent(form.dataset.updateGameForm)}`, form);
+    renderAll();
+    showToast("게임 정보를 수정했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-update-member]");
   if (!form) return;
 
@@ -2694,6 +2825,23 @@ document.addEventListener("click", async (event) => {
     try {
       await downloadAdminExport(adminExportButton.dataset.adminExport);
       showToast("운영 데이터 파일을 내려받았습니다.");
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  const toggleGameHiddenButton = event.target.closest("[data-toggle-game-hidden]");
+  if (toggleGameHiddenButton) {
+    if (!window.confirm("게임 목록 노출 상태를 변경할까요? 기존 매치 예약 기록은 유지됩니다.")) return;
+
+    try {
+      appState = await request("/api/admin/toggle-game-hidden", {
+        method: "POST",
+        body: JSON.stringify({ gameId: toggleGameHiddenButton.dataset.toggleGameHidden }),
+      });
+      renderAll();
+      showToast("게임 노출 상태를 변경했습니다.");
     } catch (error) {
       showToast(error.message);
     }
