@@ -11,6 +11,9 @@ function requireEnv(value, name) {
 export function createJsonStorage({ path, omitKeys = [] }) {
   return {
     name: "json",
+    schemaStatus: {
+      gameAdminFields: true,
+    },
 
     async load() {
       try {
@@ -42,6 +45,9 @@ export function createJsonStorage({ path, omitKeys = [] }) {
 export function createSupabaseStorage({ url, serviceRoleKey }) {
   const baseUrl = `${requireEnv(url, "SUPABASE_URL").replace(/\/$/, "")}/rest/v1`;
   const key = requireEnv(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY");
+  const schemaStatus = {
+    gameAdminFields: true,
+  };
   const headers = {
     apikey: key,
     Authorization: `Bearer ${key}`,
@@ -74,11 +80,12 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     return request(`/${table}?${query}`);
   }
 
-  async function listWithFallback(table, primaryQuery, fallbackQuery) {
+  async function listWithFallback(table, primaryQuery, fallbackQuery, onFallback) {
     try {
       return await list(table, primaryQuery);
     } catch (error) {
       if (!fallbackQuery) throw error;
+      onFallback?.(error);
       return list(table, fallbackQuery);
     }
   }
@@ -171,6 +178,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
   return {
     name: "supabase",
+    schemaStatus,
 
     async load() {
       const [members, games, matches, applications, results, notificationLogs, events] = await Promise.all([
@@ -183,6 +191,9 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           "games",
           "select=id,title,summary,rules,win_condition,category,is_hidden",
           "select=id,title,summary,rules,win_condition",
+          () => {
+            schemaStatus.gameAdminFields = false;
+          },
         ),
         listWithFallback(
           "matches",
@@ -287,7 +298,9 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
       try {
         await upsert("games", gameRows);
+        schemaStatus.gameAdminFields = true;
       } catch (error) {
+        schemaStatus.gameAdminFields = false;
         await upsert(
           "games",
           gameRows.map(({ category, is_hidden, ...game }) => game),

@@ -1745,6 +1745,8 @@ select:disabled {
 }
 
 .system-status-panel {
+  display: grid;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -1784,6 +1786,11 @@ select:disabled {
 .system-status-card p {
   margin: 6px 0 0;
   color: var(--muted);
+}
+
+.system-status-warning code {
+  color: var(--accent-soft);
+  font-weight: 800;
 }
 
 .system-status-meta {

@@ -1545,6 +1545,7 @@ function renderAdminSystemStatus() {
   const storageMessage = isSupabase
     ? "현재 운영 데이터가 Supabase DB에 저장됩니다."
     : "현재 운영 데이터가 서버 파일에 저장됩니다. 실제 운영 전 Supabase 연결을 확인해 주세요.";
+  const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
 
   panel.innerHTML = `
     <div class="system-status-card ${isSupabase ? "stable" : "warning"}">
@@ -1558,6 +1559,17 @@ function renderAdminSystemStatus() {
         <span>문자: ${escapeHtml(system.smsProvider || "mock")}</span>
       </div>
     </div>
+    ${
+      needsGameAdminMigration
+        ? `<div class="system-status-card warning system-status-warning">
+            <div>
+              <span>DB 마이그레이션 필요</span>
+              <strong>게임관리 컬럼 미적용</strong>
+              <p><code>supabase-add-game-admin-fields.sql</code>을 Supabase SQL Editor에서 실행해야 게임 분류와 숨김 상태가 영구 저장됩니다.</p>
+            </div>
+          </div>`
+        : ""
+    }
   `;
 }
 

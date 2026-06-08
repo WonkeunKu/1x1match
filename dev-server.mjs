@@ -1006,6 +1006,7 @@ function publicState() {
       ? {
           storage: storage.name,
           storageLabel: storage.name === "supabase" ? "Supabase DB" : "local JSON file",
+          schemaStatus: storage.schemaStatus || {},
           paymentProvider: paymentProvider.name,
           smsProvider: smsProvider.name,
         }
