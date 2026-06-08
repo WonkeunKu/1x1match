@@ -2102,7 +2102,6 @@ function renderOpsCard(match) {
     ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus),
   );
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
-  const hasRefunded = match.allPlayers.some((player) => player.paymentStatus === "refunded");
   const resultRecorded = Boolean(match.result);
   const isExpanded = activeOpsMatchId === match.id;
   const paymentPendingCount = match.allPlayers.filter((player) => player.paymentStatus === "payment_pending" && !player.cancelled).length;
@@ -2180,6 +2179,16 @@ function renderOpsCard(match) {
                        <button class="inline-action" type="button" data-reject-cancel-request="${match.id}" data-member-id="${player.memberId}">요청 반려</button>`
                     : ""
                 }
+                ${
+                  ["refund_requested", "refund_scheduled"].includes(player.paymentStatus)
+                    ? `<button class="inline-action danger" type="button" data-refund-member="${match.id}" data-member-id="${player.memberId}">환불 완료</button>`
+                    : ""
+                }
+                ${
+                  player.paymentStatus === "refunded"
+                    ? `<button class="inline-action" type="button" data-undo-refund-member="${match.id}" data-member-id="${player.memberId}">환불 취소</button>`
+                    : ""
+                }
               </span>
             </div>
           `;
@@ -2242,11 +2251,7 @@ function renderOpsCard(match) {
                 ? `<button class="secondary-button danger-button" type="button" data-clear-result="${match.id}">결과 취소</button>`
                 : `<button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>`
             }
-            ${
-              hasRefunded
-                ? `<button class="secondary-button danger-button" type="button" data-undo-refund="${match.id}">환불 취소</button>`
-                : `<button class="secondary-button" data-refund="${match.id}" ${!needsRefund ? "disabled" : ""}>환불 예약</button>`
-            }
+            <small>환불은 참가자 행에서 사람별로 처리합니다.</small>
           </div>
           <div class="ops-action-group compact">
             <span>복사</span>
@@ -3458,29 +3463,34 @@ document.addEventListener("click", async (event) => {
     showToast("발송 완료 체크를 취소했습니다.");
   }
 
-  const refundButton = event.target.closest("[data-refund]");
+  const refundButton = event.target.closest("[data-refund-member]");
   if (refundButton) {
-    if (!window.confirm("환불 처리 상태로 변경할까요? 실제 송금 여부는 별도로 확인해 주세요.")) return;
+    if (!window.confirm("이 참가자의 환불 송금을 완료 상태로 체크할까요? 실제 송금 여부를 먼저 확인해 주세요.")) return;
 
-    const matchId = refundButton.dataset.refund;
     appState = await request("/api/refund", {
       method: "POST",
-      body: JSON.stringify({ matchId }),
+      body: JSON.stringify({
+        matchId: refundButton.dataset.refundMember,
+        memberId: refundButton.dataset.memberId,
+      }),
     });
     renderAll();
-    showToast("미매칭 신청자의 시범운영 참가비 1,000원 환불이 예약되었습니다.");
+    showToast("참가자 환불 완료 상태로 체크했습니다.");
   }
 
-  const undoRefundButton = event.target.closest("[data-undo-refund]");
+  const undoRefundButton = event.target.closest("[data-undo-refund-member]");
   if (undoRefundButton) {
-    if (!window.confirm("환불 완료 상태를 입금 확인 완료 상태로 되돌릴까요?")) return;
+    if (!window.confirm("이 참가자의 환불 완료 상태를 입금 확인 완료 상태로 되돌릴까요?")) return;
 
     appState = await request("/api/undo-refund", {
       method: "POST",
-      body: JSON.stringify({ matchId: undoRefundButton.dataset.undoRefund }),
+      body: JSON.stringify({
+        matchId: undoRefundButton.dataset.undoRefundMember,
+        memberId: undoRefundButton.dataset.memberId,
+      }),
     });
     renderAll();
-    showToast("환불 상태를 되돌렸습니다.");
+    showToast("참가자 환불 상태를 되돌렸습니다.");
   }
 });
 

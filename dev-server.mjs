@@ -2467,15 +2467,31 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    for (const application of match.applications) {
-      if (["refund_requested", "refund_scheduled", "paid"].includes(application.paymentStatus)) {
-        const member = findMember(application.memberId);
-        await paymentProvider.refundParticipationFee({ member, match, amount: 1000 });
-        application.paymentStatus = "refunded";
-        application.paid = false;
+    const targets = body.memberId
+      ? match.applications.filter((application) => application.memberId === body.memberId)
+      : match.applications.filter((application) => ["refund_requested", "refund_scheduled"].includes(application.paymentStatus));
+
+    if (!targets.length) {
+      sendJson(response, 404, { error: "환불 처리할 참가자를 찾을 수 없습니다." });
+      return;
+    }
+
+    for (const application of targets) {
+      if (!["refund_requested", "refund_scheduled"].includes(application.paymentStatus)) {
+        sendJson(response, 409, { error: "환불 요청 또는 환불 예정 상태인 참가자만 환불 완료 처리할 수 있습니다." });
+        return;
       }
     }
-    logEvent(`${match.date} ${match.time} 환불 대상자의 참가비 환불을 완료했습니다.`);
+
+    for (const application of targets) {
+      const member = findMember(application.memberId);
+      await paymentProvider.refundParticipationFee({ member, match, amount: 1000 });
+      application.paymentStatus = "refunded";
+      application.paid = false;
+    }
+
+    const names = targets.map((application) => findMember(application.memberId)?.nickname || "알 수 없음").join(", ");
+    logEvent(`${match.date} ${match.time} ${names}님의 참가비 환불을 완료했습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
@@ -2492,15 +2508,30 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    for (const application of match.applications) {
-      if (application.paymentStatus === "refunded") {
-        application.paymentStatus = "paid";
-        application.paid = true;
-        application.cancelled = false;
+    const targets = body.memberId
+      ? match.applications.filter((application) => application.memberId === body.memberId)
+      : match.applications.filter((application) => application.paymentStatus === "refunded");
+
+    if (!targets.length) {
+      sendJson(response, 404, { error: "환불 취소할 참가자를 찾을 수 없습니다." });
+      return;
+    }
+
+    for (const application of targets) {
+      if (application.paymentStatus !== "refunded") {
+        sendJson(response, 409, { error: "환불 완료 상태인 참가자만 환불 취소할 수 있습니다." });
+        return;
       }
     }
 
-    logEvent(`${match.date} ${match.time} 환불 처리 상태를 입금 확인 완료로 되돌렸습니다.`);
+    for (const application of targets) {
+      application.paymentStatus = "paid";
+      application.paid = true;
+      application.cancelled = false;
+    }
+
+    const names = targets.map((application) => findMember(application.memberId)?.nickname || "알 수 없음").join(", ");
+    logEvent(`${match.date} ${match.time} ${names}님의 환불 처리 상태를 입금 확인 완료로 되돌렸습니다.`);
     await persistState();
     sendJson(response, 200, publicState());
     return;
