@@ -1743,6 +1743,10 @@ function needsExactVenue(match) {
 }
 
 function matchesOpsFilter(match, filter) {
+  if (filter === "upcoming") {
+    const matchDate = parseMatchDate(match);
+    return matchDate ? matchDate >= startOfToday() : true;
+  }
   if (filter === "week") return isMatchThisWeek(match);
   if (filter === "month") return isMatchThisMonth(match);
   if (filter === "open") return match.playerCount < 2;
@@ -1795,8 +1799,15 @@ function filteredOpsMatches() {
 }
 
 function renderOpsList() {
+  const quickFilters = [
+    { value: "upcoming", label: "오늘 이후" },
+    { value: "confirmed", label: "확정만" },
+    { value: "venue", label: "장소 미입력" },
+    { value: "gameMessage", label: "문자 미발송" },
+  ];
   const opsFilters = [
     { value: "all", label: "전체" },
+    { value: "upcoming", label: "오늘 이후" },
     { value: "week", label: "이번 주" },
     { value: "month", label: "이번 달" },
     { value: "open", label: "신청 가능" },
@@ -1813,6 +1824,19 @@ function renderOpsList() {
     activeOpsMatchId = null;
   }
   const controlsMarkup = `
+    <div class="ops-quick-filter">
+      <span>빠른 필터</span>
+      ${quickFilters
+        .map(
+          (filter) => `
+            <button class="${filter.value === activeOpsFilter ? "selected" : ""}" type="button" data-ops-filter="${filter.value}">
+              ${filter.label}
+              <b>${appState.matches.filter((match) => matchesOpsFilter(match, filter.value)).length}</b>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
     <div class="ops-control-bar">
       <label>
         검색
@@ -1879,14 +1903,14 @@ function renderOpsCard(match) {
     paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
     needsReveal ? "게임 공개 대기" : "",
     needsVenue ? "장소 미입력" : "",
-    needsGameMessage ? "게임 안내 문자 대기" : "",
+    needsGameMessage ? "문자 미발송" : "",
     needsRefund ? "환불 필요" : "",
     resultRecorded ? "결과 입력됨" : "",
   ].filter(Boolean);
 
   if (!isExpanded) {
     return `
-      <article class="ops-card ops-card-collapsed">
+      <article class="ops-card ops-card-collapsed ${needsVenue ? "ops-card-needs-venue" : ""}">
         <button class="ops-summary-button" type="button" data-toggle-ops-match="${match.id}">
           <span>
             <strong>${match.date} ${match.time}</strong>
@@ -1964,7 +1988,7 @@ function renderOpsCard(match) {
     .join("");
 
   return `
-    <article class="ops-card ops-card-expanded">
+    <article class="ops-card ops-card-expanded ${needsVenue ? "ops-card-needs-venue" : ""}">
       <div class="ops-main">
         <div>
           <h3>${match.date} ${match.time}</h3>
@@ -2006,6 +2030,14 @@ function renderOpsCard(match) {
           </div>
         </div>
       </div>
+      ${
+        needsVenue
+          ? `<div class="ops-warning-card">
+              <strong>정확한 장소 미입력</strong>
+              <span>확정된 매치입니다. 게임 안내 문자 발송 전 정확한 카페 장소를 입력해 주세요.</span>
+            </div>`
+          : ""
+      }
       ${
         needsReveal
           ? `<div class="recommendation-box">

@@ -2323,6 +2323,54 @@ select:disabled {
   gap: 12px;
 }
 
+.ops-quick-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.24);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(65, 35, 30, 0.78), rgba(19, 15, 14, 0.94));
+}
+
+.ops-quick-filter > span {
+  margin-right: 4px;
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ops-quick-filter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 248, 239, 0.1);
+  border-radius: 999px;
+  background: rgba(18, 15, 15, 0.72);
+  color: #d8cab9;
+  font-weight: 900;
+}
+
+.ops-quick-filter button.selected {
+  border-color: rgba(216, 39, 47, 0.86);
+  background: linear-gradient(135deg, #c9272e, #781217);
+  color: #fff8ef;
+}
+
+.ops-quick-filter b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+}
+
 .ops-control-bar {
   display: grid;
   grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 0.9fr) minmax(140px, 0.75fr) minmax(140px, 0.75fr) auto;
@@ -2386,6 +2434,36 @@ select:disabled {
   display: grid;
   gap: 14px;
   padding: 16px;
+}
+
+.ops-card-needs-venue {
+  border-color: rgba(216, 39, 47, 0.58);
+  box-shadow:
+    inset 4px 0 0 rgba(216, 39, 47, 0.72),
+    0 0 0 1px rgba(216, 39, 47, 0.12);
+}
+
+.ops-warning-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 39, 47, 0.42);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(112, 22, 24, 0.36), rgba(18, 15, 15, 0.94));
+}
+
+.ops-warning-card strong {
+  color: #fff8ef;
+  font-weight: 900;
+}
+
+.ops-warning-card span {
+  color: #d8cab9;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
 }
 
 .ops-card-collapsed {
