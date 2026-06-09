@@ -3735,18 +3735,85 @@ select:disabled {
 
   .mypage-card-head {
     display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .mypage-application-main {
     display: grid;
+    gap: 8px;
   }
 
   .mypage-card {
     padding: 14px;
   }
 
+  .mypage-card h3 {
+    margin-top: 6px;
+    font-size: 20px;
+  }
+
+  .mypage-card p {
+    line-height: 1.5;
+  }
+
+  .mypage-history {
+    gap: 9px;
+    margin-top: 12px;
+  }
+
+  .mypage-history--detailed {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
   .mypage-application-card {
+    gap: 10px;
     padding: 12px;
+    border-color: rgba(255, 74, 57, 0.16);
+    background: linear-gradient(135deg, rgba(20, 15, 14, 0.96), rgba(9, 7, 7, 0.92));
+  }
+
+  .mypage-application-main strong {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .mypage-application-main span {
+    line-height: 1.45;
+  }
+
+  .mypage-application-status {
+    gap: 7px;
+  }
+
+  .mypage-application-status > span {
+    min-height: auto;
+    grid-template-columns: minmax(86px, 0.7fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .mypage-application-status strong {
+    font-size: 11px;
+  }
+
+  .mypage-application-status em {
+    justify-self: end;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .mypage-next-step {
+    padding: 11px;
+    font-size: 13px;
+  }
+
+  .mypage-application-card .secondary-button {
+    width: 100%;
+    min-height: 42px;
   }
 
   .game-card {
