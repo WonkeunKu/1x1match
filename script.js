@@ -3936,9 +3936,22 @@ document.addEventListener("click", async (event) => {
 
   const cancelApplicationButton = event.target.closest("[data-cancel-application]");
   if (cancelApplicationButton) {
-    if (!window.confirm("신청 취소 요청을 운영자에게 보낼까요? 입금 완료 건은 운영자 승인 후 환불 요청으로 처리됩니다.")) return;
-
     const matchId = cancelApplicationButton.dataset.cancelApplication;
+    const match = appState.matches.find((candidate) => candidate.id === matchId);
+    const application = match?.allPlayers?.find((player) => player.memberId === appState.user?.id);
+    const paymentLabel = applicationPaymentLabel(application);
+    const confirmMessage = [
+      `${match ? `${match.date} ${match.time} ${displayMatchLocation(match)}` : "선택한 매치"} 신청 취소 요청을 보낼까요?`,
+      "",
+      `현재 상태: ${paymentLabel}`,
+      application?.paymentStatus === "paid"
+        ? "입금 확인 완료 건은 운영자 승인 후 환불 요청 상태로 전환됩니다."
+        : "입금 전 신청은 운영자 승인 후 신청 취소로 처리됩니다.",
+      "카페 음료비 등 별도 비용은 환불 대상이 아닙니다.",
+    ].join("\n");
+
+    if (!window.confirm(confirmMessage)) return;
+
     appState = await request("/api/cancel-application", {
       method: "POST",
       body: JSON.stringify({ matchId }),
