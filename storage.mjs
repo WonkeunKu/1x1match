@@ -39,6 +39,10 @@ export function createJsonStorage({ path, omitKeys = [] }) {
     async deleteMember() {
       return null;
     },
+
+    async deleteMatch() {
+      return null;
+    },
   };
 }
 
@@ -131,6 +135,36 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     if (!memberId) return;
 
     await request(`/members?id=eq.${encodeURIComponent(memberId)}`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal",
+      },
+    });
+  }
+
+  async function deleteMatchRow(matchId) {
+    if (!matchId) return;
+
+    const encodedMatchId = encodeURIComponent(matchId);
+    await request(`/notification_logs?match_id=eq.${encodedMatchId}`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal",
+      },
+    });
+    await request(`/match_results?match_id=eq.${encodedMatchId}`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal",
+      },
+    });
+    await request(`/applications?match_id=eq.${encodedMatchId}`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal",
+      },
+    });
+    await request(`/matches?id=eq.${encodedMatchId}`, {
       method: "DELETE",
       headers: {
         Prefer: "return=minimal",
@@ -366,6 +400,10 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
 
     async deleteMember(memberId) {
       await deleteMemberRow(memberId);
+    },
+
+    async deleteMatch(matchId) {
+      await deleteMatchRow(matchId);
     },
   };
 }

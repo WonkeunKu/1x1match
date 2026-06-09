@@ -2168,6 +2168,7 @@ function renderOpsCard(match) {
   const needsRefund = match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
   const resultRecorded = Boolean(match.result);
   const isExpanded = activeOpsMatchId === match.id;
+  const canDeleteMatch = !match.allPlayers.length && !match.result && !(match.notificationLog || []).length;
   const paymentPendingCount = match.allPlayers.filter((player) => player.paymentStatus === "payment_pending" && !player.cancelled).length;
   const issueLabels = [
     paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
@@ -2321,6 +2322,13 @@ function renderOpsCard(match) {
             <span>복사</span>
             <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
             <button class="secondary-button" type="button" data-copy-promo="${match.id}">홍보 문구 복사</button>
+          </div>
+          <div class="ops-action-group compact">
+            <span>일정</span>
+            <button class="secondary-button danger-button" type="button" data-delete-match="${match.id}" ${
+              canDeleteMatch ? "" : "disabled"
+            }>매치 삭제</button>
+            <small>${canDeleteMatch ? "신청 이력 없는 매치만 삭제됩니다." : "신청, 결과, 문자 이력이 있으면 삭제할 수 없습니다."}</small>
           </div>
         </div>
       </div>
@@ -3371,6 +3379,33 @@ document.addEventListener("click", async (event) => {
     const matchId = toggleOpsMatchButton.dataset.toggleOpsMatch;
     activeOpsMatchId = activeOpsMatchId === matchId ? null : matchId;
     renderAdmin();
+    return;
+  }
+
+  const deleteMatchButton = event.target.closest("[data-delete-match]");
+  if (deleteMatchButton) {
+    const matchId = deleteMatchButton.dataset.deleteMatch;
+    const match = appState.matches.find((candidate) => candidate.id === matchId);
+    if (!match) {
+      showToast("삭제할 매치를 찾을 수 없습니다.");
+      return;
+    }
+
+    if (!window.confirm(`${match.date} ${match.time} ${match.location} 매치를 삭제할까요? 신청 이력이 있는 매치는 삭제되지 않습니다.`)) {
+      return;
+    }
+
+    try {
+      appState = await request("/api/admin/delete-match", {
+        method: "POST",
+        body: JSON.stringify({ matchId }),
+      });
+      activeOpsMatchId = null;
+      renderAll();
+      showToast("매치를 삭제했습니다.");
+    } catch (error) {
+      showToast(error.message);
+    }
     return;
   }
 

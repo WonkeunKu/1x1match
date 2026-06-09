@@ -2258,6 +2258,33 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/delete-match") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    requireField(body.matchId, "매치");
+
+    const matchIndex = state.matches.findIndex((candidate) => candidate.id === body.matchId);
+    const match = state.matches[matchIndex];
+
+    if (!match) {
+      sendJson(response, 404, { error: "삭제할 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    if ((match.applications || []).length || match.result || (match.notificationLog || []).length) {
+      sendJson(response, 409, { error: "신청, 결과, 문자 이력이 있는 매치는 삭제할 수 없습니다." });
+      return;
+    }
+
+    await storage.deleteMatch?.(match.id);
+    state.matches.splice(matchIndex, 1);
+    logEvent(`운영자가 ${match.date} ${match.time} ${match.location} 매치를 삭제했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/update-match-note") {
     if (!requireAdmin(response)) return;
 
