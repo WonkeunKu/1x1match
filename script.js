@@ -2575,6 +2575,11 @@ function validateRequiredFormFields(form, fields) {
   return true;
 }
 
+function validateBrowserRequiredFields(form) {
+  if (typeof form.reportValidity !== "function") return true;
+  return form.reportValidity();
+}
+
 function clearFormError(form) {
   form.querySelectorAll(".field-error").forEach((node) => node.remove());
   form.querySelectorAll(".has-error").forEach((node) => node.classList.remove("has-error"));
@@ -2930,6 +2935,8 @@ document.addEventListener("click", (event) => {
 document.querySelector("#signupForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (!validateBrowserRequiredFields(form)) return;
+
   const requiredFields = [
     ["nickname", "닉네임"],
     ["realName", "이름"],
