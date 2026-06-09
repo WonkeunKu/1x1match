@@ -3619,14 +3619,51 @@ select:disabled {
 @media (max-width: 760px) {
   .sidebar {
     grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px 12px;
   }
 
   .brand {
     min-width: 0;
+    padding: 0;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand strong {
+    font-size: 15px;
+  }
+
+  .brand span {
+    font-size: 11px;
+  }
+
+  .nav-list {
+    gap: 6px;
+  }
+
+  .nav-item {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .main {
-    padding: 22px 14px;
+    padding: 18px 12px 24px;
+  }
+
+  .topbar {
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .top-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .topbar,
@@ -3704,6 +3741,34 @@ select:disabled {
     display: grid;
   }
 
+  .mypage-card {
+    padding: 14px;
+  }
+
+  .mypage-application-card {
+    padding: 12px;
+  }
+
+  .game-card {
+    min-height: 116px;
+    height: auto;
+    padding: 14px;
+  }
+
+  .game-card strong {
+    -webkit-line-clamp: 2;
+  }
+
+  .game-card span {
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+  }
+
+  .game-detail {
+    min-height: auto;
+    padding: 18px 14px;
+  }
+
   .match-list-head {
     display: none;
   }
@@ -3744,6 +3809,14 @@ select:disabled {
 
   .apply-option-grid--time button {
     min-height: 86px;
+  }
+
+  .apply-step {
+    padding: 12px;
+  }
+
+  .apply-selection-summary {
+    padding: 12px;
   }
 
   .apply-option-grid--time em,
@@ -3791,10 +3864,12 @@ select:disabled {
   .my-application-item {
     display: grid;
     gap: 12px;
+    padding: 12px;
   }
 
   .my-application-item button {
     width: 100%;
+    min-height: 42px;
   }
 
   .apply-calendar {
