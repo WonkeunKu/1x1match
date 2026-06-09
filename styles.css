@@ -3104,7 +3104,7 @@ select:disabled {
 .participant-head,
 .participant-row {
   display: grid;
-  grid-template-columns: minmax(90px, 1fr) minmax(120px, 1.2fr) minmax(70px, 0.7fr) minmax(72px, 0.7fr);
+  grid-template-columns: minmax(90px, 0.85fr) minmax(120px, 1fr) minmax(70px, 0.65fr) minmax(220px, 1.45fr);
   gap: 10px;
   align-items: center;
 }
@@ -3141,25 +3141,45 @@ select:disabled {
   font-size: 13px;
 }
 
-.participant-row > span:last-child {
+.participant-payment-cell {
+  display: grid;
+  gap: 7px;
+}
+
+.participant-payment-state {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.participant-row > span:last-child small {
-  flex-basis: 100%;
+.participant-payment-state small {
+  width: 100%;
   color: #f3cf88;
   font-weight: 800;
 }
 
+.participant-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .participant-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
   color: var(--text);
   font-size: 13px;
+  font-weight: 900;
 }
 
 .participant-status-alert {
+  background: rgba(201, 153, 53, 0.14);
   color: #ffd38a;
 }
 
@@ -3688,6 +3708,15 @@ select:disabled {
   .participant-head,
   .participant-row {
     grid-template-columns: 1fr;
+  }
+
+  .participant-actions {
+    display: grid;
+  }
+
+  .participant-actions .inline-action {
+    margin-left: 0;
+    width: 100%;
   }
 
   .message-preview-head,

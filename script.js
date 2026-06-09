@@ -2414,45 +2414,42 @@ function renderOpsCard(match) {
           const cancelRequestDetail =
             player.paymentStatus === "cancel_requested_paid"
               ? "승인 시 환불 요청으로 전환"
-              : player.paymentStatus === "cancel_requested_pending"
-                ? "승인 시 결제 대기 신청 취소"
-                : "";
-          const autoClosedDetail = player.autoClosed ? "24시간 전 1명 미달 자동 정리" : "";
-          return `
+                : player.paymentStatus === "cancel_requested_pending"
+                  ? "승인 시 결제 대기 신청 취소"
+                  : "";
+            const autoClosedDetail = player.autoClosed ? "24시간 전 1명 미달 자동 정리" : "";
+            const participantActions = [
+              player.paymentStatus === "payment_pending" && !player.cancelled
+                ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
+                : "",
+              player.paymentStatus === "paid" && !player.cancelled
+                ? `<button class="inline-action danger" type="button" data-undo-payment="${match.id}" data-member-id="${player.memberId}">입금 취소</button>`
+                : "",
+              ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus)
+                ? `<button class="inline-action danger" type="button" data-approve-cancel-request="${match.id}" data-member-id="${player.memberId}">취소 승인</button>
+                   <button class="inline-action" type="button" data-reject-cancel-request="${match.id}" data-member-id="${player.memberId}">요청 반려</button>`
+                : "",
+              ["refund_requested", "refund_scheduled"].includes(player.paymentStatus)
+                ? `<button class="inline-action danger" type="button" data-refund-member="${match.id}" data-member-id="${player.memberId}">환불 완료</button>`
+                : "",
+              player.paymentStatus === "refunded"
+                ? `<button class="inline-action" type="button" data-undo-refund-member="${match.id}" data-member-id="${player.memberId}">환불 취소</button>`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("");
+            return `
             <div class="participant-row ${player.cancelled ? "cancelled" : ""} ${cancelRequestDetail || autoClosedDetail ? "cancel-requested" : ""}">
               <strong>${player.nickname}</strong>
               <span>${player.phone}</span>
               <span>${player.area}</span>
-              <span>
-                <b class="participant-status ${cancelRequestDetail || autoClosedDetail ? "participant-status-alert" : ""}">${paymentLabel}</b>
-                ${cancelRequestDetail ? `<small>${cancelRequestDetail}</small>` : ""}
-                ${autoClosedDetail ? `<small>${autoClosedDetail}</small>` : ""}
-                ${
-                  player.paymentStatus === "payment_pending" && !player.cancelled
-                    ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
-                    : ""
-                }
-                ${
-                  player.paymentStatus === "paid" && !player.cancelled
-                    ? `<button class="inline-action danger" type="button" data-undo-payment="${match.id}" data-member-id="${player.memberId}">입금 취소</button>`
-                    : ""
-                }
-                ${
-                  ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus)
-                    ? `<button class="inline-action danger" type="button" data-approve-cancel-request="${match.id}" data-member-id="${player.memberId}">취소 승인</button>
-                       <button class="inline-action" type="button" data-reject-cancel-request="${match.id}" data-member-id="${player.memberId}">요청 반려</button>`
-                    : ""
-                }
-                ${
-                  ["refund_requested", "refund_scheduled"].includes(player.paymentStatus)
-                    ? `<button class="inline-action danger" type="button" data-refund-member="${match.id}" data-member-id="${player.memberId}">환불 완료</button>`
-                    : ""
-                }
-                ${
-                  player.paymentStatus === "refunded"
-                    ? `<button class="inline-action" type="button" data-undo-refund-member="${match.id}" data-member-id="${player.memberId}">환불 취소</button>`
-                    : ""
-                }
+              <span class="participant-payment-cell">
+                <span class="participant-payment-state">
+                  <b class="participant-status ${cancelRequestDetail || autoClosedDetail ? "participant-status-alert" : ""}">${paymentLabel}</b>
+                  ${cancelRequestDetail ? `<small>${cancelRequestDetail}</small>` : ""}
+                  ${autoClosedDetail ? `<small>${autoClosedDetail}</small>` : ""}
+                </span>
+                ${participantActions ? `<span class="participant-actions">${participantActions}</span>` : ""}
               </span>
             </div>
           `;
