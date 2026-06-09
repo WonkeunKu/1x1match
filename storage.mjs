@@ -13,6 +13,7 @@ export function createJsonStorage({ path, omitKeys = [] }) {
     name: "json",
     schemaStatus: {
       gameAdminFields: true,
+      autoClosedApplications: true,
     },
 
     async load() {
@@ -186,6 +187,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         paid: Boolean(application.paid),
         payment_status: application.paymentStatus || "payment_pending",
         cancelled: Boolean(application.cancelled),
+        auto_closed: Boolean(application.autoClosed),
       })),
     );
   }
@@ -259,7 +261,14 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           "select=id,display_date,match_date,match_time,location,game_id,game_revealed,exact_venue,admin_note&order=match_date.asc,match_time.asc",
           "select=id,display_date,match_date,match_time,location,game_id,game_revealed&order=match_date.asc,match_time.asc",
         ),
-        list("applications", "select=match_id,member_id,paid,payment_status,cancelled"),
+        listWithFallback(
+          "applications",
+          "select=match_id,member_id,paid,payment_status,cancelled,auto_closed",
+          "select=match_id,member_id,paid,payment_status,cancelled",
+          () => {
+            schemaStatus.autoClosedApplications = false;
+          },
+        ),
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
         list("event_logs", "select=id,message,created_at&order=created_at.desc&limit=1000"),
@@ -310,6 +319,7 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
                 paid: application.paid,
                 paymentStatus: application.payment_status,
                 cancelled: application.cancelled,
+                autoClosed: Boolean(application.auto_closed),
               })),
             result: result ? { winnerId: result.winner_id, loserId: result.loser_id } : null,
             notificationLog: notificationLogs.filter((item) => item.match_id === match.id).map((item) => item.message_key),
@@ -392,7 +402,16 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       await deleteAll("match_results", "match_id");
       await deleteAll("applications");
 
-      await upsert("applications", buildApplications(matches));
+      try {
+        await upsert("applications", buildApplications(matches));
+        schemaStatus.autoClosedApplications = true;
+      } catch (error) {
+        schemaStatus.autoClosedApplications = false;
+        await upsert(
+          "applications",
+          buildApplications(matches).map(({ auto_closed, ...application }) => application),
+        );
+      }
       await upsert("match_results", buildResults(matches), "match_id");
       await upsert("notification_logs", buildNotificationLogs(matches));
       await upsert("event_logs", buildEventLogs(state.events));

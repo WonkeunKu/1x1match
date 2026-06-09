@@ -1060,6 +1060,7 @@ function autoCloseUndersizedMatches() {
     const application = activeApplications[0];
     const member = findMember(application.memberId);
     application.cancelled = true;
+    application.autoClosed = true;
 
     if (application.paymentStatus === "paid" || application.paid) {
       application.paid = false;

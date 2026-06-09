@@ -1365,6 +1365,7 @@ function renderAdmin() {
     ["게임 안내 문자", appState.matches.filter(needsGameRevealMessage).length, "gameMessage"],
     ["결과 입력 대기", appState.matches.filter((match) => match.confirmed && !match.result).length, "result"],
     ["취소 요청", appState.matches.filter(hasCancelRequest).length, "cancelRequest"],
+    ["자동 취소/환불", appState.matches.filter(hasAutoClosed).length, "autoClosed"],
     ["환불 필요", appState.matches.filter(hasRefundNeeded).length, "refund"],
   ];
 
@@ -1663,6 +1664,7 @@ function renderAdminSystemStatus() {
     ? "현재 운영 데이터가 Supabase DB에 저장됩니다."
     : "현재 운영 데이터가 서버 파일에 저장됩니다. 실제 운영 전 Supabase 연결을 확인해 주세요.";
   const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
+  const needsAutoClosedMigration = Boolean(isSupabase && system.schemaStatus?.autoClosedApplications === false);
 
   panel.innerHTML = `
     <div class="system-status-card ${isSupabase ? "stable" : "warning"}">
@@ -1683,6 +1685,17 @@ function renderAdminSystemStatus() {
               <span>DB 마이그레이션 필요</span>
               <strong>게임관리 컬럼 미적용</strong>
               <p><code>supabase-add-game-admin-fields.sql</code>을 Supabase SQL Editor에서 실행해야 게임 분류와 숨김 상태가 영구 저장됩니다.</p>
+            </div>
+          </div>`
+        : ""
+    }
+    ${
+      needsAutoClosedMigration
+        ? `<div class="system-status-card warning system-status-warning">
+            <div>
+              <span>DB 마이그레이션 필요</span>
+              <strong>자동 취소 기록 컬럼 미적용</strong>
+              <p><code>supabase-add-auto-closed-applications.sql</code>을 Supabase SQL Editor에서 실행해야 자동 취소/환불 필터 기록이 영구 저장됩니다.</p>
             </div>
           </div>`
         : ""
@@ -1727,6 +1740,12 @@ function adminActionItems() {
       title: "취소 요청",
       count: appState.matches.filter(hasCancelRequest).length,
       detail: "참가자가 직접 보낸 신청 취소 요청",
+    },
+    {
+      filter: "autoClosed",
+      title: "자동 취소/환불",
+      count: appState.matches.filter(hasAutoClosed).length,
+      detail: "24시간 전 1명 미달로 자동 정리된 매치",
     },
     {
       filter: "refund",
@@ -2025,6 +2044,10 @@ function hasRefundNeeded(match) {
   return match.allPlayers.some((player) => ["refund_requested", "refund_scheduled"].includes(player.paymentStatus));
 }
 
+function hasAutoClosed(match) {
+  return match.allPlayers.some((player) => player.autoClosed);
+}
+
 function hasCancelRequest(match) {
   return match.allPlayers.some((player) => ["cancel_requested_pending", "cancel_requested_paid"].includes(player.paymentStatus));
 }
@@ -2052,6 +2075,7 @@ function matchesOpsFilter(match, filter) {
   if (filter === "venue") return needsExactVenue(match);
   if (filter === "result") return match.confirmed && !match.result;
   if (filter === "cancelRequest") return hasCancelRequest(match);
+  if (filter === "autoClosed") return hasAutoClosed(match);
   if (filter === "refund") return hasRefundNeeded(match);
 
   return true;
@@ -2100,6 +2124,7 @@ function renderOpsList() {
     { value: "confirmed", label: "확정만" },
     { value: "venue", label: "장소 미입력" },
     { value: "cancelRequest", label: "취소 요청" },
+    { value: "autoClosed", label: "자동 취소/환불" },
     { value: "gameMessage", label: "문자 미발송" },
   ];
   const opsFilters = [
@@ -2115,6 +2140,7 @@ function renderOpsList() {
     { value: "gameMessage", label: "게임 안내 문자" },
     { value: "result", label: "결과 대기" },
     { value: "cancelRequest", label: "취소 요청" },
+    { value: "autoClosed", label: "자동 취소/환불" },
     { value: "refund", label: "환불 필요" },
   ];
   const filteredMatches = filteredOpsMatches();
@@ -2252,14 +2278,16 @@ function renderOpsCard(match) {
               : player.paymentStatus === "cancel_requested_pending"
                 ? "승인 시 결제 대기 신청 취소"
                 : "";
+          const autoClosedDetail = player.autoClosed ? "24시간 전 1명 미달 자동 정리" : "";
           return `
-            <div class="participant-row ${player.cancelled ? "cancelled" : ""} ${cancelRequestDetail ? "cancel-requested" : ""}">
+            <div class="participant-row ${player.cancelled ? "cancelled" : ""} ${cancelRequestDetail || autoClosedDetail ? "cancel-requested" : ""}">
               <strong>${player.nickname}</strong>
               <span>${player.phone}</span>
               <span>${player.area}</span>
               <span>
-                <b class="participant-status ${cancelRequestDetail ? "participant-status-alert" : ""}">${paymentLabel}</b>
+                <b class="participant-status ${cancelRequestDetail || autoClosedDetail ? "participant-status-alert" : ""}">${paymentLabel}</b>
                 ${cancelRequestDetail ? `<small>${cancelRequestDetail}</small>` : ""}
+                ${autoClosedDetail ? `<small>${autoClosedDetail}</small>` : ""}
                 ${
                   player.paymentStatus === "payment_pending" && !player.cancelled
                     ? `<button class="inline-action" type="button" data-complete-payment="${match.id}" data-member-id="${player.memberId}">입금 확인</button>`
