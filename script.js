@@ -331,13 +331,12 @@ function renderPaymentGuide() {
       <small>${playerLine}</small>
     </div>
     <div class="final-check-grid">
-      <span><strong>정상 참가비</strong>5,000원</span>
-      <span><strong>6월 시범운영</strong>1,000원</span>
-      <span><strong>입금 계좌</strong>${account}</span>
-      <span><strong>현장 비용</strong>카페 음료 비용 별도</span>
-      <span><strong>정확한 장소</strong>${exactVenueNotice()}</span>
+      <span><strong>참가비</strong>6월 시범운영 1,000원</span>
+      <span><strong>계좌</strong>${account}</span>
       <span><strong>입금자명</strong>회원가입 닉네임과 동일</span>
-      <span><strong>환불 기준</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
+      <span><strong>음료비</strong>카페 음료 비용 별도</span>
+      <span><strong>환불</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
+      <span><strong>정확한 장소</strong>${exactVenueNotice()}</span>
     </div>
   `;
 }
