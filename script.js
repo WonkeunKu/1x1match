@@ -21,6 +21,7 @@ let activeAreaFilter = "all";
 let activeNoticeAreaFilter = "all";
 let activeOpsFilter = "all";
 let activeOpsMatchId = null;
+let activeAdminSection = "dashboard";
 let activeMemberId = null;
 let memberSearchQuery = "";
 let visibleEventCount = 8;
@@ -1349,6 +1350,26 @@ function buildGameRuleText(gameId) {
   ].join("\n");
 }
 
+function renderAdminSections() {
+  const pages = Array.from(document.querySelectorAll("[data-admin-page]"));
+  const buttons = Array.from(document.querySelectorAll("[data-admin-section]"));
+  const hasActivePage = pages.some((page) => page.dataset.adminPage === activeAdminSection);
+
+  if (!hasActivePage) {
+    activeAdminSection = "dashboard";
+  }
+
+  pages.forEach((page) => {
+    page.classList.toggle("active", page.dataset.adminPage === activeAdminSection);
+  });
+
+  buttons.forEach((button) => {
+    const selected = button.dataset.adminSection === activeAdminSection;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+}
+
 function renderAdmin() {
   const adminLoginForm = document.querySelector("#adminLoginForm");
   const adminContent = document.querySelector("#adminContent");
@@ -1392,6 +1413,7 @@ function renderAdmin() {
   renderMemberRoster();
   renderOpsList();
   renderEventLog();
+  renderAdminSections();
 }
 
 function eventLogCategory(message) {
@@ -2913,6 +2935,14 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const sectionButton = event.target.closest("[data-admin-section]");
+  if (!sectionButton) return;
+
+  activeAdminSection = sectionButton.dataset.adminSection;
+  renderAdminSections();
+});
+
+document.addEventListener("click", (event) => {
   const jumpButton = event.target.closest("[data-ops-jump]");
   if (!jumpButton) return;
 
@@ -2921,6 +2951,7 @@ document.addEventListener("click", (event) => {
   opsDateFrom = "";
   opsDateTo = "";
   activeOpsMatchId = null;
+  activeAdminSection = "matches";
   renderAdmin();
   document.querySelector("#opsList")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });

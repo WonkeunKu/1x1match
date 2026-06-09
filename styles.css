@@ -1833,6 +1833,45 @@ select:disabled {
   background: #120f0f;
 }
 
+.admin-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px;
+  border: 1px solid rgba(255, 74, 57, 0.13);
+  border-radius: 8px;
+  background: rgba(12, 9, 9, 0.9);
+}
+
+.admin-subnav button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-subnav button:hover,
+.admin-subnav button.selected {
+  border-color: rgba(255, 74, 57, 0.55);
+  background: linear-gradient(135deg, rgba(129, 22, 22, 0.92), rgba(28, 12, 12, 0.96));
+  color: var(--text);
+}
+
+.admin-section {
+  display: none;
+}
+
+.admin-section.active {
+  display: grid;
+  gap: 16px;
+}
+
 .system-status-panel {
   display: grid;
   gap: 10px;
