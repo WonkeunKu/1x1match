@@ -1794,14 +1794,97 @@ function adminActionItems() {
   return items;
 }
 
+function isOpsDueSoon(match, days = 2) {
+  const matchDate = parseMatchDate(match);
+  if (!matchDate) return true;
+
+  const end = startOfToday();
+  end.setDate(end.getDate() + days);
+  return matchDate < end;
+}
+
+function adminTodayTaskItems() {
+  const matches = appState.matches;
+
+  return [
+    {
+      filter: "payment",
+      title: "입금 확인",
+      count: matches.filter(hasPaymentPending).length,
+      total: matches.filter(hasPaymentPending).length,
+      detail: "입금 대기 신청을 확인합니다.",
+    },
+    {
+      filter: "reveal",
+      title: "게임 공개",
+      count: matches.filter((match) => match.confirmed && !match.gameRevealed && isOpsDueSoon(match)).length,
+      total: matches.filter((match) => match.confirmed && !match.gameRevealed).length,
+      detail: "오늘/내일 경기 공개를 확인합니다.",
+    },
+    {
+      filter: "venue",
+      title: "장소 입력",
+      count: matches.filter((match) => needsExactVenue(match) && isOpsDueSoon(match)).length,
+      total: matches.filter(needsExactVenue).length,
+      detail: "확정 경기의 정확한 장소를 채웁니다.",
+    },
+    {
+      filter: "gameMessage",
+      title: "문자 발송",
+      count: matches.filter(needsGameRevealMessage).length,
+      total: matches.filter(needsGameRevealMessage).length,
+      detail: "게임 안내 문자 발송 체크가 필요합니다.",
+    },
+    {
+      filter: "cancelRequest",
+      title: "취소 요청",
+      count: matches.filter(hasCancelRequest).length,
+      total: matches.filter(hasCancelRequest).length,
+      detail: "참가자 취소 요청을 처리합니다.",
+    },
+    {
+      filter: "refund",
+      title: "환불 확인",
+      count: matches.filter(hasRefundNeeded).length,
+      total: matches.filter(hasRefundNeeded).length,
+      detail: "환불 예약/처리 상태를 확인합니다.",
+    },
+  ];
+}
+
 function renderAdminActionPanel() {
   const panel = document.querySelector("#adminActionPanel");
   if (!panel) return;
 
   const items = adminActionItems();
   const total = items.reduce((sum, item) => sum + item.count, 0);
+  const todayTasks = adminTodayTaskItems();
+  const todayTotal = todayTasks.reduce((sum, item) => sum + item.count, 0);
 
   panel.innerHTML = `
+    <div class="admin-today-board">
+      <div class="admin-today-head">
+        <div>
+          <span>오늘 처리할 일</span>
+          <h3>${todayTotal ? `바로 볼 항목 ${todayTotal}건` : "오늘 급한 처리 항목 없음"}</h3>
+        </div>
+        <button class="secondary-button" type="button" data-ops-jump="upcoming">오늘 이후 매치 보기</button>
+      </div>
+      <div class="admin-today-grid">
+        ${todayTasks
+          .map(
+            (item) => `
+              <button class="admin-today-item ${item.count ? "active" : ""}" type="button" data-ops-jump="${item.filter}">
+                <strong>${item.title}</strong>
+                <span>${item.count}건</span>
+                <small>${item.detail}</small>
+                <em>전체 ${item.total}건</em>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
     <div class="admin-action-head">
       <div>
         <span>운영 체크리스트</span>
