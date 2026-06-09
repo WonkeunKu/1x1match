@@ -1906,6 +1906,16 @@ select:disabled {
   margin-bottom: 0;
 }
 
+.bulk-create-form {
+  grid-template-columns: minmax(240px, 1.2fr) repeat(4, minmax(120px, 0.7fr)) auto;
+  border-color: rgba(184, 135, 45, 0.28);
+}
+
+.bulk-create-form .check-line {
+  min-height: 44px;
+  align-content: center;
+}
+
 .admin-game-manager {
   display: grid;
   gap: 14px;

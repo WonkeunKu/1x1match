@@ -2285,6 +2285,84 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/bulk-create-matches") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    requireField(body.startDate, "시작일");
+    requireField(body.endDate, "종료일");
+    requireField(body.weekdayTime, "화/목 시간");
+    requireField(body.weekendTime, "토/일 시간");
+
+    const locations = ["강남 카페 매치룸", "신촌 카페 매치룸"].filter((location) => body[matchLocationSlug(location)]);
+
+    if (!locations.length) {
+      sendJson(response, 400, { error: "지역을 하나 이상 선택해 주세요." });
+      return;
+    }
+
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(body.startDate)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(body.endDate)) ||
+      !/^\d{2}:\d{2}$/.test(String(body.weekdayTime)) ||
+      !/^\d{2}:\d{2}$/.test(String(body.weekendTime))
+    ) {
+      sendJson(response, 400, { error: "날짜와 시간을 올바르게 입력해 주세요." });
+      return;
+    }
+
+    const start = new Date(`${body.startDate}T00:00:00+09:00`);
+    const end = new Date(`${body.endDate}T00:00:00+09:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+      sendJson(response, 400, { error: "기간을 올바르게 입력해 주세요." });
+      return;
+    }
+
+    const created = [];
+    const skipped = [];
+
+    for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+      const day = cursor.getDay();
+      const time = day === 2 || day === 4 ? String(body.weekdayTime) : day === 0 || day === 6 ? String(body.weekendTime) : "";
+      if (!time) continue;
+
+      const matchDate = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+      const displayDate = matchDisplayDate(matchDate);
+
+      locations.forEach((location) => {
+        const id = matchIdFor(matchDate, time, location);
+        if (state.matches.some((match) => match.id === id)) {
+          skipped.push(id);
+          return;
+        }
+
+        state.matches.push({
+          id,
+          date: displayDate,
+          time,
+          location,
+          gameId: null,
+          gameRevealed: false,
+          exactVenue: "",
+          adminNote: "",
+          applications: [],
+          result: null,
+        });
+        created.push(id);
+      });
+    }
+
+    if (!created.length) {
+      sendJson(response, 409, { error: "새로 생성할 매치가 없습니다. 이미 같은 일정이 열려 있습니다." });
+      return;
+    }
+
+    logEvent(`운영자가 월간 스케줄 매치 ${created.length}개를 일괄 생성했습니다. 중복 건너뜀 ${skipped.length}개.`);
+    await persistState();
+    sendJson(response, 201, { ...publicState(), bulkCreateSummary: { created: created.length, skipped: skipped.length } });
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/admin/update-match-schedule") {
     if (!requireAdmin(response)) return;
 

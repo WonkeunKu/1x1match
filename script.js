@@ -3108,6 +3108,24 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
   }
 });
 
+document.querySelector("#bulkCreateMatchesForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+
+  try {
+    appState = await submitForm("/api/admin/bulk-create-matches", form);
+    const summary = appState.bulkCreateSummary;
+    renderAll();
+    showToast(
+      summary
+        ? `월간 매치 ${summary.created}개를 생성했습니다. 중복 ${summary.skipped}개는 건너뛰었습니다.`
+        : "월간 매치를 생성했습니다.",
+    );
+  } catch (error) {
+    setFormError(form, error.message, inferErrorField(form, error.message));
+  }
+});
+
 document.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-update-match-schedule]");
   if (!form) return;

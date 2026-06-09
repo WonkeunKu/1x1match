@@ -381,6 +381,37 @@
               </label>
               <button class="primary-button" type="submit">매치 열기</button>
             </form>
+            <form class="admin-create-form bulk-create-form" id="bulkCreateMatchesForm">
+              <div>
+                <h3>월간 스케줄 일괄 생성</h3>
+                <p>화/목은 평일 시간, 토/일은 주말 시간으로 강남/신촌 매치를 한 번에 엽니다. 이미 열린 일정은 건너뜁니다.</p>
+              </div>
+              <label>
+                시작일
+                <input type="date" name="startDate" value="2026-07-01" required />
+              </label>
+              <label>
+                종료일
+                <input type="date" name="endDate" value="2026-07-31" required />
+              </label>
+              <label>
+                화/목 시간
+                <input type="time" name="weekdayTime" value="19:00" required />
+              </label>
+              <label>
+                토/일 시간
+                <input type="time" name="weekendTime" value="14:00" required />
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="gangnam" checked />
+                <span>강남 카페 매치룸</span>
+              </label>
+              <label class="check-line">
+                <input type="checkbox" name="sinchon" checked />
+                <span>신촌 카페 매치룸</span>
+              </label>
+              <button class="primary-button" type="submit">월간 매치 생성</button>
+            </form>
             <section class="member-roster-panel">
               <div class="member-roster-head">
                 <div>
