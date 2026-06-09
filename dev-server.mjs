@@ -1046,6 +1046,38 @@ function isAutoGameRevealOpen(match) {
   return start.getTime() - Date.now() <= 24 * 60 * 60 * 1000;
 }
 
+function autoCloseUndersizedMatches() {
+  let changed = false;
+  const now = Date.now();
+
+  state.matches.forEach((match) => {
+    const start = matchStartDate(match);
+    if (!start || start.getTime() - now > 24 * 60 * 60 * 1000) return;
+
+    const activeApplications = (match.applications || []).filter((application) => !application.cancelled);
+    if (activeApplications.length !== 1) return;
+
+    const application = activeApplications[0];
+    const member = findMember(application.memberId);
+    application.cancelled = true;
+
+    if (application.paymentStatus === "paid" || application.paid) {
+      application.paid = false;
+      application.paymentStatus = "refund_requested";
+      logEvent(
+        `${match.date} ${match.time} ${member?.nickname || "참가자"}님의 매치가 24시간 전 1명 미달로 자동 취소되어 환불 요청으로 전환됐습니다.`,
+      );
+    } else {
+      application.paymentStatus = "payment_pending";
+      logEvent(`${match.date} ${match.time} ${member?.nickname || "참가자"}님의 매치가 24시간 전 1명 미달로 자동 취소됐습니다.`);
+    }
+
+    changed = true;
+  });
+
+  return changed;
+}
+
 function isGamePublic(match, confirmed) {
   return Boolean(match.gameRevealed || (confirmed && match.gameId && isAutoGameRevealOpen(match)));
 }
@@ -1082,6 +1114,7 @@ function decorateMatch(match) {
     gameRevealed: gamePublic,
     gameRevealMode: match.gameRevealed ? "manual" : gamePublic ? "auto" : "scheduled",
     gameRevealAt: matchStartDate(match) ? new Date(matchStartDate(match).getTime() - 24 * 60 * 60 * 1000).toISOString() : null,
+    closedForApplications: Boolean(match.applications.length && match.applications.every((application) => application.cancelled)),
     exactVenue: state.isAdmin || gamePublic ? match.exactVenue || "" : "",
     adminNote: state.isAdmin ? match.adminNote || "" : undefined,
     notificationLog: match.notificationLog || [],
@@ -1529,6 +1562,10 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "GET" && pathname === "/api/state") {
+    if (autoCloseUndersizedMatches()) {
+      await persistState();
+    }
+
     sendJson(response, 200, publicState());
     return;
   }

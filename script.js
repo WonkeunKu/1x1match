@@ -366,16 +366,18 @@ function gameRevealVenueNotice(match) {
 }
 
 function visibleMatches() {
+  const matches = appState.matches.filter((match) => !match.closedForApplications);
+
   if (activeAreaFilter === "all") {
-    return appState.matches;
+    return matches;
   }
 
   if (activeAreaFilter === "mine") {
-    if (!appState.isAuthenticated || !appState.user?.area) return appState.matches;
-    return appState.matches.filter((match) => getMatchArea(match) === appState.user.area);
+    if (!appState.isAuthenticated || !appState.user?.area) return matches;
+    return matches.filter((match) => getMatchArea(match) === appState.user.area);
   }
 
-  return appState.matches.filter((match) => getMatchArea(match) === activeAreaFilter);
+  return matches.filter((match) => getMatchArea(match) === activeAreaFilter);
 }
 
 function matchSortValue(match) {
@@ -414,7 +416,9 @@ function groupMatchesByDate(matches) {
 }
 
 function selectableApplyMatches() {
-  return [...appState.matches].sort((a, b) => matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR"));
+  return appState.matches
+    .filter((match) => !match.closedForApplications)
+    .sort((a, b) => matchSortValue(a).localeCompare(matchSortValue(b), "ko-KR"));
 }
 
 function dateKeyFromDate(date) {
@@ -830,7 +834,7 @@ function renderMyPageApplication(match, user) {
       paymentStatus: "payment_pending",
       cancelled: false,
     };
-  const paymentLabel = application.cancelled ? "신청 취소됨" : paymentStatusLabel(application.paymentStatus);
+  const paymentLabel = applicationPaymentLabel(application);
   const confirmLabel = application.cancelled ? "취소됨" : match.confirmed ? "확정" : `${match.players.length}/${match.capacity}명 모집 중`;
   const gameLabel = match.confirmed
     ? match.gameRevealed && match.game
@@ -911,7 +915,7 @@ function renderMyApplications() {
         .map((match) => {
           const myApplication = match.allPlayers.find((player) => player.memberId === appState.user.id);
           const myPayment = myApplication?.paymentStatus;
-          const paymentLabel = paymentStatusLabel(myPayment);
+          const paymentLabel = applicationPaymentLabel(myApplication);
           const applicationStatusLabel = myApplication?.cancelled ? "취소됨" : match.statusLabel;
           const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
           const canCancel =
@@ -955,6 +959,14 @@ function paymentStatusLabel(status) {
   };
 
   return labels[status] || "입금 확인 완료";
+}
+
+function applicationPaymentLabel(application) {
+  if (!application) return paymentStatusLabel();
+  if (application.cancelled && ["refund_requested", "refund_scheduled", "refunded"].includes(application.paymentStatus)) {
+    return paymentStatusLabel(application.paymentStatus);
+  }
+  return application.cancelled ? "신청 취소됨" : paymentStatusLabel(application.paymentStatus);
 }
 
 function renderMatches() {
