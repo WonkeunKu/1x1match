@@ -2269,6 +2269,16 @@ function matchSearchText(match) {
   return `${match.date} ${match.time} ${match.location} ${match.exactVenue || ""} ${match.statusLabel} ${gameTitle} ${playerText} ${match.adminNote || ""}`.toLowerCase();
 }
 
+function adminMatchLabel(match) {
+  if (!match) return "선택한 매치";
+  return `${match.date} ${match.time} ${match.location}`;
+}
+
+function adminPlayerLabel(match, memberId) {
+  const player = match?.allPlayers?.find((item) => item.memberId === memberId);
+  return player ? `${player.nickname} (${player.phone})` : "선택한 참가자";
+}
+
 function isMatchInOpsDateRange(match) {
   const dateKey = dateKeyFromMatch(match);
   if (!dateKey) return true;
@@ -3618,7 +3628,9 @@ document.addEventListener("click", async (event) => {
 
   const toggleGameHiddenButton = event.target.closest("[data-toggle-game-hidden]");
   if (toggleGameHiddenButton) {
-    if (!window.confirm("게임 목록 노출 상태를 변경할까요? 기존 매치 예약 기록은 유지됩니다.")) return;
+    const game = appState.games.find((item) => item.id === toggleGameHiddenButton.dataset.toggleGameHidden);
+    const nextState = game?.hidden ? "공개" : "숨김";
+    if (!window.confirm(`${game?.title || "선택한 게임"}을(를) ${nextState} 상태로 변경할까요?\n기존 매치 예약 기록은 유지됩니다.`)) return;
 
     try {
       appState = await request("/api/admin/toggle-game-hidden", {
@@ -3695,7 +3707,9 @@ document.addEventListener("click", async (event) => {
   if (resetMemberPasswordButton) {
     const memberId = resetMemberPasswordButton.dataset.resetMemberPassword;
     const member = (appState.members || []).find((item) => item.id === memberId);
-    const newPassword = window.prompt(`${member?.nickname || "회원"}의 새 임시 비밀번호를 입력해 주세요.`);
+    const newPassword = window.prompt(
+      `${member?.nickname || "회원"}의 비밀번호를 초기화합니다.\n전화번호: ${member?.phone || "확인 불가"}\n새 임시 비밀번호를 입력해 주세요.`,
+    );
 
     if (newPassword === null) return;
 
@@ -3769,7 +3783,7 @@ document.addEventListener("click", async (event) => {
       return;
     }
 
-    if (!window.confirm(`${match.date} ${match.time} ${match.location} 매치를 삭제할까요? 신청 이력이 있는 매치는 삭제되지 않습니다.`)) {
+    if (!window.confirm(`${adminMatchLabel(match)} 매치를 삭제할까요?\n신청 이력이 있는 매치는 삭제되지 않습니다.`)) {
       return;
     }
 
@@ -3894,7 +3908,13 @@ document.addEventListener("click", async (event) => {
 
   const undoPaymentButton = event.target.closest("[data-undo-payment]");
   if (undoPaymentButton) {
-    if (!window.confirm("입금 확인을 취소하고 입금 대기 상태로 되돌릴까요?")) return;
+    const match = appState.matches.find((candidate) => candidate.id === undoPaymentButton.dataset.undoPayment);
+    if (
+      !window.confirm(
+        `${adminPlayerLabel(match, undoPaymentButton.dataset.memberId)}의 입금 확인을 취소할까요?\n매치: ${adminMatchLabel(match)}\n상태는 입금 대기로 되돌아갑니다.`,
+      )
+    )
+      return;
 
     appState = await request("/api/undo-payment", {
       method: "POST",
@@ -3923,7 +3943,8 @@ document.addEventListener("click", async (event) => {
 
   const hideGameButton = event.target.closest("[data-hide-game]");
   if (hideGameButton) {
-    if (!window.confirm("이미 공개한 게임을 다시 비공개 상태로 되돌릴까요?")) return;
+    const match = appState.matches.find((candidate) => candidate.id === hideGameButton.dataset.hideGame);
+    if (!window.confirm(`${adminMatchLabel(match)}의 공개된 게임을 다시 비공개로 되돌릴까요?\n현재 게임: ${match?.game?.title || "없음"}`)) return;
 
     appState = await request("/api/hide-game", {
       method: "POST",
@@ -3959,7 +3980,8 @@ document.addEventListener("click", async (event) => {
 
   const clearResultButton = event.target.closest("[data-clear-result]");
   if (clearResultButton) {
-    if (!window.confirm("입력된 결과를 취소하고 랭킹 반영도 되돌릴까요?")) return;
+    const match = appState.matches.find((candidate) => candidate.id === clearResultButton.dataset.clearResult);
+    if (!window.confirm(`${adminMatchLabel(match)}의 입력된 결과를 취소할까요?\n랭킹 반영도 함께 되돌립니다.`)) return;
 
     appState = await request("/api/clear-result", {
       method: "POST",
@@ -4029,7 +4051,13 @@ document.addEventListener("click", async (event) => {
 
   const refundButton = event.target.closest("[data-refund-member]");
   if (refundButton) {
-    if (!window.confirm("이 참가자의 환불 송금을 완료 상태로 체크할까요? 실제 송금 여부를 먼저 확인해 주세요.")) return;
+    const match = appState.matches.find((candidate) => candidate.id === refundButton.dataset.refundMember);
+    if (
+      !window.confirm(
+        `${adminPlayerLabel(match, refundButton.dataset.memberId)}의 환불 송금을 완료 상태로 체크할까요?\n매치: ${adminMatchLabel(match)}\n실제 송금 여부를 먼저 확인해 주세요.`,
+      )
+    )
+      return;
 
     appState = await request("/api/refund", {
       method: "POST",
@@ -4044,7 +4072,13 @@ document.addEventListener("click", async (event) => {
 
   const undoRefundButton = event.target.closest("[data-undo-refund-member]");
   if (undoRefundButton) {
-    if (!window.confirm("이 참가자의 환불 완료 상태를 입금 확인 완료 상태로 되돌릴까요?")) return;
+    const match = appState.matches.find((candidate) => candidate.id === undoRefundButton.dataset.undoRefundMember);
+    if (
+      !window.confirm(
+        `${adminPlayerLabel(match, undoRefundButton.dataset.memberId)}의 환불 완료 상태를 되돌릴까요?\n매치: ${adminMatchLabel(match)}\n상태는 입금 확인 완료로 돌아갑니다.`,
+      )
+    )
+      return;
 
     appState = await request("/api/undo-refund", {
       method: "POST",
