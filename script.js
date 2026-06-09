@@ -253,8 +253,24 @@ async function restoreSession() {
 }
 
 async function loadState() {
-  appState = await request("/api/state");
-  await restoreSession();
+  const saved = localStorage.getItem("oneVsOneSession");
+  if (saved) {
+    try {
+      appState = await request("/api/restore-session", {
+        method: "POST",
+        body: JSON.stringify({ token: saved }),
+      });
+
+      if (!appState.isAuthenticated) {
+        clearSession();
+      }
+    } catch (error) {
+      clearSession();
+      appState = await request("/api/state");
+    }
+  } else {
+    appState = await request("/api/state");
+  }
   renderAll();
 }
 
@@ -3031,10 +3047,26 @@ function showToast(message) {
 
 async function submitForm(path, form) {
   const formData = new FormData(form);
-  return request(path, {
-    method: "POST",
-    body: JSON.stringify(Object.fromEntries(formData.entries())),
-  });
+  const submitButton = form.querySelector("button[type='submit']");
+  const previousContent = submitButton?.innerHTML;
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.innerHTML = "처리 중...";
+  }
+
+  try {
+    return await request(path, {
+      method: "POST",
+      body: JSON.stringify(Object.fromEntries(formData.entries())),
+    });
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = previousContent;
+      renderIcons();
+    }
+  }
 }
 
 function validateRequiredFormFields(form, fields) {

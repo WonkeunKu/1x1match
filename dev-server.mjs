@@ -1707,7 +1707,6 @@ async function handleApi(request, response, pathname) {
     state.currentUserId = member.id;
     state.isAdmin = false;
     logEvent(`${member.nickname}님이 로그인했습니다.`);
-    await persistState();
     sendJson(response, 200, publicStateWithSession());
     return;
   }
@@ -1715,7 +1714,6 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && pathname === "/api/logout") {
     state.currentUserId = null;
     state.isAdmin = false;
-    await persistState();
     sendJson(response, 200, publicState());
     return;
   }
@@ -1792,14 +1790,12 @@ async function handleApi(request, response, pathname) {
 
     state.isAdmin = true;
     logEvent("운영자가 로그인했습니다.");
-    await persistState();
     sendJson(response, 200, publicStateWithSession());
     return;
   }
 
   if (request.method === "POST" && pathname === "/api/admin-logout") {
     state.isAdmin = false;
-    await persistState();
     sendJson(response, 200, publicStateWithSession());
     return;
   }
