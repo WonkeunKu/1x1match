@@ -13,6 +13,7 @@ let appState = null;
 let activeGameId = null;
 let gameSearchQuery = "";
 let activeGameCategoryFilter = "all";
+let activeRankingSort = "rate";
 let isGameDetailOpen = false;
 let adminGameSearchQuery = "";
 let adminGameCategoryFilter = "all";
@@ -1190,8 +1191,46 @@ function renderNotices() {
   `;
 }
 
+function rankingWinCount(row) {
+  if (Number.isFinite(row.wins)) return row.wins;
+  const match = String(row.record || "").match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function rankingRateValue(row) {
+  if (Number.isFinite(row.rateValue)) return row.rateValue;
+  const value = Number.parseFloat(String(row.rate || "0").replace("%", ""));
+  return Number.isFinite(value) ? value / 100 : 0;
+}
+
+function sortedRankings() {
+  return [...appState.rankings].sort((a, b) => {
+    const rateCompare = rankingRateValue(b) - rankingRateValue(a);
+    const winCompare = rankingWinCount(b) - rankingWinCount(a);
+    const recordCompare = (b.wins + b.losses || 0) - (a.wins + a.losses || 0);
+    const nameCompare = String(a.nickname || "").localeCompare(String(b.nickname || ""), "ko-KR");
+
+    if (activeRankingSort === "wins") {
+      return winCompare || rateCompare || recordCompare || nameCompare;
+    }
+
+    return rateCompare || winCompare || recordCompare || nameCompare;
+  });
+}
+
+function renderRankingControls() {
+  const buttons = document.querySelectorAll("#ranking .segmented button");
+  buttons.forEach((button, index) => {
+    const sort = index === 1 ? "wins" : "rate";
+    button.classList.toggle("selected", activeRankingSort === sort);
+    button.setAttribute("aria-pressed", activeRankingSort === sort ? "true" : "false");
+    button.dataset.rankingSort = sort;
+  });
+}
+
 function renderRankings() {
-  document.querySelector("#rankingRows").innerHTML = appState.rankings
+  renderRankingControls();
+  document.querySelector("#rankingRows").innerHTML = sortedRankings()
     .map(
       (row, index) => `
         <div class="table-row">
@@ -3155,6 +3194,14 @@ document.querySelector("#gameCategoryFilter")?.addEventListener("click", (event)
 
   activeGameCategoryFilter = button.dataset.gameCategory;
   renderGames(null, { detail: false });
+});
+
+document.querySelector("#ranking .segmented")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-ranking-sort]");
+  if (!button) return;
+
+  activeRankingSort = button.dataset.rankingSort;
+  renderRankings();
 });
 
 document.querySelector("#dateSelect")?.addEventListener("change", () => {
