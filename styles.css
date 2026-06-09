@@ -3738,6 +3738,22 @@ select:disabled {
     min-width: 0;
   }
 
+  .apply-option-grid--time {
+    grid-template-columns: 1fr;
+  }
+
+  .apply-option-grid--time button {
+    min-height: 86px;
+  }
+
+  .apply-option-grid--time em,
+  .apply-option-grid--time i,
+  .apply-venue-note,
+  .my-application-next-step,
+  .mypage-next-step {
+    overflow-wrap: anywhere;
+  }
+
   .apply-month-tabs {
     grid-auto-columns: minmax(128px, max-content);
   }
@@ -3755,6 +3771,21 @@ select:disabled {
   .auth-page-shell {
     min-height: auto;
     padding: 8px 0 42px;
+  }
+
+  .admin-subnav,
+  .admin-game-tabs,
+  .member-detail-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-subnav button,
+  .admin-game-tabs button,
+  .member-detail-tabs button {
+    min-width: 0;
+    padding: 0 8px;
+    white-space: normal;
   }
 
   .my-application-item {
@@ -3811,6 +3842,14 @@ select:disabled {
 
   .ops-quick-filter {
     grid-template-columns: 1fr;
+  }
+
+  .event-risk-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .event-risk-summary span {
+    justify-self: start;
   }
 
   .ops-control-bar {
@@ -3933,5 +3972,18 @@ select:disabled {
 
   .table-row span:last-child {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-subnav,
+  .admin-game-tabs,
+  .member-detail-tabs,
+  .apply-option-grid--area {
+    grid-template-columns: 1fr;
+  }
+
+  .section-head h2 {
+    font-size: clamp(26px, 10vw, 36px);
   }
 }
