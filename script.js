@@ -2580,6 +2580,28 @@ function validateBrowserRequiredFields(form) {
   return form.reportValidity();
 }
 
+function enhanceSignupRequiredUi() {
+  const form = document.querySelector("#signupForm");
+  if (!form) return;
+
+  const intro = form.querySelector("p");
+  if (intro && !form.querySelector(".required-form-note")) {
+    const note = document.createElement("div");
+    note.className = "required-form-note";
+    note.textContent = "회원가입 항목은 모두 필수 입력입니다.";
+    intro.insertAdjacentElement("afterend", note);
+  }
+
+  form.querySelectorAll("label:not(.check-line)").forEach((label) => {
+    if (!label.querySelector("[required]") || label.querySelector(".required-badge")) return;
+
+    const badge = document.createElement("span");
+    badge.className = "required-badge";
+    badge.textContent = "필수";
+    label.append(badge);
+  });
+}
+
 function clearFormError(form) {
   form.querySelectorAll(".field-error").forEach((node) => node.remove());
   form.querySelectorAll(".has-error").forEach((node) => node.classList.remove("has-error"));
@@ -3623,4 +3645,5 @@ document.addEventListener("click", async (event) => {
   }
 });
 
+enhanceSignupRequiredUi();
 loadState().catch((error) => showToast(error.message));

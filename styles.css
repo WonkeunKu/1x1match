@@ -615,6 +615,37 @@ h3 {
   gap: 12px;
 }
 
+.required-form-note {
+  border: 1px solid rgba(216, 39, 47, 0.42);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(216, 39, 47, 0.1);
+  color: #ffd6cf;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.auth-form label {
+  position: relative;
+}
+
+.required-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-grid;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 7px;
+  border: 1px solid rgba(255, 183, 173, 0.34);
+  border-radius: 999px;
+  background: rgba(169, 29, 35, 0.18);
+  color: #ffb7ad;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .member-card {
   display: grid;
   align-items: start;
