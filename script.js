@@ -1373,6 +1373,18 @@ function renderAdminSections() {
   });
 }
 
+function focusAdminRiskLog() {
+  activeAdminSection = "logs";
+  activeEventLogFilter = "risk";
+  visibleEventCount = 8;
+}
+
+function scrollToAdminLog() {
+  window.setTimeout(() => {
+    document.querySelector("#eventLog")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
 function renderAdmin() {
   const adminLoginForm = document.querySelector("#adminLoginForm");
   const adminContent = document.querySelector("#adminContent");
@@ -3645,7 +3657,9 @@ document.addEventListener("click", async (event) => {
         method: "POST",
         body: JSON.stringify({ gameId: toggleGameHiddenButton.dataset.toggleGameHidden }),
       });
+      focusAdminRiskLog();
       renderAll();
+      scrollToAdminLog();
       showToast("게임 노출 상태를 변경했습니다.");
     } catch (error) {
       showToast(error.message);
@@ -3703,7 +3717,9 @@ document.addEventListener("click", async (event) => {
         body: JSON.stringify({ memberId, confirmNickname }),
       });
       activeMemberId = null;
+      focusAdminRiskLog();
       renderAll();
+      scrollToAdminLog();
       showToast(`${member.nickname} 회원을 완전히 삭제했습니다.`);
     } catch (error) {
       showToast(error.message);
@@ -3731,7 +3747,9 @@ document.addEventListener("click", async (event) => {
         method: "POST",
         body: JSON.stringify({ memberId, newPassword }),
       });
+      focusAdminRiskLog();
       renderAll();
+      scrollToAdminLog();
       showToast("회원 비밀번호를 초기화했습니다. 임시 비밀번호를 회원에게 전달해 주세요.");
     } catch (error) {
       showToast(error.message);
@@ -3801,7 +3819,9 @@ document.addEventListener("click", async (event) => {
         body: JSON.stringify({ matchId }),
       });
       activeOpsMatchId = null;
+      focusAdminRiskLog();
       renderAll();
+      scrollToAdminLog();
       showToast("매치를 삭제했습니다.");
     } catch (error) {
       showToast(error.message);
@@ -3880,7 +3900,9 @@ document.addEventListener("click", async (event) => {
         memberId: approveCancelRequestButton.dataset.memberId,
       }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("취소 요청을 승인했습니다.");
   }
 
@@ -3895,7 +3917,9 @@ document.addEventListener("click", async (event) => {
         memberId: rejectCancelRequestButton.dataset.memberId,
       }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("취소 요청을 반려했습니다.");
   }
 
@@ -3931,7 +3955,9 @@ document.addEventListener("click", async (event) => {
         memberId: undoPaymentButton.dataset.memberId,
       }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("입금 확인을 취소했습니다.");
   }
 
@@ -3958,7 +3984,9 @@ document.addEventListener("click", async (event) => {
       method: "POST",
       body: JSON.stringify({ matchId: hideGameButton.dataset.hideGame }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("게임 공개를 취소했습니다.");
   }
 
@@ -3995,7 +4023,9 @@ document.addEventListener("click", async (event) => {
       method: "POST",
       body: JSON.stringify({ matchId: clearResultButton.dataset.clearResult }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("경기 결과 입력을 취소했습니다.");
   }
 
@@ -4074,7 +4104,9 @@ document.addEventListener("click", async (event) => {
         memberId: refundButton.dataset.memberId,
       }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("참가자 환불 완료 상태로 체크했습니다.");
   }
 
@@ -4095,7 +4127,9 @@ document.addEventListener("click", async (event) => {
         memberId: undoRefundButton.dataset.memberId,
       }),
     });
+    focusAdminRiskLog();
     renderAll();
+    scrollToAdminLog();
     showToast("참가자 환불 상태를 되돌렸습니다.");
   }
 });
