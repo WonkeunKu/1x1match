@@ -3353,6 +3353,44 @@ select:disabled {
   margin-bottom: 12px;
 }
 
+.event-risk-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 39, 47, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(83, 19, 20, 0.42), rgba(12, 9, 9, 0.92));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.event-risk-summary.selected {
+  border-color: rgba(216, 39, 47, 0.7);
+  box-shadow: inset 3px 0 0 rgba(216, 39, 47, 0.82);
+}
+
+.event-risk-summary strong {
+  font-size: 14px;
+}
+
+.event-risk-summary span {
+  color: var(--amber);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.event-risk-summary small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .event-log li {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);

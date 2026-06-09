@@ -1421,6 +1421,7 @@ function renderAdmin() {
 
 function eventLogCategory(message) {
   const text = String(message || "");
+  if (/삭제|초기화|취소|환불|되돌|숨김|공개 취소|완전|reset|delete|refund|cancel|undo/i.test(text)) return "risk";
   if (/환불|취소 요청|신청 취소|취소했습니다|되돌렸습니다/.test(text)) return "refund";
   if (/입금|결제/.test(text)) return "payment";
   if (/문자|알림|발송/.test(text)) return "message";
@@ -1433,6 +1434,7 @@ function eventLogCategory(message) {
 function eventLogFilterOptions(events) {
   const options = [
     { value: "all", label: "전체" },
+    { value: "risk", label: "위험 작업" },
     { value: "payment", label: "입금" },
     { value: "refund", label: "취소/환불" },
     { value: "message", label: "문자" },
@@ -1460,6 +1462,7 @@ function renderEventLog() {
     const categoryMatches = activeEventLogFilter === "all" || eventLogCategory(event.message) === activeEventLogFilter;
     return categoryMatches && (!query || String(event.message || "").toLowerCase().includes(query));
   });
+  const riskCount = entries.filter((event) => eventLogCategory(event.message) === "risk").length;
   const visibleEvents = filteredEvents.slice(0, visibleEventCount);
   const hasMoreEvents = visibleEventCount < filteredEvents.length;
 
@@ -1468,6 +1471,11 @@ function renderEventLog() {
       <h3>운영 로그</h3>
       <span>${visibleEvents.length}/${filteredEvents.length}</span>
     </div>
+    <button class="event-risk-summary ${activeEventLogFilter === "risk" ? "selected" : ""}" type="button" data-event-log-filter="risk">
+      <strong>위험 작업 로그</strong>
+      <span>${riskCount}건</span>
+      <small>삭제, 초기화, 취소, 환불, 되돌림 기록만 모아봅니다.</small>
+    </button>
     <div class="event-log-controls">
       <input type="search" id="eventLogSearchInput" value="${escapeHtml(eventLogSearchQuery)}" placeholder="로그 검색" autocomplete="off" />
       <div class="ops-filter segmented">
