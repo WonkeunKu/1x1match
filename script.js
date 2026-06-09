@@ -2169,6 +2169,7 @@ function renderOpsCard(match) {
   const resultRecorded = Boolean(match.result);
   const isExpanded = activeOpsMatchId === match.id;
   const canDeleteMatch = !match.allPlayers.length && !match.result && !(match.notificationLog || []).length;
+  const scheduleDateValue = dateKeyFromMatch(match) || match.id.slice(0, 10);
   const paymentPendingCount = match.allPlayers.filter((player) => player.paymentStatus === "payment_pending" && !player.cancelled).length;
   const issueLabels = [
     paymentPendingCount ? `입금 ${paymentPendingCount}명 대기` : "",
@@ -2325,6 +2326,13 @@ function renderOpsCard(match) {
           </div>
           <div class="ops-action-group compact">
             <span>일정</span>
+            <form class="match-schedule-form" data-update-match-schedule="${match.id}">
+              <input name="matchId" type="hidden" value="${escapeHtml(match.id)}" />
+              <input name="matchDate" type="date" value="${escapeHtml(scheduleDateValue)}" ${canDeleteMatch ? "" : "disabled"} required />
+              <input name="time" type="time" value="${escapeHtml(match.time)}" ${canDeleteMatch ? "" : "disabled"} required />
+              <input name="location" type="text" value="${escapeHtml(match.location)}" ${canDeleteMatch ? "" : "disabled"} required />
+              <button class="secondary-button" type="submit" ${canDeleteMatch ? "" : "disabled"}>일정 저장</button>
+            </form>
             <button class="secondary-button danger-button" type="button" data-delete-match="${match.id}" ${
               canDeleteMatch ? "" : "disabled"
             }>매치 삭제</button>
@@ -3095,6 +3103,28 @@ document.querySelector("#createMatchForm").addEventListener("submit", async (eve
     form.reset();
     renderAll();
     showToast("웹 신청용 새 매치를 열었습니다.");
+  } catch (error) {
+    setFormError(form, error.message, inferErrorField(form, error.message));
+  }
+});
+
+document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-update-match-schedule]");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    const nextDate = form.elements.matchDate.value;
+    const nextTime = form.elements.time.value;
+    const nextLocation = form.elements.location.value.trim();
+    appState = await submitForm("/api/admin/update-match-schedule", form);
+    activeOpsMatchId =
+      appState.matches.find(
+        (match) => match.id.startsWith(`${nextDate}-${nextTime.replace(":", "")}`) && match.location === nextLocation,
+      )?.id || null;
+    renderAll();
+    showToast("매치 일정을 수정했습니다.");
   } catch (error) {
     setFormError(form, error.message, inferErrorField(form, error.message));
   }

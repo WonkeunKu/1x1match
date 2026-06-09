@@ -1342,6 +1342,30 @@ function activePaidApplications(match) {
   );
 }
 
+function matchLocationSlug(location) {
+  const text = String(location || "").trim();
+  if (/강남/.test(text)) return "gangnam";
+  if (/신촌/.test(text)) return "sinchon";
+  if (/홍대/.test(text)) return "hongdae";
+  if (/성수/.test(text)) return "seongsu";
+  const slug = text
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24);
+  return slug || "match";
+}
+
+function matchIdFor(matchDate, time, location) {
+  return `${matchDate}-${String(time).replace(":", "")}-${matchLocationSlug(location)}`;
+}
+
+function matchDisplayDate(matchDate) {
+  const dateObject = new Date(`${matchDate}T00:00:00+09:00`);
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  return `${dateObject.getMonth() + 1}월 ${dateObject.getDate()}일 ${weekdays[dateObject.getDay()]}`;
+}
+
 function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
@@ -2227,8 +2251,13 @@ async function handleApi(request, response, pathname) {
     requireField(body.matchDate, "날짜");
     requireField(body.time, "시간");
     requireField(body.location, "장소");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.matchDate)) || !/^\d{2}:\d{2}$/.test(String(body.time))) {
+      sendJson(response, 400, { error: "날짜와 시간을 올바르게 입력해 주세요." });
+      return;
+    }
 
-    const idBase = `${body.matchDate}-${String(body.time).replace(":", "")}`;
+    const location = String(body.location || "").trim();
+    const idBase = matchIdFor(body.matchDate, body.time, location);
     const exists = state.matches.some((match) => match.id === idBase);
 
     if (exists) {
@@ -2236,15 +2265,13 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    const dateObject = new Date(`${body.matchDate}T00:00:00+09:00`);
-    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-    const date = `${dateObject.getMonth() + 1}월 ${dateObject.getDate()}일 ${weekdays[dateObject.getDay()]}`;
+    const date = matchDisplayDate(body.matchDate);
 
     state.matches.push({
       id: idBase,
       date,
       time: String(body.time),
-      location: String(body.location).trim(),
+      location,
       gameId: null,
       gameRevealed: false,
       exactVenue: "",
@@ -2255,6 +2282,55 @@ async function handleApi(request, response, pathname) {
     logEvent(`${date} ${body.time} 신규 매치를 열었습니다.`);
     await persistState();
     sendJson(response, 201, publicState());
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/update-match-schedule") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    requireField(body.matchId, "매치");
+    requireField(body.matchDate, "날짜");
+    requireField(body.time, "시간");
+    requireField(body.location, "장소");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.matchDate)) || !/^\d{2}:\d{2}$/.test(String(body.time))) {
+      sendJson(response, 400, { error: "날짜와 시간을 올바르게 입력해 주세요." });
+      return;
+    }
+
+    const match = state.matches.find((candidate) => candidate.id === body.matchId);
+
+    if (!match) {
+      sendJson(response, 404, { error: "수정할 매치를 찾을 수 없습니다." });
+      return;
+    }
+
+    if ((match.applications || []).length || match.result || (match.notificationLog || []).length) {
+      sendJson(response, 409, { error: "신청, 결과, 문자 이력이 있는 매치는 일정을 수정할 수 없습니다." });
+      return;
+    }
+
+    const location = String(body.location || "").trim();
+    const newId = matchIdFor(body.matchDate, body.time, location);
+    const exists = state.matches.some((candidate) => candidate.id === newId && candidate.id !== match.id);
+
+    if (exists) {
+      sendJson(response, 409, { error: "이미 같은 날짜, 시간, 장소의 매치가 있습니다." });
+      return;
+    }
+
+    const previous = `${match.date} ${match.time} ${match.location}`;
+    if (newId !== match.id) {
+      await storage.deleteMatch?.(match.id);
+      match.id = newId;
+    }
+
+    match.date = matchDisplayDate(body.matchDate);
+    match.time = String(body.time);
+    match.location = location;
+    logEvent(`운영자가 ${previous} 매치를 ${match.date} ${match.time} ${match.location}로 수정했습니다.`);
+    await persistState();
+    sendJson(response, 200, publicState());
     return;
   }
 
