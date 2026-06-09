@@ -3391,6 +3391,23 @@ select:disabled {
   font-weight: 800;
 }
 
+.event-return-button {
+  width: 100%;
+  min-height: 40px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.35);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.1);
+  color: var(--amber);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.event-return-button:hover {
+  border-color: rgba(184, 135, 45, 0.62);
+  background: rgba(184, 135, 45, 0.16);
+}
+
 .event-log li {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);

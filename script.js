@@ -30,6 +30,7 @@ let visibleEventCount = 8;
 let activeEventLogFilter = "all";
 let eventLogSearchQuery = "";
 const expandedAdminMessageKeys = new Set();
+let adminReturnState = null;
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
 let opsSearchQuery = "";
@@ -1374,9 +1375,32 @@ function renderAdminSections() {
 }
 
 function focusAdminRiskLog() {
+  adminReturnState = {
+    adminSection: activeAdminSection,
+    opsFilter: activeOpsFilter,
+    opsMatchId: activeOpsMatchId,
+    memberId: activeMemberId,
+    memberDetailSection: activeMemberDetailSection,
+    adminGameSection: activeAdminGameSection,
+    adminGameId: activeAdminGameId,
+  };
   activeAdminSection = "logs";
   activeEventLogFilter = "risk";
   visibleEventCount = 8;
+}
+
+function restoreAdminReturnState() {
+  if (!adminReturnState) return false;
+
+  activeAdminSection = adminReturnState.adminSection || "dashboard";
+  activeOpsFilter = adminReturnState.opsFilter || "all";
+  activeOpsMatchId = adminReturnState.opsMatchId || null;
+  activeMemberId = adminReturnState.memberId || null;
+  activeMemberDetailSection = adminReturnState.memberDetailSection || "summary";
+  activeAdminGameSection = adminReturnState.adminGameSection || "library";
+  activeAdminGameId = adminReturnState.adminGameId || null;
+  adminReturnState = null;
+  return true;
 }
 
 function scrollToAdminLog() {
@@ -1488,6 +1512,11 @@ function renderEventLog() {
       <span>${riskCount}건</span>
       <small>삭제, 초기화, 취소, 환불, 되돌림 기록만 모아봅니다.</small>
     </button>
+    ${
+      adminReturnState
+        ? `<button class="event-return-button" type="button" data-return-admin-work>이전 작업으로 돌아가기</button>`
+        : ""
+    }
     <div class="event-log-controls">
       <input type="search" id="eventLogSearchInput" value="${escapeHtml(eventLogSearchQuery)}" placeholder="로그 검색" autocomplete="off" />
       <div class="ops-filter segmented">
@@ -3184,6 +3213,17 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const returnButton = event.target.closest("[data-return-admin-work]");
+  if (returnButton) {
+    if (restoreAdminReturnState()) {
+      renderAdmin();
+      window.setTimeout(() => {
+        document.querySelector("#adminContent")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    }
+    return;
+  }
+
   const filterButton = event.target.closest("[data-event-log-filter]");
   if (!filterButton) return;
 
