@@ -848,6 +848,7 @@ function renderMyPageApplication(match, user) {
       cancelled: false,
     };
   const paymentLabel = applicationPaymentLabel(application);
+  const nextStep = myApplicationNextStep(match, application);
   const confirmLabel = application.cancelled ? "취소됨" : match.confirmed ? "확정" : `${match.players.length}/${match.capacity}명 모집 중`;
   const gameLabel = match.confirmed
     ? match.gameRevealed && match.game
@@ -889,6 +890,7 @@ function renderMyPageApplication(match, user) {
         <span><strong>결과</strong>${resultLabel}</span>
         <span><strong>인원</strong>${match.players.length}/${match.capacity}명</span>
       </div>
+      <div class="mypage-next-step">${escapeHtml(nextStep)}</div>
     </article>
   `;
 }
@@ -929,6 +931,7 @@ function renderMyApplications() {
           const myApplication = match.allPlayers.find((player) => player.memberId === appState.user.id);
           const myPayment = myApplication?.paymentStatus;
           const paymentLabel = applicationPaymentLabel(myApplication);
+          const nextStep = myApplicationNextStep(match, myApplication);
           const applicationStatusLabel = myApplication?.cancelled ? "취소됨" : match.statusLabel;
           const gameLabel = match.gameRevealed && match.game ? match.game.title : "게임 공개 대기";
           const canCancel =
@@ -941,6 +944,7 @@ function renderMyApplications() {
                 <strong>${match.date} ${match.time}</strong>
                 <span>${displayMatchLocation(match)}</span>
                 <span>${applicationStatusLabel} · ${paymentLabel} · ${gameLabel}</span>
+                <span class="my-application-next-step">${escapeHtml(nextStep)}</span>
                 ${
                   myPayment === "payment_pending"
                     ? `<span>입금 계좌: ${paymentAccountText()}</span>`
@@ -980,6 +984,20 @@ function applicationPaymentLabel(application) {
     return paymentStatusLabel(application.paymentStatus);
   }
   return application.cancelled ? "신청 취소됨" : paymentStatusLabel(application.paymentStatus);
+}
+
+function myApplicationNextStep(match, application) {
+  if (!application) return "신청 정보를 불러오는 중입니다.";
+  if (application.paymentStatus === "payment_pending" && !application.cancelled) return `${paymentAccountText()}로 입금 후 운영자 확인을 기다려 주세요.`;
+  if (application.paymentStatus === "paid" && !match.confirmed) return "입금 확인 완료. 상대 1명이 더 신청하면 매치가 확정됩니다.";
+  if (["cancel_requested_pending", "cancel_requested_paid"].includes(application.paymentStatus)) return "취소 요청이 접수되었습니다. 운영자 승인 후 상태가 바뀝니다.";
+  if (application.paymentStatus === "refund_requested") return "환불 요청 상태입니다. 운영자가 송금 처리 후 완료로 바꿉니다.";
+  if (application.paymentStatus === "refund_scheduled") return "환불 예정 상태입니다. 실제 송금 완료 안내를 기다려 주세요.";
+  if (application.paymentStatus === "refunded") return "환불 처리가 완료되었습니다.";
+  if (application.cancelled) return "신청이 취소된 상태입니다.";
+  if (match.confirmed && match.gameRevealed && match.game) return "게임과 장소가 공개되었습니다. 공지 내용을 확인해 주세요.";
+  if (match.confirmed) return "매치가 확정되었습니다. 게임과 정확한 장소는 시작 24시간 전 공개됩니다.";
+  return "신청이 접수되었습니다. 2명이 모이면 매치가 확정됩니다.";
 }
 
 function renderMatches() {

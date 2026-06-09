@@ -1073,6 +1073,14 @@ h3 {
   font-size: 13px;
 }
 
+.my-application-next-step {
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #f3cf88 !important;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -2502,6 +2510,17 @@ select:disabled {
 .mypage-application-status em {
   align-self: start;
   font-style: normal;
+}
+
+.mypage-next-step {
+  padding: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.24);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.08);
+  color: #f3cf88;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.45;
 }
 
 .member-edit-form > div {
