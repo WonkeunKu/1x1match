@@ -3319,6 +3319,19 @@ select:disabled {
     justify-content: flex-start;
   }
 
+  .apply-option-grid--area {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .apply-option-grid--area button {
+    min-width: 0;
+  }
+
+  .apply-month-tabs {
+    grid-auto-columns: minmax(128px, max-content);
+  }
+
   .top-actions {
     justify-content: stretch;
   }
