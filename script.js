@@ -2156,12 +2156,14 @@ function filteredOpsMatches() {
 
 function renderOpsList() {
   const quickFilters = [
-    { value: "upcoming", label: "오늘 이후" },
-    { value: "confirmed", label: "확정만" },
-    { value: "venue", label: "장소 미입력" },
-    { value: "cancelRequest", label: "취소 요청" },
-    { value: "autoClosed", label: "자동 취소/환불" },
-    { value: "gameMessage", label: "문자 미발송" },
+    { value: "upcoming", label: "오늘 이후", note: "앞으로 열릴 매치" },
+    { value: "payment", label: "입금 대기", note: "확인할 신청" },
+    { value: "confirmed", label: "확정/마감", note: "2명 모집 완료" },
+    { value: "venue", label: "장소 미입력", note: "공지 전 보완" },
+    { value: "gameMessage", label: "문자 미발송", note: "안내 필요" },
+    { value: "cancelRequest", label: "취소 요청", note: "운영자 처리" },
+    { value: "autoClosed", label: "자동 취소", note: "24시간 전 1명" },
+    { value: "refund", label: "환불 필요", note: "예약/처리 확인" },
   ];
   const opsFilters = [
     { value: "all", label: "전체" },
@@ -2180,22 +2182,39 @@ function renderOpsList() {
     { value: "refund", label: "환불 필요" },
   ];
   const filteredMatches = filteredOpsMatches();
+  const activeFilterLabel =
+    [...quickFilters, ...opsFilters].find((filter) => filter.value === activeOpsFilter)?.label || "전체";
   if (activeOpsMatchId && !filteredMatches.some((match) => match.id === activeOpsMatchId)) {
     activeOpsMatchId = null;
   }
   const controlsMarkup = `
-    <div class="ops-quick-filter">
-      <span>빠른 필터</span>
-      ${quickFilters
-        .map(
-          (filter) => `
-            <button class="${filter.value === activeOpsFilter ? "selected" : ""}" type="button" data-ops-filter="${filter.value}">
-              ${filter.label}
-              <b>${appState.matches.filter((match) => matchesOpsFilter(match, filter.value)).length}</b>
-            </button>
-          `,
-        )
-        .join("")}
+    <div class="ops-management-panel">
+      <div class="ops-management-head">
+        <div>
+          <strong>매치 운영 필터</strong>
+          <span>처리가 필요한 매치를 상태별로 바로 모아봅니다.</span>
+        </div>
+        <div class="ops-current-filter">
+          <span>현재 보기</span>
+          <b>${activeFilterLabel}</b>
+        </div>
+      </div>
+      <div class="ops-quick-filter">
+        ${quickFilters
+          .map((filter) => {
+            const count = appState.matches.filter((match) => matchesOpsFilter(match, filter.value)).length;
+            return `
+              <button class="${filter.value === activeOpsFilter ? "selected" : ""}" type="button" data-ops-filter="${filter.value}">
+                <span>
+                  <strong>${filter.label}</strong>
+                  <small>${filter.note}</small>
+                </span>
+                <b>${count}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
     </div>
     <div class="ops-control-bar">
       <label>
