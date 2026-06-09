@@ -1882,6 +1882,10 @@ select:disabled {
   font-weight: 800;
 }
 
+.system-status-warning .secondary-button {
+  margin-top: 10px;
+}
+
 .system-status-meta {
   display: flex;
   flex-wrap: wrap;

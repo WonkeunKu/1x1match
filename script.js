@@ -121,6 +121,14 @@ const gameCategoryOptions = [
   { value: "timehotel", label: "더 타임 호텔" },
 ];
 
+const migrationSqlMap = {
+  "game-admin": `alter table games
+  add column if not exists category text not null default 'uncategorized',
+  add column if not exists is_hidden boolean not null default false;`,
+  "auto-closed": `alter table applications
+  add column if not exists auto_closed boolean not null default false;`,
+};
+
 function formatPhoneInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
 
@@ -1685,6 +1693,7 @@ function renderAdminSystemStatus() {
               <span>DB 마이그레이션 필요</span>
               <strong>게임관리 컬럼 미적용</strong>
               <p><code>supabase-add-game-admin-fields.sql</code>을 Supabase SQL Editor에서 실행해야 게임 분류와 숨김 상태가 영구 저장됩니다.</p>
+              <button class="secondary-button" type="button" data-copy-migration-sql="game-admin">SQL 복사</button>
             </div>
           </div>`
         : ""
@@ -1696,6 +1705,7 @@ function renderAdminSystemStatus() {
               <span>DB 마이그레이션 필요</span>
               <strong>자동 취소 기록 컬럼 미적용</strong>
               <p><code>supabase-add-auto-closed-applications.sql</code>을 Supabase SQL Editor에서 실행해야 자동 취소/환불 필터 기록이 영구 저장됩니다.</p>
+              <button class="secondary-button" type="button" data-copy-migration-sql="auto-closed">SQL 복사</button>
             </div>
           </div>`
         : ""
@@ -3366,6 +3376,14 @@ document.addEventListener("click", async (event) => {
     const text = buildMemberContactText();
     const copied = text ? await copyText(text) : false;
     showToast(copied ? "회원 연락처 명단을 복사했습니다." : "복사할 회원 명단이 없습니다.");
+    return;
+  }
+
+  const copyMigrationSqlButton = event.target.closest("[data-copy-migration-sql]");
+  if (copyMigrationSqlButton) {
+    const sql = migrationSqlMap[copyMigrationSqlButton.dataset.copyMigrationSql] || "";
+    const copied = sql ? await copyText(sql) : false;
+    showToast(copied ? "마이그레이션 SQL을 복사했습니다." : "복사할 SQL을 찾지 못했습니다.");
     return;
   }
 
