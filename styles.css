@@ -4008,6 +4008,100 @@ select:disabled {
     padding: 8px 0 42px;
   }
 
+  .auth-dialog {
+    padding: 14px;
+  }
+
+  .auth-dialog-head {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .auth-dialog-head h2 {
+    font-size: 24px;
+  }
+
+  .auth-dialog-head p {
+    line-height: 1.5;
+  }
+
+  .auth-dialog-head .secondary-button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .auth-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .auth-tabs button {
+    min-width: 0;
+    min-height: 40px;
+    height: auto;
+    padding: 0 8px;
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  .auth-form.active {
+    gap: 10px;
+  }
+
+  .required-form-note {
+    padding: 9px 10px;
+    line-height: 1.4;
+  }
+
+  .auth-form label {
+    gap: 6px;
+    padding-top: 2px;
+    color: #d8cab9;
+  }
+
+  .auth-form input,
+  .auth-form select {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .required-badge {
+    position: static;
+    justify-self: start;
+    margin-top: -2px;
+  }
+
+  .check-line {
+    gap: 10px;
+    padding: 11px;
+    border: 1px solid rgba(255, 248, 239, 0.08);
+    border-radius: 8px;
+    background: rgba(8, 6, 6, 0.34);
+    font-size: 12px;
+  }
+
+  .check-line input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .field-error {
+    padding: 8px 10px;
+    border: 1px solid rgba(216, 39, 47, 0.3);
+    border-radius: 8px;
+    background: rgba(216, 39, 47, 0.1);
+  }
+
+  .auth-form .primary-button,
+  .auth-form .secondary-button {
+    width: 100%;
+    min-height: 48px;
+  }
+
   .admin-subnav,
   .admin-game-tabs,
   .member-detail-tabs {
