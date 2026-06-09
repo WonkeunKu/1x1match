@@ -655,6 +655,18 @@ function renderApplySelector() {
   `;
 }
 
+function scrollApplyStepIntoView(stepIndex) {
+  if (!window.matchMedia?.("(max-width: 760px)").matches) return;
+
+  const scrollStep = () => {
+    const steps = document.querySelectorAll("#applyStepSelector .apply-step, #applyStepSelector .apply-selection-summary");
+    steps[stepIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  requestAnimationFrame(scrollStep);
+  window.setTimeout(scrollStep, 120);
+}
+
 function renderAreaFilters() {
   const filterBox = document.querySelector("#areaFilters");
   const areas = [...new Set(appState.matches.map((match) => getMatchArea(match)))];
@@ -3171,6 +3183,7 @@ document.addEventListener("click", (event) => {
   renderAuth();
   renderPaymentGuide();
   renderIcons();
+  scrollApplyStepIntoView(1);
 });
 
 document.addEventListener("click", (event) => {
@@ -3184,6 +3197,7 @@ document.addEventListener("click", (event) => {
   renderAuth();
   renderPaymentGuide();
   renderIcons();
+  scrollApplyStepIntoView(2);
 });
 
 document.addEventListener("click", (event) => {
@@ -3224,6 +3238,7 @@ document.addEventListener("click", (event) => {
   renderAuth();
   renderPaymentGuide();
   renderIcons();
+  scrollApplyStepIntoView(3);
 });
 
 document.addEventListener("click", (event) => {

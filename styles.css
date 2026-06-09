@@ -3736,6 +3736,10 @@ select:disabled {
     padding: 18px 12px 24px;
   }
 
+  #apply {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
+  }
+
   .topbar {
     gap: 14px;
     margin-bottom: 20px;
@@ -4144,6 +4148,8 @@ select:disabled {
     border: 1px solid rgba(255, 248, 239, 0.07);
     border-radius: 8px;
     background: rgba(8, 6, 6, 0.28);
+    scroll-margin-top: 154px;
+    scroll-margin-bottom: calc(132px + env(safe-area-inset-bottom));
   }
 
   .apply-step > strong {
@@ -4206,6 +4212,8 @@ select:disabled {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 13px;
+    scroll-margin-top: 154px;
+    scroll-margin-bottom: calc(132px + env(safe-area-inset-bottom));
   }
 
   .apply-selection-summary strong {
