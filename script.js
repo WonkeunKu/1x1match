@@ -632,6 +632,7 @@ function renderApplySelector() {
                 <span>${match.time}</span>
                 <small>${matchCapacityLabel(match)}</small>
                 <em>${displayMatchLocation(match)}</em>
+                <i>정확한 장소는 24시간 전 공개</i>
               </button>
             `;
           })
@@ -643,6 +644,7 @@ function renderApplySelector() {
         <span>선택한 매치</span>
         <strong>${selectedMatch ? `${selectedMatch.date} ${selectedMatch.time}` : "날짜와 시간을 선택해 주세요"}</strong>
         <small>${selectedMatch ? displayMatchLocation(selectedMatch) : "지역, 날짜, 시간 순서로 선택합니다."}</small>
+        <small class="apply-venue-note">${selectedMatch ? exactVenueNotice() : "정확한 장소는 확정 후 게임과 함께 공지됩니다."}</small>
       </div>
       <div>
         <span>잔여석</span>
