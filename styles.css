@@ -3193,16 +3193,20 @@ select:disabled {
   font-size: 15px;
 }
 
-.message-preview > div {
+.message-preview-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.message-preview > div > div:first-child {
+.message-preview-head > div:first-child {
   display: grid;
   gap: 4px;
+}
+
+.message-preview.collapsed p {
+  display: none;
 }
 
 .message-actions {
@@ -3686,7 +3690,7 @@ select:disabled {
     grid-template-columns: 1fr;
   }
 
-  .message-preview > div,
+  .message-preview-head,
   .message-actions,
   .admin-note-box > div {
     display: grid;

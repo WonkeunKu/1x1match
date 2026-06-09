@@ -27,6 +27,7 @@ let memberSearchQuery = "";
 let visibleEventCount = 8;
 let activeEventLogFilter = "all";
 let eventLogSearchQuery = "";
+const expandedAdminMessageKeys = new Set();
 let isPaymentConfirmOpen = false;
 let authReturnView = "apply";
 let opsSearchQuery = "";
@@ -2462,22 +2463,31 @@ function renderOpsCard(match) {
     .map((messageText) => {
       const messageSent = match.notificationLog?.includes(messageText.key);
       const isPendingGameMessage = messageText.key === "game-revealed" && !messageSent;
+      const messageKey = `${match.id}:${messageText.key}`;
+      const isMessageExpanded = expandedAdminMessageKeys.has(messageKey);
       return `
-        <div class="message-preview ${isPendingGameMessage ? "message-preview-priority" : ""}">
-          <div>
+        <div class="message-preview ${isPendingGameMessage ? "message-preview-priority" : ""} ${isMessageExpanded ? "expanded" : "collapsed"}">
+          <div class="message-preview-head">
             <div>
               <strong>${messageText.type}</strong>
               <span>${messageSent ? "발송 완료" : "발송 대기"}${messageText.targetLabel ? ` · ${messageText.targetLabel}` : ""}</span>
             </div>
-            <div class="message-actions">
-              <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
-              ${
-                messageSent
-                  ? `<button class="secondary-button" type="button" data-message-unsent="${match.id}" data-message-key="${messageText.key}">발송 체크 취소</button>`
-                  : `<button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}">발송 완료 체크</button>`
-              }
-            </div>
+            <button class="secondary-button" type="button" data-toggle-admin-message="${escapeHtml(messageKey)}">
+              ${isMessageExpanded ? "접기" : "펼치기"}
+            </button>
           </div>
+          ${
+            isMessageExpanded
+              ? `<div class="message-actions">
+                  <button class="secondary-button" type="button" data-copy-message>문구 복사</button>
+                  ${
+                    messageSent
+                      ? `<button class="secondary-button" type="button" data-message-unsent="${match.id}" data-message-key="${messageText.key}">발송 체크 취소</button>`
+                      : `<button class="secondary-button" type="button" data-message-sent="${match.id}" data-message-key="${messageText.key}">발송 완료 체크</button>`
+                  }
+                </div>`
+              : ""
+          }
           <p>${messageText.body}</p>
         </div>
       `;
@@ -3654,6 +3664,18 @@ document.addEventListener("click", async (event) => {
   if (toggleOpsMatchButton) {
     const matchId = toggleOpsMatchButton.dataset.toggleOpsMatch;
     activeOpsMatchId = activeOpsMatchId === matchId ? null : matchId;
+    renderAdmin();
+    return;
+  }
+
+  const toggleAdminMessageButton = event.target.closest("[data-toggle-admin-message]");
+  if (toggleAdminMessageButton) {
+    const messageKey = toggleAdminMessageButton.dataset.toggleAdminMessage;
+    if (expandedAdminMessageKeys.has(messageKey)) {
+      expandedAdminMessageKeys.delete(messageKey);
+    } else {
+      expandedAdminMessageKeys.add(messageKey);
+    }
     renderAdmin();
     return;
   }
