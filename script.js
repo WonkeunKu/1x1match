@@ -1673,6 +1673,7 @@ function renderAdminSystemStatus() {
     : "현재 운영 데이터가 서버 파일에 저장됩니다. 실제 운영 전 Supabase 연결을 확인해 주세요.";
   const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
   const needsAutoClosedMigration = Boolean(isSupabase && system.schemaStatus?.autoClosedApplications === false);
+  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration].filter(Boolean).length;
 
   panel.innerHTML = `
     <div class="system-status-card ${isSupabase ? "stable" : "warning"}">
@@ -1682,6 +1683,9 @@ function renderAdminSystemStatus() {
         <p>${storageMessage}</p>
       </div>
       <div class="system-status-meta">
+        <span class="${migrationIssueCount ? "system-status-issue" : "system-status-ok"}">
+          ${migrationIssueCount ? `DB 조치 필요 ${migrationIssueCount}건` : "DB 정상"}
+        </span>
         <span>결제: ${escapeHtml(system.paymentProvider || "mock")}</span>
         <span>문자: ${escapeHtml(system.smsProvider || "mock")}</span>
       </div>

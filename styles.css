@@ -1902,6 +1902,17 @@ select:disabled {
   font-weight: 800;
 }
 
+.system-status-meta .system-status-ok {
+  border-color: rgba(25, 168, 111, 0.36);
+  color: #9ee7c9;
+}
+
+.system-status-meta .system-status-issue {
+  border-color: rgba(255, 183, 82, 0.42);
+  background: rgba(184, 110, 22, 0.18);
+  color: #ffd18b;
+}
+
 .backup-panel {
   margin-bottom: 16px;
 }
