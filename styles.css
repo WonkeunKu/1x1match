@@ -2038,6 +2038,48 @@ select:disabled {
   color: var(--muted);
 }
 
+.admin-game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 74, 57, 0.13);
+  border-radius: 8px;
+  background: rgba(12, 9, 9, 0.9);
+}
+
+.admin-game-tabs button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-game-tabs button.selected {
+  border-color: rgba(255, 74, 57, 0.48);
+  background: linear-gradient(135deg, rgba(129, 22, 22, 0.92), rgba(28, 12, 12, 0.96));
+  color: var(--text);
+}
+
+.admin-game-section {
+  display: none;
+}
+
+.admin-game-section.active {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-game-db-panel {
+  display: grid;
+  gap: 10px;
+}
+
 .admin-game-list {
   display: grid;
   align-content: start;

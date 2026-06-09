@@ -25,6 +25,7 @@ let activeAdminSection = "dashboard";
 let activeMemberId = null;
 let activeMemberDetailSection = "summary";
 let memberSearchQuery = "";
+let activeAdminGameSection = "library";
 let visibleEventCount = 8;
 let activeEventLogFilter = "all";
 let eventLogSearchQuery = "";
@@ -1547,6 +1548,11 @@ function renderAdminGameManager() {
 
   const activeGame = filteredGames.find((game) => game.id === activeAdminGameId) || filteredGames[0] || null;
   activeAdminGameId = activeGame?.id || null;
+  const system = appState.system || {};
+  const isSupabase = (system.storage || "json") === "supabase";
+  const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
+  const needsAutoClosedMigration = Boolean(isSupabase && system.schemaStatus?.autoClosedApplications === false);
+  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration].filter(Boolean).length;
   const categoryButtons = gameCategoryOptions
     .map(
       (option) => `
@@ -1566,6 +1572,12 @@ function renderAdminGameManager() {
       </div>
       <span class="status-pill confirmed">${appState.games.filter((game) => !game.hidden).length}개 공개</span>
     </div>
+    <div class="admin-game-tabs" role="tablist" aria-label="게임 관리 메뉴">
+      <button class="${activeAdminGameSection === "library" ? "selected" : ""}" type="button" data-admin-game-section="library">목록/편집</button>
+      <button class="${activeAdminGameSection === "new" ? "selected" : ""}" type="button" data-admin-game-section="new">새 게임 추가</button>
+      <button class="${activeAdminGameSection === "database" ? "selected" : ""}" type="button" data-admin-game-section="database">DB 상태</button>
+    </div>
+    <section class="admin-game-section ${activeAdminGameSection === "new" ? "active" : ""}" data-admin-game-page="new">
     <form class="admin-game-form admin-game-form-new" data-create-game-form>
       <div>
         <strong>새 게임 추가</strong>
@@ -1593,6 +1605,8 @@ function renderAdminGameManager() {
       </label>
       <button class="primary-button" type="submit">게임 추가</button>
     </form>
+    </section>
+    <section class="admin-game-section ${activeAdminGameSection === "library" ? "active" : ""}" data-admin-game-page="library">
     <div class="admin-game-controls">
       <input type="search" id="adminGameSearchInput" value="${escapeHtml(adminGameSearchQuery)}" placeholder="게임명, 규칙, 태그 검색" autocomplete="off" />
       <div class="ops-filter segmented">${categoryButtons}</div>
@@ -1609,6 +1623,42 @@ function renderAdminGameManager() {
         ${activeGame ? renderAdminGameEditor(activeGame) : ""}
       </div>
     </div>
+    </section>
+    <section class="admin-game-section ${activeAdminGameSection === "database" ? "active" : ""}" data-admin-game-page="database">
+      <div class="admin-game-db-panel">
+        <div class="system-status-card ${isSupabase ? "stable" : "warning"}">
+          <div>
+            <span>게임 관리 DB 상태</span>
+            <strong>${migrationIssueCount ? `DB 조치 필요 ${migrationIssueCount}건` : "DB 정상"}</strong>
+            <p>${isSupabase ? "Supabase 스키마 상태를 기준으로 게임 관리 저장 가능 여부를 확인합니다." : "현재 로컬 JSON 저장소로 실행 중입니다. 운영 배포 환경의 Supabase 상태를 확인해 주세요."}</p>
+          </div>
+        </div>
+        ${
+          needsGameAdminMigration
+            ? `<div class="system-status-card warning system-status-warning">
+                <div>
+                  <span>DB 마이그레이션 필요</span>
+                  <strong>게임관리 컬럼 미적용</strong>
+                  <p><code>supabase-add-game-admin-fields.sql</code>을 Supabase SQL Editor에서 실행해야 게임 분류와 숨김 상태가 영구 저장됩니다.</p>
+                  <button class="secondary-button" type="button" data-copy-migration-sql="game-admin">SQL 복사</button>
+                </div>
+              </div>`
+            : ""
+        }
+        ${
+          needsAutoClosedMigration
+            ? `<div class="system-status-card warning system-status-warning">
+                <div>
+                  <span>DB 마이그레이션 필요</span>
+                  <strong>자동 취소 기록 컬럼 미적용</strong>
+                  <p><code>supabase-add-auto-closed-applications.sql</code>을 Supabase SQL Editor에서 실행해야 자동 취소/환불 필터 기록이 영구 저장됩니다.</p>
+                  <button class="secondary-button" type="button" data-copy-migration-sql="auto-closed">SQL 복사</button>
+                </div>
+              </div>`
+            : ""
+        }
+      </div>
+    </section>
   `;
 }
 
@@ -3078,11 +3128,19 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const gameSectionButton = event.target.closest("[data-admin-game-section]");
+  if (gameSectionButton) {
+    activeAdminGameSection = gameSectionButton.dataset.adminGameSection;
+    renderAdminGameManager();
+    return;
+  }
+
   const categoryButton = event.target.closest("[data-admin-game-category]");
   if (!categoryButton) return;
 
   adminGameCategoryFilter = categoryButton.dataset.adminGameCategory;
   activeAdminGameId = null;
+  activeAdminGameSection = "library";
   renderAdminGameManager();
 });
 
@@ -3091,6 +3149,7 @@ document.addEventListener("click", (event) => {
   if (!gameButton) return;
 
   activeAdminGameId = gameButton.dataset.adminGameSelect;
+  activeAdminGameSection = "library";
   renderAdminGameManager();
 });
 
@@ -3121,6 +3180,7 @@ document.addEventListener("input", (event) => {
   const cursorPosition = event.target.selectionStart;
   adminGameSearchQuery = event.target.value;
   activeAdminGameId = null;
+  activeAdminGameSection = "library";
   renderAdminGameManager();
   const input = document.querySelector("#adminGameSearchInput");
   input?.focus();
@@ -3395,6 +3455,7 @@ document.addEventListener("submit", async (event) => {
 
   try {
     appState = await submitForm("/api/admin/create-game", form);
+    activeAdminGameSection = "library";
     form.reset();
     renderAll();
     showToast("새 게임을 추가했습니다.");
@@ -3411,6 +3472,7 @@ document.addEventListener("submit", async (event) => {
 
   try {
     appState = await submitForm(`/api/admin/update-game?gameId=${encodeURIComponent(form.dataset.updateGameForm)}`, form);
+    activeAdminGameSection = "library";
     renderAll();
     showToast("게임 정보를 수정했습니다.");
   } catch (error) {
