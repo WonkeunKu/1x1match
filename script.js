@@ -23,6 +23,7 @@ let activeOpsFilter = "all";
 let activeOpsMatchId = null;
 let activeAdminSection = "dashboard";
 let activeMemberId = null;
+let activeMemberDetailSection = "summary";
 let memberSearchQuery = "";
 let visibleEventCount = 8;
 let activeEventLogFilter = "all";
@@ -1973,6 +1974,12 @@ function renderMemberDetail() {
       </div>
       <button class="secondary-button" type="button" data-close-member-detail>닫기</button>
     </div>
+    <div class="member-detail-tabs" role="tablist" aria-label="회원 상세 메뉴">
+      <button class="${activeMemberDetailSection === "summary" ? "selected" : ""}" type="button" data-member-detail-section="summary">요약</button>
+      <button class="${activeMemberDetailSection === "edit" ? "selected" : ""}" type="button" data-member-detail-section="edit">정보 수정</button>
+      <button class="${activeMemberDetailSection === "history" ? "selected" : ""}" type="button" data-member-detail-section="history">신청 이력</button>
+    </div>
+    <section class="member-detail-section ${activeMemberDetailSection === "summary" ? "active" : ""}" data-member-detail-page="summary">
     <div class="member-detail-grid">
       <span><strong>이름</strong>${escapeHtml(member.realName || "미등록")}</span>
       <span><strong>생년월일</strong>${escapeHtml(member.birthDate || "미등록")}</span>
@@ -1982,6 +1989,8 @@ function renderMemberDetail() {
       <span><strong>승률</strong>${rate}</span>
       <span><strong>신청</strong>${applications.length}회</span>
     </div>
+    </section>
+    <section class="member-detail-section ${activeMemberDetailSection === "edit" ? "active" : ""}" data-member-detail-page="edit">
     <form class="member-edit-form" data-update-member="${member.id}">
       <div>
         <h4>회원 정보 수정</h4>
@@ -2013,6 +2022,8 @@ function renderMemberDetail() {
         <button class="primary-button" type="submit">정보 저장</button>
       </div>
     </form>
+    </section>
+    <section class="member-detail-section ${activeMemberDetailSection === "history" ? "active" : ""}" data-member-detail-page="history">
     <div class="member-history">
       <div class="member-history-head">
         <h4>신청 이력</h4>
@@ -2045,6 +2056,7 @@ function renderMemberDetail() {
           : `<div class="member-history-empty">아직 신청 이력이 없습니다.</div>`
       }
     </div>
+    </section>
   `;
 }
 
@@ -3562,13 +3574,22 @@ document.addEventListener("click", async (event) => {
   const memberDetailButton = event.target.closest("[data-member-detail]");
   if (memberDetailButton) {
     activeMemberId = memberDetailButton.dataset.memberDetail;
+    activeMemberDetailSection = "summary";
     renderMemberRoster();
+    return;
+  }
+
+  const memberDetailSectionButton = event.target.closest("[data-member-detail-section]");
+  if (memberDetailSectionButton) {
+    activeMemberDetailSection = memberDetailSectionButton.dataset.memberDetailSection;
+    renderMemberDetail();
     return;
   }
 
   const closeMemberDetailButton = event.target.closest("[data-close-member-detail]");
   if (closeMemberDetailButton) {
     activeMemberId = null;
+    activeMemberDetailSection = "summary";
     renderMemberRoster();
     return;
   }
