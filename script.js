@@ -3164,6 +3164,68 @@ document.querySelector("#dateSelect")?.addEventListener("change", () => {
   renderIcons();
 });
 
+function renderApplySelectionUpdate(nextStepIndex) {
+  isPaymentConfirmOpen = false;
+  renderMatches();
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+  if (Number.isInteger(nextStepIndex)) {
+    scrollApplyStepIntoView(nextStepIndex);
+  }
+}
+
+function handleApplyPointerSelection(event) {
+  const areaButton = event.target.closest("[data-apply-area]");
+  if (areaButton) {
+    event.preventDefault();
+    activeApplyArea = areaButton.dataset.applyArea;
+    activeApplyDate = "";
+    activeApplyTimeMatchId = "";
+    activeApplyMonthKey = "";
+    renderApplySelectionUpdate(1);
+    return;
+  }
+
+  const dateButton = event.target.closest("[data-apply-date]");
+  if (dateButton && !dateButton.disabled) {
+    event.preventDefault();
+    activeApplyDate = dateButton.dataset.applyDate;
+    activeApplyTimeMatchId = "";
+    renderApplySelectionUpdate(2);
+    return;
+  }
+
+  const monthButton = event.target.closest("[data-apply-month]");
+  if (monthButton && !monthButton.disabled && monthButton.dataset.applyMonth) {
+    event.preventDefault();
+    activeApplyMonthKey = monthButton.dataset.applyMonth;
+    activeApplyDate = "";
+    activeApplyTimeMatchId = "";
+    renderApplySelectionUpdate();
+    return;
+  }
+
+  const monthTab = event.target.closest("[data-apply-month-tab]");
+  if (monthTab) {
+    event.preventDefault();
+    activeApplyMonthKey = monthTab.dataset.applyMonthTab;
+    activeApplyDate = "";
+    activeApplyTimeMatchId = "";
+    renderApplySelectionUpdate();
+    return;
+  }
+
+  const timeButton = event.target.closest("[data-apply-time]");
+  if (timeButton && !timeButton.disabled) {
+    event.preventDefault();
+    activeApplyTimeMatchId = timeButton.dataset.applyTime;
+    renderApplySelectionUpdate(3);
+  }
+}
+
+document.addEventListener("pointerup", handleApplyPointerSelection);
+
 document.addEventListener("click", (event) => {
   const mypageAuthButton = event.target.closest("[data-open-auth-from-mypage]");
   if (mypageAuthButton) {

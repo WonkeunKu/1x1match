@@ -170,6 +170,7 @@ button {
   border: 0;
   font: inherit;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .nav-item {
@@ -4172,6 +4173,7 @@ select:disabled {
     color: var(--muted);
     font-size: 10px;
     font-weight: 900;
+    pointer-events: none;
   }
 
   .apply-option-grid button.selected,
@@ -4196,6 +4198,7 @@ select:disabled {
     color: #fff8ef;
     font-size: 10px;
     font-weight: 900;
+    pointer-events: none;
   }
 
   .apply-calendar-day.selected::after {
