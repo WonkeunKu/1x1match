@@ -3175,10 +3175,15 @@ function renderApplySelectionUpdate(nextStepIndex) {
   }
 }
 
+function stopApplySelectionEvent(event) {
+  event.preventDefault?.();
+  event.stopImmediatePropagation?.();
+}
+
 function handleApplyPointerSelection(event) {
   const areaButton = event.target.closest("[data-apply-area]");
   if (areaButton) {
-    event.preventDefault();
+    stopApplySelectionEvent(event);
     activeApplyArea = areaButton.dataset.applyArea;
     activeApplyDate = "";
     activeApplyTimeMatchId = "";
@@ -3189,7 +3194,7 @@ function handleApplyPointerSelection(event) {
 
   const dateButton = event.target.closest("[data-apply-date]");
   if (dateButton && !dateButton.disabled) {
-    event.preventDefault();
+    stopApplySelectionEvent(event);
     activeApplyDate = dateButton.dataset.applyDate;
     activeApplyTimeMatchId = "";
     renderApplySelectionUpdate(2);
@@ -3198,7 +3203,7 @@ function handleApplyPointerSelection(event) {
 
   const monthButton = event.target.closest("[data-apply-month]");
   if (monthButton && !monthButton.disabled && monthButton.dataset.applyMonth) {
-    event.preventDefault();
+    stopApplySelectionEvent(event);
     activeApplyMonthKey = monthButton.dataset.applyMonth;
     activeApplyDate = "";
     activeApplyTimeMatchId = "";
@@ -3208,7 +3213,7 @@ function handleApplyPointerSelection(event) {
 
   const monthTab = event.target.closest("[data-apply-month-tab]");
   if (monthTab) {
-    event.preventDefault();
+    stopApplySelectionEvent(event);
     activeApplyMonthKey = monthTab.dataset.applyMonthTab;
     activeApplyDate = "";
     activeApplyTimeMatchId = "";
@@ -3218,13 +3223,14 @@ function handleApplyPointerSelection(event) {
 
   const timeButton = event.target.closest("[data-apply-time]");
   if (timeButton && !timeButton.disabled) {
-    event.preventDefault();
+    stopApplySelectionEvent(event);
     activeApplyTimeMatchId = timeButton.dataset.applyTime;
     renderApplySelectionUpdate(3);
   }
 }
 
-document.addEventListener("pointerup", handleApplyPointerSelection);
+document.addEventListener("touchstart", handleApplyPointerSelection, { capture: true, passive: false });
+document.addEventListener("click", handleApplyPointerSelection, true);
 
 document.addEventListener("click", (event) => {
   const mypageAuthButton = event.target.closest("[data-open-auth-from-mypage]");
