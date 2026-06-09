@@ -707,13 +707,21 @@ h3 {
   color: #d8cab9;
   font-weight: 900;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.apply-option-grid button:hover:not(:disabled),
 .apply-option-grid button.selected {
   border-color: rgba(255, 74, 57, 0.46);
   background: linear-gradient(135deg, rgba(118, 19, 23, 0.9), rgba(45, 25, 22, 0.95));
   color: #fff8ef;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .apply-option-grid button:hover:not(:disabled) {
+    border-color: rgba(255, 74, 57, 0.46);
+    background: linear-gradient(135deg, rgba(118, 19, 23, 0.9), rgba(45, 25, 22, 0.95));
+    color: #fff8ef;
+  }
 }
 
 .apply-option-grid button:disabled {
@@ -852,6 +860,7 @@ h3 {
   background: #120f0f;
   color: #d8cab9;
   font-weight: 900;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .apply-calendar-day span {
@@ -864,11 +873,18 @@ h3 {
   font-size: 11px;
 }
 
-.apply-calendar-day:hover:not(:disabled),
 .apply-calendar-day.selected {
   border-color: rgba(255, 74, 57, 0.52);
   background: linear-gradient(135deg, rgba(118, 19, 23, 0.92), rgba(45, 25, 22, 0.96));
   color: #fff8ef;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .apply-calendar-day:hover:not(:disabled) {
+    border-color: rgba(255, 74, 57, 0.52);
+    background: linear-gradient(135deg, rgba(118, 19, 23, 0.92), rgba(45, 25, 22, 0.96));
+    color: #fff8ef;
+  }
 }
 
 .apply-calendar-day.closed {
