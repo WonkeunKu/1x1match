@@ -4328,6 +4328,40 @@ select:disabled {
     justify-items: stretch;
   }
 
+  .admin-action-panel,
+  .ops-management-panel {
+    padding: 12px;
+  }
+
+  .metric {
+    min-height: 76px;
+    padding: 14px;
+  }
+
+  .metric strong {
+    font-size: 26px;
+  }
+
+  .admin-today-board {
+    padding: 12px;
+  }
+
+  .admin-today-item,
+  .admin-action-item {
+    min-height: auto;
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .admin-today-item span,
+  .admin-action-item span {
+    font-size: 20px;
+  }
+
+  .admin-action-grid {
+    gap: 8px;
+  }
+
   .ops-management-head {
     display: grid;
     justify-items: stretch;
@@ -4394,6 +4428,12 @@ select:disabled {
     padding: 14px;
   }
 
+  .ops-summary-button strong,
+  .ops-summary-button small,
+  .ops-summary-tags b {
+    overflow-wrap: anywhere;
+  }
+
   .ops-open-label {
     justify-self: start;
     padding-top: 8px;
@@ -4408,6 +4448,54 @@ select:disabled {
   .participant-head,
   .participant-row {
     grid-template-columns: 1fr;
+  }
+
+  .participant-head {
+    display: none;
+  }
+
+  .participant-list {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .participant-row {
+    gap: 7px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    background: rgba(8, 6, 6, 0.52);
+  }
+
+  .participant-row > span {
+    display: grid;
+    gap: 3px;
+    line-height: 1.35;
+  }
+
+  .participant-row > span::before {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .participant-row > span:nth-child(1)::before {
+    content: "참가자";
+  }
+
+  .participant-row > span:nth-child(2)::before {
+    content: "연락처";
+  }
+
+  .participant-row > span:nth-child(3)::before {
+    content: "활동지";
+  }
+
+  .participant-payment-cell::before {
+    content: "입금/처리";
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
   }
 
   .participant-actions {
@@ -4425,9 +4513,23 @@ select:disabled {
     display: grid;
   }
 
+  .message-preview {
+    padding: 11px;
+  }
+
+  .message-preview-head {
+    gap: 8px;
+  }
+
+  .message-preview p {
+    overflow-wrap: anywhere;
+  }
+
   .message-actions button,
   .admin-note-box button {
     width: 100%;
+    min-height: 40px;
+    height: auto;
   }
 
   .member-roster-panel {
