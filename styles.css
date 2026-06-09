@@ -3766,7 +3766,90 @@ select:disabled {
 
   .game-detail {
     min-height: auto;
-    padding: 18px 14px;
+    padding: 16px 12px;
+  }
+
+  .game-back-button {
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 12px;
+  }
+
+  .game-detail-header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .game-detail-header h3 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .game-detail-header p {
+    line-height: 1.55;
+  }
+
+  .detail-tags {
+    gap: 5px;
+  }
+
+  .detail-tags small {
+    height: 22px;
+    padding: 0 7px;
+    font-size: 10px;
+  }
+
+  .game-detail-actions {
+    display: grid;
+  }
+
+  .game-detail-actions .secondary-button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .rule-section-title {
+    display: grid;
+    gap: 4px;
+    margin: 14px 0 10px;
+    padding-top: 12px;
+  }
+
+  .rule-section-title strong {
+    font-size: 17px;
+  }
+
+  .rule-list {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .rule-list li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+    line-height: 1.62;
+  }
+
+  .rule-list li::before {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .win-condition-box {
+    margin-top: 14px;
+    padding: 13px;
+  }
+
+  .game-bottom-actions {
+    display: grid;
+    margin-top: 14px;
+  }
+
+  .game-bottom-actions .secondary-button {
+    width: 100%;
+    min-height: 42px;
   }
 
   .match-list-head {
