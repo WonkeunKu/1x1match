@@ -2959,6 +2959,7 @@ select:disabled {
   display: grid;
   gap: 10px;
   justify-items: end;
+  min-width: min(520px, 100%);
 }
 
 .match-schedule-form {
@@ -2983,12 +2984,33 @@ select:disabled {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   background: rgba(18, 15, 15, 0.72);
+  box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.06);
 }
 
 .ops-action-group > span {
   color: var(--amber);
   font-size: 12px;
   font-weight: 900;
+}
+
+.ops-action-group-game {
+  border-color: rgba(83, 109, 168, 0.28);
+  box-shadow: inset 3px 0 0 rgba(83, 109, 168, 0.74);
+}
+
+.ops-action-group-result {
+  border-color: rgba(184, 135, 45, 0.28);
+  box-shadow: inset 3px 0 0 rgba(184, 135, 45, 0.74);
+}
+
+.ops-action-group-copy {
+  border-color: rgba(25, 168, 111, 0.22);
+  box-shadow: inset 3px 0 0 rgba(25, 168, 111, 0.58);
+}
+
+.ops-action-group-danger {
+  border-color: rgba(216, 39, 47, 0.28);
+  box-shadow: inset 3px 0 0 rgba(216, 39, 47, 0.68);
 }
 
 .ops-action-group > small {
@@ -3006,6 +3028,13 @@ select:disabled {
   background: transparent;
   border-color: transparent;
   padding: 0;
+}
+
+.ops-action-group-copy.compact,
+.ops-action-group-danger.compact {
+  padding: 8px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(18, 15, 15, 0.52);
 }
 
 .recommendation-box {

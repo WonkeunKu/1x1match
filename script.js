@@ -2493,8 +2493,8 @@ function renderOpsCard(match) {
         </div>
         <button class="secondary-button" type="button" data-toggle-ops-match="${match.id}">접기</button>
         <div class="ops-actions">
-          <div class="ops-action-group">
-            <span>게임</span>
+          <div class="ops-action-group ops-action-group-game">
+            <span>게임/장소/문자</span>
             <small>${match.confirmed ? (match.gameRevealed ? "참가자에게 게임이 공개되었습니다." : revealScheduleLabel) : "매치 확정 후 게임을 예약할 수 있습니다."}</small>
             <select data-game-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${gameOptions}</select>
             <button class="secondary-button" type="button" data-recommend-game="${match.id}" ${!needsReveal ? "disabled" : ""}>랜덤 추천</button>
@@ -2506,23 +2506,23 @@ function renderOpsCard(match) {
                   : `<button class="secondary-button" data-reveal="${match.id}" ${!needsReveal ? "disabled" : ""}>선택 게임 예약</button>`
             }
           </div>
-          <div class="ops-action-group">
-            <span>결과/정산</span>
+          <div class="ops-action-group ops-action-group-result">
+            <span>결과/환불</span>
             <select data-winner-select="${match.id}" ${!match.confirmed ? "disabled" : ""}>${winnerOptions}</select>
             ${
               resultRecorded
                 ? `<button class="secondary-button danger-button" type="button" data-clear-result="${match.id}">결과 취소</button>`
                 : `<button class="secondary-button" data-result="${match.id}" ${!match.confirmed ? "disabled" : ""}>결과 입력</button>`
             }
-            <small>환불은 참가자 행에서 사람별로 처리합니다.</small>
+            <small>결과는 여기서 입력하고, 환불은 참가자 행에서 사람별로 처리합니다.</small>
           </div>
-          <div class="ops-action-group compact">
+          <div class="ops-action-group ops-action-group-copy compact">
             <span>복사</span>
             <button class="secondary-button" type="button" data-copy-contacts="${match.id}" ${!match.allPlayers.length ? "disabled" : ""}>연락처 복사</button>
             <button class="secondary-button" type="button" data-copy-promo="${match.id}">홍보 문구 복사</button>
           </div>
-          <div class="ops-action-group compact">
-            <span>일정</span>
+          <div class="ops-action-group ops-action-group-danger compact">
+            <span>일정/삭제</span>
             <form class="match-schedule-form" data-update-match-schedule="${match.id}">
               <input name="matchId" type="hidden" value="${escapeHtml(match.id)}" />
               <input name="matchDate" type="date" value="${escapeHtml(scheduleDateValue)}" ${canDeleteMatch ? "" : "disabled"} required />
