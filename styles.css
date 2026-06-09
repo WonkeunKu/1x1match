@@ -2728,6 +2728,87 @@ select:disabled {
   font-weight: 900;
 }
 
+.admin-priority-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 248, 239, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 6, 6, 0.42);
+}
+
+.admin-priority-head,
+.admin-priority-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-priority-head strong {
+  color: #fff8ef;
+  font-size: 15px;
+}
+
+.admin-priority-head span {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-priority-item {
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  min-height: 56px;
+  padding: 10px;
+  border: 1px solid rgba(255, 248, 239, 0.08);
+  border-radius: 8px;
+  background: rgba(18, 15, 15, 0.82);
+  color: var(--ink);
+  text-align: left;
+}
+
+.admin-priority-item b {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(216, 39, 47, 0.2);
+  color: #fff8ef;
+  font-size: 12px;
+}
+
+.admin-priority-item span {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-priority-item strong {
+  color: #fff8ef;
+  font-size: 14px;
+}
+
+.admin-priority-item small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.admin-priority-item em {
+  color: var(--amber);
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-priority-empty {
+  padding: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .admin-action-head {
   display: flex;
   align-items: center;
@@ -4360,6 +4441,30 @@ select:disabled {
 
   .admin-action-grid {
     gap: 8px;
+  }
+
+  .admin-priority-list {
+    padding: 10px;
+  }
+
+  .admin-priority-head {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .admin-priority-item {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .admin-priority-item em {
+    grid-column: 2;
+    justify-self: start;
+    white-space: normal;
+  }
+
+  .admin-priority-item small {
+    overflow-wrap: anywhere;
   }
 
   .ops-management-head {

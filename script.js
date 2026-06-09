@@ -1972,6 +1972,50 @@ function adminTodayTaskItems() {
   ];
 }
 
+function adminPriorityTaskItems() {
+  const matches = appState.matches;
+  const tasks = [
+    {
+      filter: "payment",
+      title: "입금 확인",
+      count: matches.filter(hasPaymentPending).length,
+      detail: "신청 직후 먼저 확인",
+    },
+    {
+      filter: "cancelRequest",
+      title: "취소 요청",
+      count: matches.filter(hasCancelRequest).length,
+      detail: "참가자 요청 우선 처리",
+    },
+    {
+      filter: "venue",
+      title: "장소 입력",
+      count: matches.filter((match) => needsExactVenue(match) && isOpsDueSoon(match)).length,
+      detail: "확정 경기 장소 보완",
+    },
+    {
+      filter: "gameMessage",
+      title: "문자 발송",
+      count: matches.filter(needsGameRevealMessage).length,
+      detail: "게임 공개 후 안내 체크",
+    },
+    {
+      filter: "refund",
+      title: "환불 확인",
+      count: matches.filter(hasRefundNeeded).length,
+      detail: "환불 예약/완료 처리",
+    },
+    {
+      filter: "reveal",
+      title: "게임 공개",
+      count: matches.filter((match) => match.confirmed && !match.gameRevealed && isOpsDueSoon(match)).length,
+      detail: "시작 임박 경기 공개",
+    },
+  ];
+
+  return tasks.filter((task) => task.count > 0);
+}
+
 function renderAdminActionPanel() {
   const panel = document.querySelector("#adminActionPanel");
   if (!panel) return;
@@ -1980,6 +2024,7 @@ function renderAdminActionPanel() {
   const total = items.reduce((sum, item) => sum + item.count, 0);
   const todayTasks = adminTodayTaskItems();
   const todayTotal = todayTasks.reduce((sum, item) => sum + item.count, 0);
+  const priorityTasks = adminPriorityTaskItems();
 
   panel.innerHTML = `
     <div class="admin-today-board">
@@ -2003,6 +2048,30 @@ function renderAdminActionPanel() {
             `,
           )
           .join("")}
+      </div>
+      <div class="admin-priority-list">
+        <div class="admin-priority-head">
+          <strong>운영 우선순위</strong>
+          <span>${priorityTasks.length ? `${priorityTasks.length}개 처리 흐름` : "지금 급한 처리 없음"}</span>
+        </div>
+        ${
+          priorityTasks.length
+            ? priorityTasks
+                .map(
+                  (task, index) => `
+                    <button class="admin-priority-item" type="button" data-ops-jump="${task.filter}">
+                      <b>${index + 1}</b>
+                      <span>
+                        <strong>${task.title}</strong>
+                        <small>${task.detail}</small>
+                      </span>
+                      <em>${task.count}건</em>
+                    </button>
+                  `,
+                )
+                .join("")
+            : `<div class="admin-priority-empty">입금, 취소, 장소, 문자, 환불 대기 항목이 없습니다.</div>`
+        }
       </div>
     </div>
     <div class="admin-action-head">
