@@ -450,6 +450,19 @@ function buildApplyCalendar(areaMatches, activeDateLabel, activeMonthKey) {
   if (!datedMatches.length) return "";
 
   const monthKeys = [...new Set(datedMatches.map((item) => item.monthKey))];
+  const monthTabs = monthKeys
+    .map((monthKey) => {
+      const monthItems = datedMatches.filter((item) => item.monthKey === monthKey);
+      const availableCount = monthItems.filter((item) => item.match.playerCount < 2 && !item.match.appliedByMe).length;
+      const monthDate = monthItems[0]?.date;
+      return `
+        <button class="${monthKey === activeMonthKey ? "selected" : ""}" type="button" data-apply-month-tab="${monthKey}">
+          <span>${monthDate ? monthLabel(monthDate) : monthKey}</span>
+          <small>${availableCount}개 가능</small>
+        </button>
+      `;
+    })
+    .join("");
   const selectedItem =
     datedMatches.find((item) => item.monthKey === activeMonthKey) ||
     datedMatches.find((item) => item.match.date === activeDateLabel) ||
@@ -494,6 +507,7 @@ function buildApplyCalendar(areaMatches, activeDateLabel, activeMonthKey) {
         <button type="button" data-apply-month="${nextMonthKey}" ${nextMonthKey ? "" : "disabled"}>›</button>
         <span>신청 가능한 날짜를 선택하세요</span>
       </div>
+      <div class="apply-month-tabs">${monthTabs}</div>
       <div class="apply-calendar-weekdays">
         <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
       </div>
@@ -573,11 +587,16 @@ function renderApplySelector() {
       <div class="apply-option-grid apply-option-grid--area">
         ${areas
           .map(
-            (area) => `
+            (area) => {
+              const matchesInArea = matches.filter((match) => getMatchArea(match) === area);
+              const availableInArea = matchesInArea.filter((match) => match.playerCount < 2 && !match.appliedByMe).length;
+              return `
               <button class="${area === activeApplyArea ? "selected" : ""}" type="button" data-apply-area="${area}">
-                ${area}
+                <span>${area}</span>
+                <small>${availableInArea}/${matchesInArea.length} 가능</small>
               </button>
-            `,
+            `;
+            },
           )
           .join("")}
       </div>
@@ -2778,6 +2797,20 @@ document.addEventListener("click", (event) => {
   if (!monthButton || monthButton.disabled || !monthButton.dataset.applyMonth) return;
 
   activeApplyMonthKey = monthButton.dataset.applyMonth;
+  activeApplyDate = "";
+  activeApplyTimeMatchId = "";
+  isPaymentConfirmOpen = false;
+  renderMatches();
+  renderAuth();
+  renderPaymentGuide();
+  renderIcons();
+});
+
+document.addEventListener("click", (event) => {
+  const monthTab = event.target.closest("[data-apply-month-tab]");
+  if (!monthTab) return;
+
+  activeApplyMonthKey = monthTab.dataset.applyMonthTab;
   activeApplyDate = "";
   activeApplyTimeMatchId = "";
   isPaymentConfirmOpen = false;

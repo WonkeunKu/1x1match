@@ -720,6 +720,17 @@ h3 {
   cursor: not-allowed;
 }
 
+.apply-option-grid--area button {
+  display: grid;
+  gap: 3px;
+  min-width: 118px;
+}
+
+.apply-option-grid--area small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .apply-option-grid--date {
   display: grid;
   grid-auto-flow: column;
@@ -780,6 +791,39 @@ h3 {
   font-size: 12px;
   font-weight: 800;
   text-align: center;
+}
+
+.apply-month-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(112px, max-content);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.apply-month-tabs button {
+  display: grid;
+  gap: 3px;
+  min-height: 42px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 248, 239, 0.1);
+  border-radius: 8px;
+  background: #120f0f;
+  color: #d8cab9;
+  font-weight: 900;
+  text-align: center;
+}
+
+.apply-month-tabs button.selected {
+  border-color: rgba(255, 74, 57, 0.46);
+  background: linear-gradient(135deg, rgba(118, 19, 23, 0.9), rgba(45, 25, 22, 0.95));
+  color: #fff8ef;
+}
+
+.apply-month-tabs small {
+  color: var(--amber);
+  font-size: 11px;
 }
 
 .apply-calendar-weekdays,
