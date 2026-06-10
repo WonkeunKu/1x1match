@@ -43,6 +43,18 @@ let activeApplyDate = "";
 let activeApplyTimeMatchId = "";
 let activeApplyMonthKey = "";
 
+const defaultSiteSettings = {
+  participationFee: 1000,
+  regularFee: 5000,
+  feeNotice: "6월 시범운영 1,000원",
+  bankAccountLabel: "카카오뱅크 3333-21-1861396",
+  accountHolder: "구원근",
+  depositNameGuide: "회원가입 닉네임과 동일",
+  drinkFeeNotice: "카페 음료 비용 별도",
+  refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
+  exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
+};
+
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
   "position-combo": ["기억", "조합", "족보"],
@@ -338,6 +350,22 @@ function openGameAdminEditor(gameId = null, section = "library") {
   }, 0);
 }
 
+function openAdminSiteSettings() {
+  if (!appState.isAdmin) {
+    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
+    setActiveView("admin");
+    return;
+  }
+
+  activeAdminSection = "settings";
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    document.querySelector("#adminSiteSettings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
 function openAuthView() {
   const currentView = document.querySelector(".view.active");
   if (currentView?.id && currentView.id !== "auth") {
@@ -351,10 +379,30 @@ function closeAuthView() {
   setActiveView(authReturnView || "apply");
 }
 
+function siteSettings() {
+  return { ...defaultSiteSettings, ...(appState?.siteSettings || {}) };
+}
+
+function won(amount) {
+  return `${Number(amount || 0).toLocaleString("ko-KR")}원`;
+}
+
+function participationFeeText() {
+  const settings = siteSettings();
+  return settings.feeNotice || won(settings.participationFee);
+}
+
+function regularFeeText() {
+  return won(siteSettings().regularFee);
+}
+
 function renderPaymentGuide() {
   const guide = document.querySelector("#bankGuide");
   if (!guide) return;
+  renderApplyAdminToolbar();
+  renderRefundConsentText();
   const account = paymentAccountText();
+  const settings = siteSettings();
   const match = selectedApplyMatch();
   const matchLine = match ? `${match.date} ${match.time} · ${displayMatchLocation(match)}` : "선택한 매치";
   const playerLine = match ? `현재 ${match.playerCount}/2명 신청` : "선택 후 확인 가능";
@@ -366,19 +414,56 @@ function renderPaymentGuide() {
       <small>${playerLine}</small>
     </div>
     <div class="final-check-grid">
-      <span><strong>참가비</strong>6월 시범운영 1,000원</span>
+      <span><strong>참가비</strong>${participationFeeText()}</span>
       <span><strong>계좌</strong>${account}</span>
-      <span><strong>입금자명</strong>회원가입 닉네임과 동일</span>
-      <span><strong>음료비</strong>카페 음료 비용 별도</span>
-      <span><strong>환불</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
+      <span><strong>입금자명</strong>${settings.depositNameGuide}</span>
+      <span><strong>음료비</strong>${settings.drinkFeeNotice}</span>
+      <span><strong>환불</strong>${settings.refundPolicy}</span>
       <span><strong>정확한 장소</strong>${exactVenueNotice()}</span>
     </div>
   `;
 }
 
 function paymentAccountText() {
-  const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396";
-  return account.includes("구원근") ? account : `${account} / 예금주: 구원근`;
+  const settings = siteSettings();
+  const account = settings.bankAccountLabel || appState.payment?.bankAccountLabel || defaultSiteSettings.bankAccountLabel;
+  return account.includes(settings.accountHolder) ? account : `${account} / 예금주: ${settings.accountHolder}`;
+}
+
+function renderRefundConsentText() {
+  const consentText = document.querySelector('input[name="refundConsent"]')?.nextElementSibling;
+  if (!consentText) return;
+
+  const settings = siteSettings();
+  consentText.textContent = `참가비 ${participationFeeText()}, ${settings.drinkFeeNotice}, ${settings.refundPolicy} 기준을 확인했습니다.`;
+}
+
+function renderApplyAdminToolbar() {
+  const form = document.querySelector("#applyForm");
+  if (!form) return;
+
+  const existing = form.querySelector(".apply-page-admin-toolbar");
+  if (!appState?.isAdmin) {
+    existing?.remove();
+    return;
+  }
+
+  const html = `
+    <div class="apply-page-admin-toolbar">
+      <div>
+        <strong>참가 신청 안내 편집</strong>
+        <span>참가비, 계좌, 환불 기준, 장소 안내 문구를 수정합니다.</span>
+      </div>
+      <button class="secondary-button" type="button" data-open-admin-site-settings>신청 안내 수정</button>
+    </div>
+  `;
+
+  if (existing) {
+    existing.outerHTML = html;
+    return;
+  }
+
+  form.querySelector(":scope > div:first-child")?.insertAdjacentHTML("afterend", html);
 }
 
 function selectedApplyMatch() {
@@ -404,7 +489,7 @@ function displayMatchLocation(match) {
 }
 
 function exactVenueNotice() {
-  return "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.";
+  return siteSettings().exactVenueNotice;
 }
 
 function gameRevealVenueNotice(match) {
@@ -1552,6 +1637,7 @@ function renderAdmin() {
   renderAdminSystemStatus();
   renderAdminBackupPanel();
   renderAdminGameManager();
+  renderAdminSiteSettings();
 
   const metrics = [
     ["전체 회원", appState.members?.length || 0, "all"],
@@ -1836,6 +1922,77 @@ function renderAdminGameManager() {
         }
       </div>
     </section>
+  `;
+}
+
+function renderAdminSiteSettings() {
+  const panel = document.querySelector("#adminSiteSettings");
+  if (!panel) return;
+
+  const settings = siteSettings();
+  const system = appState.system || {};
+  const needsSiteSettingsMigration = Boolean((system.storage || "json") === "supabase" && system.schemaStatus?.siteSettings === false);
+
+  panel.innerHTML = `
+    <div class="admin-game-head">
+      <div>
+        <h3>사이트 설정</h3>
+        <p>참가 신청 화면과 안내 문자에 쓰는 참가비, 계좌, 환불 기준 문구를 수정합니다.</p>
+      </div>
+      <span class="status-pill ${needsSiteSettingsMigration ? "waiting" : "confirmed"}">
+        ${needsSiteSettingsMigration ? "DB 적용 필요" : "저장 가능"}
+      </span>
+    </div>
+    ${
+      needsSiteSettingsMigration
+        ? `<div class="system-status-card warning system-status-warning">
+            <div>
+              <span>Supabase 설정 테이블 필요</span>
+              <strong>site_settings 테이블이 아직 없습니다</strong>
+              <p><code>supabase-add-site-settings.sql</code>을 Supabase SQL Editor에서 실행하면 이 설정이 DB에 영구 저장됩니다. 실행 전에는 기본값으로 계속 동작합니다.</p>
+            </div>
+          </div>`
+        : ""
+    }
+    <form class="admin-create-form admin-site-settings-form" id="siteSettingsForm">
+      <label>
+        현재 참가비
+        <input name="participationFee" type="number" min="0" step="100" value="${escapeHtml(settings.participationFee)}" required />
+      </label>
+      <label>
+        정상 참가비
+        <input name="regularFee" type="number" min="0" step="100" value="${escapeHtml(settings.regularFee)}" required />
+      </label>
+      <label class="wide">
+        참가비 표시 문구
+        <input name="feeNotice" type="text" value="${escapeHtml(settings.feeNotice)}" required />
+      </label>
+      <label class="wide">
+        입금 계좌
+        <input name="bankAccountLabel" type="text" value="${escapeHtml(settings.bankAccountLabel)}" required />
+      </label>
+      <label>
+        예금주
+        <input name="accountHolder" type="text" value="${escapeHtml(settings.accountHolder)}" required />
+      </label>
+      <label>
+        입금자명 안내
+        <input name="depositNameGuide" type="text" value="${escapeHtml(settings.depositNameGuide)}" required />
+      </label>
+      <label class="wide">
+        음료비 안내
+        <input name="drinkFeeNotice" type="text" value="${escapeHtml(settings.drinkFeeNotice)}" required />
+      </label>
+      <label class="wide">
+        환불 기준
+        <textarea name="refundPolicy" rows="3" required>${escapeHtml(settings.refundPolicy)}</textarea>
+      </label>
+      <label class="wide">
+        정확한 장소 안내
+        <textarea name="exactVenueNotice" rows="3" required>${escapeHtml(settings.exactVenueNotice)}</textarea>
+      </label>
+      <button class="primary-button" type="submit">사이트 설정 저장</button>
+    </form>
   `;
 }
 
@@ -2934,6 +3091,9 @@ function buildAdminMessages(match) {
   const messages = [];
   const siteUrl = "https://www.1x1match.com";
   const account = paymentAccountText();
+  const settings = siteSettings();
+  const feeText = participationFeeText();
+  const normalFeeText = regularFeeText();
   const activeApplicants = match.allPlayers.filter((player) => !player.cancelled);
   const paymentPendingPlayers = activeApplicants.filter((player) => player.paymentStatus === "payment_pending");
   const cancelRequestPlayers = match.allPlayers.filter((player) =>
@@ -2961,7 +3121,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "payment-guide",
       type: "입금 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 참가 신청이 접수되었습니다. 정상 참가비는 5,000원이지만 6월 시범운영 기간에는 1,000원입니다. ${account}으로 입금해 주세요. 카페 진행 시 음료 비용은 별도입니다. ${exactVenueNotice()} 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 참가 신청이 접수되었습니다. 정상 참가비는 ${normalFeeText}이고 현재 참가비는 ${feeText}입니다. ${account}으로 입금해 주세요. ${settings.drinkFeeNotice}. ${exactVenueNotice()} 입금자명은 ${settings.depositNameGuide}로 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
     });
   }
 
@@ -2986,7 +3146,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "refund-pending",
       type: "미달 환불 안내",
-      body: `[1VS1매치] ${match.date} ${match.time} 매치가 시작 24시간 전까지 2명 미달이면 6월 시범운영 참가비 1,000원이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
+      body: `[1VS1매치] ${match.date} ${match.time} 매치가 ${settings.refundPolicy} 기준에 해당하면 참가비 ${feeText}이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
     });
   }
 
@@ -3004,7 +3164,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-requested-guide", refundRequestedPlayers),
       type: "환불 요청 안내",
       targetLabel: targetLabel(refundRequestedPlayers),
-      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 요청 대상 안내입니다. 대상: ${refundRequestedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 요청 대상 안내입니다. 대상: ${refundRequestedPlayers.map((player) => player.nickname).join(", ")}. 참가비 ${feeText} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.`,
     });
   }
 
@@ -3013,7 +3173,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-scheduled-guide", refundScheduledPlayers),
       type: "환불 예정 안내",
       targetLabel: targetLabel(refundScheduledPlayers),
-      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 예정 안내입니다. 대상: ${refundScheduledPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 예정 안내입니다. 대상: ${refundScheduledPlayers.map((player) => player.nickname).join(", ")}. 참가비 ${feeText} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.`,
     });
   }
 
@@ -3022,7 +3182,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-completed-guide", refundedPlayers),
       type: "환불 완료 안내",
       targetLabel: targetLabel(refundedPlayers),
-      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 완료 안내입니다. 대상: ${refundedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불 처리가 완료되었습니다.`,
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 완료 안내입니다. 대상: ${refundedPlayers.map((player) => player.nickname).join(", ")}. 참가비 ${feeText} 환불 처리가 완료되었습니다.`,
     });
   }
 
@@ -3045,6 +3205,7 @@ function buildPromoText(matchId) {
   const match = appState.matches.find((candidate) => candidate.id === matchId);
   if (!match) return "";
 
+  const settings = siteSettings();
   const statusLine = match.confirmed ? "현재 매치 확정" : `현재 ${match.playerCount}/2명 신청`;
   return [
     "[1VS1매치 참가자 모집]",
@@ -3055,8 +3216,8 @@ function buildPromoText(matchId) {
     "",
     "두 명이 모이면 1:1 두뇌 서바이벌 게임이 열립니다.",
     "게임과 정확한 장소는 매치 24시간 전에 함께 공개됩니다.",
-    "정상 참가비 5,000원, 6월 시범운영 1,000원",
-    "카페 진행 시 음료 비용 별도, 2명 미달 시 참가비 환불",
+    `정상 참가비 ${regularFeeText()}, 현재 참가비 ${participationFeeText()}`,
+    `${settings.drinkFeeNotice}, ${settings.refundPolicy}`,
     "",
     "신청: https://www.1x1match.com",
   ].join("\n");
@@ -3843,6 +4004,21 @@ document.addEventListener("submit", async (event) => {
 });
 
 document.addEventListener("submit", async (event) => {
+  const form = event.target.closest("#siteSettingsForm");
+  if (!form) return;
+
+  event.preventDefault();
+
+  try {
+    appState = await submitForm("/api/admin/site-settings", form);
+    renderAll();
+    showToast("사이트 설정을 저장했습니다.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+document.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-update-member]");
   if (!form) return;
 
@@ -4164,6 +4340,12 @@ document.addEventListener("click", async (event) => {
   const openAdminGameNewButton = event.target.closest("[data-open-admin-game-new]");
   if (openAdminGameNewButton) {
     openGameAdminEditor(null, "new");
+    return;
+  }
+
+  const openAdminSiteSettingsButton = event.target.closest("[data-open-admin-site-settings]");
+  if (openAdminSiteSettingsButton) {
+    openAdminSiteSettings();
     return;
   }
 

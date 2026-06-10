@@ -42,6 +42,17 @@ const sessionSecret = process.env.SESSION_SECRET || adminPassword;
 const bankAccountLabel = process.env.BANK_ACCOUNT_LABEL || "계좌 정보 준비 중";
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "127.0.0.1";
+const defaultSiteSettings = {
+  participationFee: 1000,
+  regularFee: 5000,
+  feeNotice: "6월 시범운영 1,000원",
+  bankAccountLabel,
+  accountHolder: "구원근",
+  depositNameGuide: "회원가입 닉네임과 동일",
+  drinkFeeNotice: "카페 음료 비용 별도",
+  refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
+  exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
+};
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -51,6 +62,7 @@ const types = {
 const state = {
   currentUserId: null,
   isAdmin: false,
+  siteSettings: { ...defaultSiteSettings },
   members: [],
   games: [
     {
@@ -935,11 +947,49 @@ function hydrateStoredState(stored) {
     })),
     ...(state.games || []).filter((game) => !defaultGameIds.has(game.id)),
   ].map(normalizeGame);
+  state.siteSettings = normalizeSiteSettings(state.siteSettings);
   state.isAdmin = false;
 }
 
 async function persistState() {
   await storage.save(state);
+}
+
+function cleanText(value, fallback = "") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function cleanAmount(value, fallback) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : fallback;
+}
+
+function normalizeSiteSettings(settings = {}) {
+  return {
+    participationFee: cleanAmount(settings.participationFee, defaultSiteSettings.participationFee),
+    regularFee: cleanAmount(settings.regularFee, defaultSiteSettings.regularFee),
+    feeNotice: cleanText(settings.feeNotice, defaultSiteSettings.feeNotice),
+    bankAccountLabel: cleanText(settings.bankAccountLabel, defaultSiteSettings.bankAccountLabel),
+    accountHolder: cleanText(settings.accountHolder, defaultSiteSettings.accountHolder),
+    depositNameGuide: cleanText(settings.depositNameGuide, defaultSiteSettings.depositNameGuide),
+    drinkFeeNotice: cleanText(settings.drinkFeeNotice, defaultSiteSettings.drinkFeeNotice),
+    refundPolicy: cleanText(settings.refundPolicy, defaultSiteSettings.refundPolicy),
+    exactVenueNotice: cleanText(settings.exactVenueNotice, defaultSiteSettings.exactVenueNotice),
+  };
+}
+
+function siteSettings() {
+  state.siteSettings = normalizeSiteSettings(state.siteSettings);
+  return state.siteSettings;
+}
+
+function participationFee() {
+  return siteSettings().participationFee;
+}
+
+function won(amount) {
+  return `${Number(amount || 0).toLocaleString("ko-KR")}원`;
 }
 
 function currentUser() {
@@ -979,6 +1029,7 @@ function logEvent(message) {
 
 function publicState() {
   const events = state.events.map(normalizeEvent);
+  const settings = siteSettings();
   const rankings = [...state.members]
     .filter((member) => member.wins + member.losses > 0)
     .map((member) => {
@@ -1003,10 +1054,11 @@ function publicState() {
     events: events.slice(0, 8),
     allEvents: state.isAdmin ? events : [],
     metrics: buildMetrics(),
+    siteSettings: settings,
     payment: {
-      amount: 1000,
+      amount: settings.participationFee,
       method: "bank_transfer",
-      bankAccountLabel,
+      bankAccountLabel: settings.bankAccountLabel,
     },
     system: state.isAdmin
       ? {
@@ -2001,6 +2053,17 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/site-settings") {
+    if (!requireAdmin(response)) return;
+
+    const body = await parseBody(request);
+    state.siteSettings = normalizeSiteSettings(body);
+    logEvent("운영자가 사이트 신청 안내 설정을 수정했습니다.");
+    await persistState();
+    sendJson(response, 200, publicStateWithSession());
+    return;
+  }
+
   if (request.method === "POST" && pathname === "/api/apply") {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);
@@ -2028,7 +2091,7 @@ async function handleApi(request, response, pathname) {
     }
 
     match.applications.push({ memberId: member.id, paid: false, paymentStatus: "payment_pending" });
-    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 1,000원 결제 대기.`);
+    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 ${won(participationFee())} 결제 대기.`);
     await persistState();
     sendJson(response, 201, publicState());
     return;
@@ -2052,10 +2115,10 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    await paymentProvider.captureParticipationFee({ member, match, amount: 1000 });
+    await paymentProvider.captureParticipationFee({ member, match, amount: participationFee() });
     application.paid = true;
     application.paymentStatus = "paid";
-    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 참가비 1,000원 입금을 확인했습니다.`);
+    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 참가비 ${won(participationFee())} 입금을 확인했습니다.`);
     await maybeConfirm(match);
     await persistState();
     sendJson(response, 200, publicState());
@@ -2731,7 +2794,7 @@ async function handleApi(request, response, pathname) {
 
     for (const application of targets) {
       const member = findMember(application.memberId);
-      await paymentProvider.refundParticipationFee({ member, match, amount: 1000 });
+      await paymentProvider.refundParticipationFee({ member, match, amount: participationFee() });
       application.paymentStatus = "refunded";
       application.paid = false;
     }

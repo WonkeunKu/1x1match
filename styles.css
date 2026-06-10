@@ -420,6 +420,7 @@ h3 {
 .admin-login-panel,
 .admin-create-form,
 .admin-game-manager,
+.admin-site-settings,
 .notice-main,
 .ranking-table,
 .game-detail,
@@ -1215,6 +1216,34 @@ textarea {
 .bank-guide strong {
   color: var(--ink);
   font-size: 0.95rem;
+}
+
+.apply-page-admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.28);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.08);
+}
+
+.apply-page-admin-toolbar strong,
+.apply-page-admin-toolbar span {
+  display: block;
+}
+
+.apply-page-admin-toolbar strong {
+  color: var(--ink);
+}
+
+.apply-page-admin-toolbar span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .bank-guide span {
@@ -2112,6 +2141,27 @@ select:disabled {
   gap: 14px;
   margin-bottom: 16px;
   padding: 16px;
+}
+
+.admin-site-settings {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.admin-site-settings-form {
+  grid-template-columns: repeat(2, minmax(160px, 0.7fr)) minmax(220px, 1fr);
+  margin-bottom: 0;
+}
+
+.admin-site-settings-form .wide {
+  grid-column: 1 / -1;
+}
+
+.admin-site-settings-form textarea {
+  min-height: 84px;
+  resize: vertical;
 }
 
 .admin-game-head,
@@ -3740,8 +3790,22 @@ select:disabled {
     grid-template-columns: 1fr;
   }
 
+  .apply-page-admin-toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .apply-page-admin-toolbar .secondary-button {
+    width: 100%;
+    min-height: 42px;
+  }
+
   .admin-create-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-site-settings-form {
+    grid-template-columns: 1fr;
   }
 
   .admin-game-form {
