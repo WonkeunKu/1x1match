@@ -862,6 +862,11 @@ function renderAreaFilters() {
 function renderUser() {
   const userChip = document.querySelector("#userChip");
   const authButton = document.querySelector("#openAuthButton");
+  const adminEditBadge = document.querySelector("#adminEditModeBadge");
+
+  if (adminEditBadge) {
+    adminEditBadge.hidden = !appState.isAdmin;
+  }
 
   if (!appState.isAuthenticated) {
     if (authButton) {
@@ -3567,6 +3572,13 @@ document.querySelector("#openAuthButton")?.addEventListener("click", () => {
 
 document.querySelector("#userChip")?.addEventListener("click", () => {
   setActiveView("mypage");
+});
+
+document.querySelector("#adminEditModeBadge")?.addEventListener("click", () => {
+  if (!appState.isAdmin) return;
+  activeAdminSection = "dashboard";
+  setActiveView("admin");
+  renderAdmin();
 });
 
 document.querySelector("#userChip")?.addEventListener("keydown", (event) => {
