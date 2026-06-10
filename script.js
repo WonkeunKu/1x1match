@@ -320,6 +320,24 @@ function setActiveView(viewId) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
+function openGameAdminEditor(gameId = null, section = "library") {
+  if (!appState.isAdmin) {
+    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
+    setActiveView("admin");
+    return;
+  }
+
+  activeAdminSection = "games";
+  activeAdminGameSection = section;
+  activeAdminGameId = gameId || null;
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    document.querySelector("#adminGameManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
 function openAuthView() {
   const currentView = document.querySelector(".view.active");
   if (currentView?.id && currentView.id !== "auth") {
@@ -1299,7 +1317,7 @@ function renderGames(gameId, options = {}) {
   }
 
   const query = gameSearchQuery.trim().toLowerCase();
-  const publicGames = appState.games.filter((game) => !game.hidden);
+  const publicGames = appState.isAdmin ? appState.games : appState.games.filter((game) => !game.hidden);
   const categoryFilteredGames =
     activeGameCategoryFilter === "all"
       ? publicGames
@@ -1350,21 +1368,37 @@ function renderGames(gameId, options = {}) {
     gameDetail.hidden = !isGameDetailOpen;
   }
 
+  const gamePageAdminToolbar = appState.isAdmin
+    ? `
+      <div class="game-page-admin-toolbar">
+        <div>
+          <strong>게임 목록 편집</strong>
+          <span>게임 추가, 수정, 숨김, 분류 색상 변경을 이 페이지에서 시작합니다.</span>
+        </div>
+        <div>
+          <button class="secondary-button" type="button" data-open-admin-game-new>새 게임 추가</button>
+          <button class="secondary-button" type="button" data-open-admin-game-editor="${activeGame?.id || ""}" ${activeGame ? "" : "disabled"}>선택 게임 수정</button>
+        </div>
+      </div>
+    `
+    : "";
+
   gameList.innerHTML = visibleGames.length
-    ? visibleGames
+    ? `${gamePageAdminToolbar}${visibleGames
         .map((game) => {
           const tags = getGameTags(game);
           const category = getGameCategory(game);
           return `
-            <button class="game-card game-card--${category}" data-game="${game.id}">
+            <button class="game-card game-card--${category} ${game.hidden ? "game-card-is-hidden" : ""}" data-game="${game.id}">
               <strong>${game.title}</strong>
               <span>${game.summary}</span>
+              ${appState.isAdmin && game.hidden ? `<em>숨김</em>` : ""}
               ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
             </button>
           `;
         })
-        .join("")
-    : `<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
+        .join("")}`
+    : `${gamePageAdminToolbar}<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
 
   if (!activeGame) {
     gameDetail.innerHTML = "";
@@ -1382,6 +1416,14 @@ function renderGames(gameId, options = {}) {
       ${activeGameTags.length ? `<div class="game-tags detail-tags">${activeGameTags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
       <div class="game-detail-actions">
         <button class="secondary-button" type="button" data-copy-game-rules="${activeGame.id}">규칙 복사</button>
+        ${
+          appState.isAdmin
+            ? `<button class="secondary-button" type="button" data-open-admin-game-editor="${activeGame.id}">게임 수정</button>
+               <button class="secondary-button ${activeGame.hidden ? "" : "danger-button"}" type="button" data-page-toggle-game-hidden="${activeGame.id}">
+                 ${activeGame.hidden ? "게임 공개" : "게임 숨김"}
+               </button>`
+            : ""
+        }
       </div>
     </div>
     <div class="rule-section-title">
@@ -4113,6 +4155,38 @@ document.addEventListener("click", async (event) => {
       renderAll();
       scrollToAdminLog();
       showToast("매치를 삭제했습니다.");
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
+  const openAdminGameNewButton = event.target.closest("[data-open-admin-game-new]");
+  if (openAdminGameNewButton) {
+    openGameAdminEditor(null, "new");
+    return;
+  }
+
+  const openAdminGameEditorButton = event.target.closest("[data-open-admin-game-editor]");
+  if (openAdminGameEditorButton) {
+    openGameAdminEditor(openAdminGameEditorButton.dataset.openAdminGameEditor, "library");
+    return;
+  }
+
+  const pageToggleGameHiddenButton = event.target.closest("[data-page-toggle-game-hidden]");
+  if (pageToggleGameHiddenButton) {
+    const game = appState.games.find((item) => item.id === pageToggleGameHiddenButton.dataset.pageToggleGameHidden);
+    const nextState = game?.hidden ? "공개" : "숨김";
+    if (!window.confirm(`${game?.title || "선택한 게임"}을(를) ${nextState} 처리할까요?`)) return;
+
+    try {
+      appState = await request("/api/admin/toggle-game-hidden", {
+        method: "POST",
+        body: JSON.stringify({ gameId: pageToggleGameHiddenButton.dataset.pageToggleGameHidden }),
+      });
+      renderAll();
+      renderGames(activeGameId, { detail: isGameDetailOpen });
+      showToast("게임 공개 상태를 변경했습니다.");
     } catch (error) {
       showToast(error.message);
     }

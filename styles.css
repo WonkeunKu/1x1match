@@ -1516,6 +1516,42 @@ select:disabled {
   }
 }
 
+.game-page-admin-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.28);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.08);
+}
+
+.game-page-admin-toolbar strong,
+.game-page-admin-toolbar span {
+  display: block;
+}
+
+.game-page-admin-toolbar strong {
+  color: var(--ink);
+}
+
+.game-page-admin-toolbar span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.game-page-admin-toolbar > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .game-card {
   --game-category-color: var(--line);
   --game-category-glow: rgba(255, 74, 57, 0.08);
@@ -1577,6 +1613,11 @@ select:disabled {
   transform: translateY(-1px);
 }
 
+.game-card-is-hidden {
+  opacity: 0.64;
+  border-style: dashed;
+}
+
 .game-card strong {
   display: -webkit-box;
   overflow: hidden;
@@ -1593,6 +1634,21 @@ select:disabled {
   line-height: 1.65;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+}
+
+.game-card em {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  height: 22px;
+  margin-top: 8px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 248, 239, 0.22);
+  border-radius: 999px;
+  color: #d8c9ba;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .game-tags {
@@ -4026,6 +4082,22 @@ select:disabled {
   .game-card span {
     line-height: 1.45;
     -webkit-line-clamp: 2;
+  }
+
+  .game-page-admin-toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .game-page-admin-toolbar > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .game-page-admin-toolbar .secondary-button {
+    width: 100%;
+    min-height: 42px;
   }
 
   .game-detail {
