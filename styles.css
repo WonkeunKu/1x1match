@@ -1198,6 +1198,26 @@ textarea {
   color: var(--ink);
 }
 
+.page-admin-action {
+  align-self: center;
+  min-height: 40px;
+}
+
+.inline-admin-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin-left: 8px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 74, 57, 0.34);
+  border-radius: 8px;
+  background: rgba(129, 22, 22, 0.28);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .danger-button {
   border-color: rgba(255, 74, 57, 0.34);
   color: #ffb8ad;

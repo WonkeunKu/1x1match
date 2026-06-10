@@ -668,6 +668,11 @@ function renderApplySelector() {
         <strong>${matchSeatLabel(selectedMatch)}</strong>
         <small>${canApplySelectedMatch ? "신청 전 참가비 안내를 확인합니다." : "마감 또는 이미 신청한 매치입니다."}</small>
       </div>
+      ${
+        appState.isAdmin && selectedMatch
+          ? `<button class="secondary-button page-admin-action" type="button" data-page-admin-match="${selectedMatch.id}">선택 매치 관리</button>`
+          : ""
+      }
     </div>
   `;
 }
@@ -1138,6 +1143,11 @@ function renderNoticeCard(match) {
           ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
           : ""
       }
+      ${
+        appState.isAdmin
+          ? `<button class="secondary-button notice-action" type="button" data-page-admin-match="${match.id}">매치 관리</button>`
+          : ""
+      }
     </article>
   `;
 }
@@ -1251,7 +1261,14 @@ function renderRankings() {
       (row, index) => `
         <div class="table-row">
           <span><b class="rank-badge">${index + 1}</b></span>
-          <span><strong>${row.nickname}</strong></span>
+          <span>
+            <strong>${row.nickname}</strong>
+            ${
+              appState.isAdmin && row.id
+                ? `<button class="inline-admin-link" type="button" data-page-admin-member="${row.id}">관리</button>`
+                : ""
+            }
+          </span>
           <span>${row.record}</span>
           <span><strong>${row.rate}</strong></span>
           <span>${row.area || "-"}</span>
@@ -1382,6 +1399,11 @@ function renderGames(gameId, options = {}) {
       ${activeGameTags.length ? `<div class="game-tags detail-tags">${activeGameTags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
       <div class="game-detail-actions">
         <button class="secondary-button" type="button" data-copy-game-rules="${activeGame.id}">규칙 복사</button>
+        ${
+          appState.isAdmin
+            ? `<button class="secondary-button" type="button" data-page-admin-game="${activeGame.id}">게임 관리</button>`
+            : ""
+        }
       </div>
     </div>
     <div class="rule-section-title">
@@ -1492,6 +1514,52 @@ function restoreAdminReturnState() {
 function scrollToAdminLog() {
   window.setTimeout(() => {
     document.querySelector("#eventLog")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
+function openAdminMatchDetail(matchId = null) {
+  if (!appState.isAdmin) return;
+
+  activeAdminSection = "matches";
+  activeOpsFilter = "all";
+  activeOpsMatchId = matchId || null;
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    const target = matchId ? document.querySelector(`[data-toggle-ops-match="${matchId}"]`) : document.querySelector("#opsList");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
+function openAdminMemberDetail(memberId) {
+  if (!appState.isAdmin || !memberId) return;
+
+  activeAdminSection = "members";
+  memberSearchQuery = "";
+  activeMemberId = memberId;
+  activeMemberDetailSection = "summary";
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    document.querySelector("#memberDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
+function openAdminGameEditor(gameId = null) {
+  if (!appState.isAdmin) return;
+
+  activeAdminSection = "games";
+  activeAdminGameSection = "library";
+  adminGameCategoryFilter = "all";
+  adminGameSearchQuery = "";
+  activeAdminGameId = gameId || activeAdminGameId;
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    document.querySelector("#adminGameManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, 0);
 }
 
@@ -4116,6 +4184,24 @@ document.addEventListener("click", async (event) => {
     } catch (error) {
       showToast(error.message);
     }
+    return;
+  }
+
+  const pageAdminMatchButton = event.target.closest("[data-page-admin-match]");
+  if (pageAdminMatchButton) {
+    openAdminMatchDetail(pageAdminMatchButton.dataset.pageAdminMatch);
+    return;
+  }
+
+  const pageAdminMemberButton = event.target.closest("[data-page-admin-member]");
+  if (pageAdminMemberButton) {
+    openAdminMemberDetail(pageAdminMemberButton.dataset.pageAdminMember);
+    return;
+  }
+
+  const pageAdminGameButton = event.target.closest("[data-page-admin-game]");
+  if (pageAdminGameButton) {
+    openAdminGameEditor(pageAdminGameButton.dataset.pageAdminGame);
     return;
   }
 
