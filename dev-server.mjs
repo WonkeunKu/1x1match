@@ -62,6 +62,15 @@ const defaultSiteSettings = {
   privacyCollectionItems: "이름, 생년월일, 닉네임, 전화번호, 주 활동지, 비밀번호를 수집합니다. 비밀번호는 로그인 확인을 위해 암호화된 값으로 저장합니다.",
   privacyUsagePurpose: "참가 신청 확인, 입금자 확인, 현장 본인 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대에만 사용합니다.",
   privacyRetentionPolicy: "운영 기록 확인과 분쟁 대응을 위해 필요한 기간 동안 보관하며, 회원 삭제 시 신청 이력과 결과 기록을 함께 정리합니다.",
+  smsRecruitingTemplate: "[1VS1매치] {date} {time} {location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. {exactVenueNotice} 신청: {siteUrl}",
+  smsPaymentGuideTemplate: "[1VS1매치] {date} {time} {location} 참가 신청이 접수되었습니다. 정상 참가비는 {regularFee}이고 현재 참가비는 {fee}입니다. {account}으로 입금해 주세요. {drinkFeeNotice}. {exactVenueNotice} 입금자명은 {depositNameGuide}로 보내주세요. 대상: {targetPlayers}",
+  smsConfirmedTemplate: "[1VS1매치] {date} {time} {location} 1:1 매치가 확정되었습니다. 참가자: {players}. 게임과 정확한 장소는 시작 24시간 전에 함께 공개됩니다.",
+  smsGameRevealedTemplate: "[1VS1매치] {date} {time} {location} 매치의 게임은 \"{gameTitle}\"입니다. {venueNotice} 사이트 게임 목록에서 규칙을 확인해 주세요. {siteUrl}",
+  smsRefundPendingTemplate: "[1VS1매치] {date} {time} 매치가 {refundPolicy} 기준에 해당하면 참가비 {fee}이 환불 처리됩니다. 현재 신청자: {targetPlayers}.",
+  smsCancelRequestTemplate: "[1VS1매치] {date} {time} {location} 매치 신청 취소 요청이 접수되었습니다. 대상: {targetPlayers}. 운영자 확인 후 입금 전 신청은 취소 처리되고, 입금 완료 신청은 환불 요청으로 전환됩니다.",
+  smsRefundRequestedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 요청 대상 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.",
+  smsRefundScheduledTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 예정 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.",
+  smsRefundCompletedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 완료 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불 처리가 완료되었습니다.",
 };
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -996,6 +1005,15 @@ function normalizeSiteSettings(settings = {}) {
     privacyCollectionItems: cleanText(settings.privacyCollectionItems, defaultSiteSettings.privacyCollectionItems),
     privacyUsagePurpose: cleanText(settings.privacyUsagePurpose, defaultSiteSettings.privacyUsagePurpose),
     privacyRetentionPolicy: cleanText(settings.privacyRetentionPolicy, defaultSiteSettings.privacyRetentionPolicy),
+    smsRecruitingTemplate: cleanText(settings.smsRecruitingTemplate, defaultSiteSettings.smsRecruitingTemplate),
+    smsPaymentGuideTemplate: cleanText(settings.smsPaymentGuideTemplate, defaultSiteSettings.smsPaymentGuideTemplate),
+    smsConfirmedTemplate: cleanText(settings.smsConfirmedTemplate, defaultSiteSettings.smsConfirmedTemplate),
+    smsGameRevealedTemplate: cleanText(settings.smsGameRevealedTemplate, defaultSiteSettings.smsGameRevealedTemplate),
+    smsRefundPendingTemplate: cleanText(settings.smsRefundPendingTemplate, defaultSiteSettings.smsRefundPendingTemplate),
+    smsCancelRequestTemplate: cleanText(settings.smsCancelRequestTemplate, defaultSiteSettings.smsCancelRequestTemplate),
+    smsRefundRequestedTemplate: cleanText(settings.smsRefundRequestedTemplate, defaultSiteSettings.smsRefundRequestedTemplate),
+    smsRefundScheduledTemplate: cleanText(settings.smsRefundScheduledTemplate, defaultSiteSettings.smsRefundScheduledTemplate),
+    smsRefundCompletedTemplate: cleanText(settings.smsRefundCompletedTemplate, defaultSiteSettings.smsRefundCompletedTemplate),
   };
 }
 
@@ -1603,15 +1621,44 @@ function adminEventsCsv() {
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
 }
 
+function renderMessageTemplate(template, values) {
+  return String(template || "").replace(/\{([a-zA-Z0-9_]+)\}/g, (fullMatch, key) => {
+    if (Object.prototype.hasOwnProperty.call(values, key)) {
+      return values[key] ?? "";
+    }
+
+    return fullMatch;
+  });
+}
+
 function messageForMatch(match, type) {
   const players = activePaidApplications(match).map((application) => findMember(application.memberId)).filter(Boolean);
+  const settings = siteSettings();
+  const game = state.games.find((candidate) => candidate.id === match.gameId);
+  const values = {
+    date: match.date,
+    time: match.time,
+    location: match.location,
+    exactLocation: match.exactVenue || "",
+    siteUrl: "https://www.1x1match.com",
+    account: `${settings.bankAccountLabel} ${settings.accountHolder}`,
+    fee: settings.feeNotice || won(settings.participationFee),
+    regularFee: won(settings.regularFee),
+    drinkFeeNotice: settings.drinkFeeNotice,
+    refundPolicy: settings.refundPolicy,
+    exactVenueNotice: settings.exactVenueNotice,
+    depositNameGuide: settings.depositNameGuide,
+    players: players.map((player) => player.nickname).join(" vs "),
+    targetPlayers: players.map((player) => player.nickname).join(", "),
+    gameTitle: game?.title || "미정",
+    venueNotice: match.exactVenue ? `정확한 장소는 ${match.exactVenue}입니다.` : settings.exactVenueNotice,
+  };
 
   if (type === "game-revealed") {
-    const game = state.games.find((candidate) => candidate.id === match.gameId);
-    return `[1VS1매치] ${match.date} ${match.time} ${match.location} match game: ${game?.title || "TBA"}. Check the web notice for rules.`;
+    return renderMessageTemplate(settings.smsGameRevealedTemplate, values);
   }
 
-  return `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 match confirmed. Players: ${players.map((player) => player.nickname).join(" vs ")}.`;
+  return renderMessageTemplate(settings.smsConfirmedTemplate, values);
 }
 
 async function sendMatchSms(match, type) {
