@@ -1374,6 +1374,11 @@ function renderGames(gameId, options = {}) {
           const category = getGameCategory(game);
           return `
             <button class="game-card game-card--${category}" data-game="${game.id}">
+              ${
+                appState.isAdmin
+                  ? `<span class="game-card-admin-shortcut" data-page-admin-game="${game.id}">관리</span>`
+                  : ""
+              }
               <strong>${game.title}</strong>
               <span>${game.summary}</span>
               ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
