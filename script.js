@@ -2385,6 +2385,7 @@ function renderMemberDetail() {
 function renderMemberRoster() {
   const roster = document.querySelector("#memberRoster");
   if (!roster) return;
+  const summary = document.querySelector("#memberRosterSummary");
   const searchInput = document.querySelector("#memberSearchInput");
   if (searchInput && searchInput.value !== memberSearchQuery) {
     searchInput.value = memberSearchQuery;
@@ -2396,6 +2397,16 @@ function renderMemberRoster() {
     return bTotal - aTotal || b.wins - a.wins || a.nickname.localeCompare(b.nickname, "ko-KR");
   });
   const members = allMembers.filter((member) => memberMatchesSearch(member, memberSearchQuery));
+  const totalMembers = allMembers.length;
+  const filteredMembers = members.length;
+
+  if (summary) {
+    summary.innerHTML = `
+      <span><strong>${totalMembers}</strong>명 전체 회원</span>
+      <span><strong>${filteredMembers}</strong>명 현재 표시</span>
+      <span><strong>${allMembers.filter((member) => member.wins + member.losses > 0).length}</strong>명 전적 있음</span>
+    `;
+  }
 
   if (!members.length) {
     activeMemberId = null;

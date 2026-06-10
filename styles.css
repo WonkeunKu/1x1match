@@ -2265,6 +2265,29 @@ select:disabled {
   color: var(--muted);
 }
 
+.member-roster-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.member-roster-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 248, 239, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 248, 239, 0.04);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.member-roster-summary strong {
+  color: #f3d08a;
+}
+
 .member-roster {
   overflow-x: auto;
   border: 1px solid var(--line);
