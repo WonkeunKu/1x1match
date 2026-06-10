@@ -82,6 +82,11 @@ const defaultSiteSettings = {
   navRankingVisible: true,
   navGamesVisible: true,
   navPolicyVisible: true,
+  publicLocationSuffix: "일대 카페",
+  emptyPublicLocationLabel: "신촌/강남 일대 카페",
+  bulkMatchLocations: "강남 카페 매치룸\n신촌 카페 매치룸",
+  bulkWeekdayTime: "19:00",
+  bulkWeekendTime: "14:00",
 };
 
 const gameTagMap = {
@@ -386,6 +391,34 @@ function renderSiteCopy() {
       </article>
     `;
   }
+
+  renderBulkMatchDefaults();
+}
+
+function renderBulkMatchDefaults() {
+  const form = document.querySelector("#bulkCreateMatchesForm");
+  if (!form) return;
+
+  const settings = siteSettings();
+  const weekdayInput = form.elements.weekdayTime;
+  const weekendInput = form.elements.weekendTime;
+  if (weekdayInput && !weekdayInput.dataset.touched) weekdayInput.value = settings.bulkWeekdayTime;
+  if (weekendInput && !weekendInput.dataset.touched) weekendInput.value = settings.bulkWeekendTime;
+
+  form.querySelectorAll(":scope > .check-line, :scope > .bulk-location-option").forEach((node) => node.remove());
+  const submitButton = form.querySelector('button[type="submit"]');
+  const locationMarkup = bulkMatchLocations()
+    .map((location) => {
+      const name = `bulkLocation_${matchLocationSlug(location)}`;
+      return `
+        <label class="check-line bulk-location-option">
+          <input type="checkbox" name="${escapeHtml(name)}" checked />
+          <span>${escapeHtml(location)}</span>
+        </label>
+      `;
+    })
+    .join("");
+  submitButton?.insertAdjacentHTML("beforebegin", locationMarkup);
 }
 
 function renderNavigation() {
@@ -534,6 +567,28 @@ function siteSettings() {
   return { ...defaultSiteSettings, ...(appState?.siteSettings || {}) };
 }
 
+function textLines(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function matchLocationSlug(location) {
+  const text = String(location || "").trim();
+  const slug = text
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24);
+  return slug || "match";
+}
+
+function bulkMatchLocations() {
+  const locations = textLines(siteSettings().bulkMatchLocations);
+  return [...new Set(locations)];
+}
+
 function won(amount) {
   return `${Number(amount || 0).toLocaleString("ko-KR")}원`;
 }
@@ -628,7 +683,8 @@ function getMatchArea(match) {
 
 function publicMatchLocation(match) {
   const area = getMatchArea(match);
-  return area ? `${area} 일대 카페` : "신촌/강남 일대 카페";
+  const settings = siteSettings();
+  return area ? `${area} ${settings.publicLocationSuffix}` : settings.emptyPublicLocationLabel;
 }
 
 function exactMatchVenue(match) {
@@ -2389,6 +2445,30 @@ function renderAdminSiteSettings() {
         <input name="navPolicyVisible" type="hidden" value="false" />
         <input name="navPolicyVisible" type="checkbox" value="true" ${settings.navPolicyVisible ? "checked" : ""} />
         일반 사용자에게 표시
+      </label>
+      <div class="site-settings-divider wide">
+        <strong>매치 지역/시간 기본값</strong>
+        <span>신청 화면 공개 장소 문구와 운영관리 일괄 생성 기본값을 수정합니다.</span>
+      </div>
+      <label>
+        공개 장소 접미사
+        <input name="publicLocationSuffix" type="text" value="${escapeHtml(settings.publicLocationSuffix)}" required />
+      </label>
+      <label>
+        지역 없음 표시
+        <input name="emptyPublicLocationLabel" type="text" value="${escapeHtml(settings.emptyPublicLocationLabel)}" required />
+      </label>
+      <label>
+        일괄 생성 평일 시간
+        <input name="bulkWeekdayTime" type="time" value="${escapeHtml(settings.bulkWeekdayTime)}" required />
+      </label>
+      <label>
+        일괄 생성 주말 시간
+        <input name="bulkWeekendTime" type="time" value="${escapeHtml(settings.bulkWeekendTime)}" required />
+      </label>
+      <label class="wide">
+        일괄 생성 장소 목록
+        <textarea name="bulkMatchLocations" rows="4" required>${escapeHtml(settings.bulkMatchLocations)}</textarea>
       </label>
       <div class="site-settings-divider wide">
         <strong>문자 템플릿</strong>

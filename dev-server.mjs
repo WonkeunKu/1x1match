@@ -81,6 +81,11 @@ const defaultSiteSettings = {
   navRankingVisible: true,
   navGamesVisible: true,
   navPolicyVisible: true,
+  publicLocationSuffix: "일대 카페",
+  emptyPublicLocationLabel: "신촌/강남 일대 카페",
+  bulkMatchLocations: "강남 카페 매치룸\n신촌 카페 매치룸",
+  bulkWeekdayTime: "19:00",
+  bulkWeekendTime: "14:00",
 };
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -989,6 +994,13 @@ function cleanText(value, fallback = "") {
   return text || fallback;
 }
 
+function textLines(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function cleanAmount(value, fallback) {
   const amount = Number(value);
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : fallback;
@@ -998,6 +1010,11 @@ function cleanBoolean(value, fallback) {
   if (value === true || value === "true" || value === "on" || value === "1") return true;
   if (value === false || value === "false" || value === "off" || value === "0") return false;
   return fallback;
+}
+
+function cleanTime(value, fallback) {
+  const text = String(value ?? "").trim();
+  return /^\d{2}:\d{2}$/.test(text) ? text : fallback;
 }
 
 function normalizeSiteSettings(settings = {}) {
@@ -1040,6 +1057,11 @@ function normalizeSiteSettings(settings = {}) {
     navRankingVisible: cleanBoolean(settings.navRankingVisible, defaultSiteSettings.navRankingVisible),
     navGamesVisible: cleanBoolean(settings.navGamesVisible, defaultSiteSettings.navGamesVisible),
     navPolicyVisible: cleanBoolean(settings.navPolicyVisible, defaultSiteSettings.navPolicyVisible),
+    publicLocationSuffix: cleanText(settings.publicLocationSuffix, defaultSiteSettings.publicLocationSuffix),
+    emptyPublicLocationLabel: cleanText(settings.emptyPublicLocationLabel, defaultSiteSettings.emptyPublicLocationLabel),
+    bulkMatchLocations: cleanText(settings.bulkMatchLocations, defaultSiteSettings.bulkMatchLocations),
+    bulkWeekdayTime: cleanTime(settings.bulkWeekdayTime, defaultSiteSettings.bulkWeekdayTime),
+    bulkWeekendTime: cleanTime(settings.bulkWeekendTime, defaultSiteSettings.bulkWeekendTime),
   };
 }
 
@@ -1508,6 +1530,10 @@ function matchLocationSlug(location) {
 
 function matchIdFor(matchDate, time, location) {
   return `${matchDate}-${String(time).replace(":", "")}-${matchLocationSlug(location)}`;
+}
+
+function bulkMatchLocations() {
+  return [...new Set(textLines(siteSettings().bulkMatchLocations))];
 }
 
 function matchDisplayDate(matchDate) {
@@ -2484,7 +2510,7 @@ async function handleApi(request, response, pathname) {
     requireField(body.weekdayTime, "화/목 시간");
     requireField(body.weekendTime, "토/일 시간");
 
-    const locations = ["강남 카페 매치룸", "신촌 카페 매치룸"].filter((location) => body[matchLocationSlug(location)]);
+    const locations = bulkMatchLocations().filter((location) => body[`bulkLocation_${matchLocationSlug(location)}`]);
 
     if (!locations.length) {
       sendJson(response, 400, { error: "지역을 하나 이상 선택해 주세요." });
