@@ -405,7 +405,9 @@ function renderBulkMatchDefaults() {
   if (weekdayInput && !weekdayInput.dataset.touched) weekdayInput.value = settings.bulkWeekdayTime;
   if (weekendInput && !weekendInput.dataset.touched) weekendInput.value = settings.bulkWeekendTime;
 
-  form.querySelectorAll(":scope > .check-line, :scope > .bulk-location-option").forEach((node) => node.remove());
+  Array.from(form.children)
+    .filter((node) => node.classList?.contains("check-line") || node.classList?.contains("bulk-location-option"))
+    .forEach((node) => node.remove());
   const submitButton = form.querySelector('button[type="submit"]');
   const locationMarkup = bulkMatchLocations()
     .map((location) => {
@@ -442,7 +444,7 @@ function renderNavigation() {
     button.classList.toggle("nav-item-hidden-public", !item.visible && appState.isAdmin);
     button.setAttribute("aria-label", item.label);
     Array.from(button.childNodes).forEach((node) => {
-      if (node.nodeType === Node.TEXT_NODE) node.remove();
+      if (node.nodeType === 3) node.remove();
     });
     button.append(document.createTextNode(item.label));
   });
