@@ -1246,6 +1246,34 @@ textarea {
   line-height: 1.45;
 }
 
+.page-admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(184, 135, 45, 0.28);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.08);
+}
+
+.page-admin-toolbar strong,
+.page-admin-toolbar span {
+  display: block;
+}
+
+.page-admin-toolbar strong {
+  color: var(--ink);
+}
+
+.page-admin-toolbar span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .bank-guide span {
   color: var(--gold);
   font-weight: 800;
@@ -1857,6 +1885,16 @@ select:disabled {
 .policy-card p {
   color: var(--muted);
   line-height: 1.7;
+}
+
+.policy-admin-card {
+  border-color: rgba(184, 135, 45, 0.34);
+  background: linear-gradient(135deg, rgba(44, 34, 19, 0.94), rgba(18, 13, 10, 0.96));
+}
+
+.policy-admin-card .secondary-button {
+  align-self: end;
+  width: fit-content;
 }
 
 .privacy-detail-panel {
@@ -3795,6 +3833,16 @@ select:disabled {
     gap: 10px;
   }
 
+  .page-admin-toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .page-admin-toolbar .secondary-button {
+    width: 100%;
+    min-height: 42px;
+  }
+
   .apply-page-admin-toolbar .secondary-button {
     width: 100%;
     min-height: 42px;
@@ -4137,6 +4185,11 @@ select:disabled {
     min-height: 116px;
     height: auto;
     padding: 14px;
+  }
+
+  .policy-admin-card .secondary-button {
+    width: 100%;
+    min-height: 42px;
   }
 
   .game-card strong {

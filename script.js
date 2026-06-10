@@ -296,6 +296,7 @@ function renderAll() {
   renderMyApplications();
   renderMatches();
   renderNotices();
+  renderPolicy();
   renderRankings();
   renderGames(activeGameId || appState.games[0]?.id);
   renderAdmin();
@@ -1282,8 +1283,20 @@ function renderNotices() {
         <p>2명이 모이면 이곳에 확정 공지가 표시됩니다.</p>
       </article>
     `;
+  const noticeAdminToolbar = appState.isAdmin
+    ? `
+      <div class="page-admin-toolbar notice-admin-toolbar">
+        <div>
+          <strong>확정 공지 안내 편집</strong>
+          <span>정확한 장소 안내, 참가비, 환불 기준 문구는 사이트 설정에서 수정합니다.</span>
+        </div>
+        <button class="secondary-button" type="button" data-open-admin-site-settings>공지 안내 수정</button>
+      </div>
+    `
+    : "";
 
   board.innerHTML = `
+    ${noticeAdminToolbar}
     <div class="notice-toolbar">
       <div class="segmented notice-area-filter">${areaButtons}</div>
       <span class="notice-count">${filteredMatches.length}개 확정 매치</span>
@@ -1307,6 +1320,47 @@ function renderNotices() {
             .join("")
         : emptyMessage
     }
+  `;
+}
+
+function renderPolicy() {
+  const grid = document.querySelector("#policyGrid");
+  if (!grid) return;
+
+  const settings = siteSettings();
+  const adminCard = appState.isAdmin
+    ? `
+      <article class="policy-card policy-admin-card">
+        <span class="status-pill waiting">운영자</span>
+        <h3>운영 안내 수정</h3>
+        <p>참가비, 계좌, 환불 기준, 정확한 장소 안내 문구는 사이트 설정에서 바로 수정합니다.</p>
+        <button class="secondary-button" type="button" data-open-admin-site-settings>사이트 설정 열기</button>
+      </article>
+    `
+    : "";
+
+  grid.innerHTML = `
+    ${adminCard}
+    <article class="policy-card">
+      <span class="status-pill revealed-pill">개인정보</span>
+      <h3>수집 항목과 목적</h3>
+      <p>닉네임, 이름, 생년월일, 전화번호, 주 활동지는 참가 신청 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대를 위해서만 사용합니다.</p>
+    </article>
+    <article class="policy-card">
+      <span class="status-pill waiting">참가비</span>
+      <h3>${participationFeeText()}</h3>
+      <p>정상 참가비는 ${regularFeeText()}입니다. 현재 적용 참가비는 ${participationFeeText()}이며, ${settings.drinkFeeNotice}입니다.</p>
+    </article>
+    <article class="policy-card">
+      <span class="status-pill refunding">환불</span>
+      <h3>환불 기준</h3>
+      <p>${settings.refundPolicy}. 환불은 운영자가 입금 여부를 확인한 뒤 수동으로 처리합니다.</p>
+    </article>
+    <article class="policy-card">
+      <span class="status-pill confirmed">게임 공개</span>
+      <h3>24시간 전 공지</h3>
+      <p>${settings.exactVenueNotice} 진행 게임, 방식, 규칙도 확정 공지 탭에 함께 공개됩니다.</p>
+    </article>
   `;
 }
 
