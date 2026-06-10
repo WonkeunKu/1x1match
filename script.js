@@ -1264,6 +1264,14 @@ function renderNoticeCard(match) {
       ? `${match.game.summary} 이번 매치의 상세 규칙이 공개되었습니다.`
       : "시작 24시간 전에 운영자가 게임과 규칙을 공개합니다.";
   const playerNames = match.players.map((player) => player.nickname);
+  const noticeActions = [
+    match.gameRevealed && match.game
+      ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
+      : "",
+    appState.isAdmin ? `<button class="secondary-button notice-action" type="button" data-open-admin-match="${match.id}">매치 관리</button>` : "",
+  ]
+    .filter(Boolean)
+    .join("");
 
   return `
     <article class="notice-main notice-card">
@@ -1284,11 +1292,7 @@ function renderNoticeCard(match) {
         <strong>VS</strong>
         <span>${playerNames[1] || "참가자 2"}</span>
       </div>
-      ${
-        match.gameRevealed && match.game
-          ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
-          : ""
-      }
+      ${noticeActions ? `<div class="notice-actions">${noticeActions}</div>` : ""}
     </article>
   `;
 }

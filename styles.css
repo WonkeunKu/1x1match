@@ -1393,6 +1393,18 @@ select:disabled {
   margin-top: 14px;
 }
 
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.notice-actions .notice-action {
+  flex: 1 1 140px;
+  margin-top: 0;
+}
+
 .notice-board {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -4138,6 +4150,16 @@ select:disabled {
     width: 100%;
     min-height: 42px;
     margin-top: 0;
+  }
+
+  .notice-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .notice-actions .notice-action {
+    width: 100%;
   }
 
   .member-detail-head {
