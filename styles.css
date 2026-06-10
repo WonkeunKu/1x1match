@@ -2149,6 +2149,7 @@ select:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  overflow-x: auto;
   margin-bottom: 16px;
   padding: 8px;
   border: 1px solid rgba(255, 74, 57, 0.13);
@@ -2157,6 +2158,7 @@ select:disabled {
 }
 
 .admin-subnav button {
+  flex: 0 0 auto;
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2166,6 +2168,7 @@ select:disabled {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .admin-subnav button:hover,
@@ -4828,14 +4831,12 @@ select:disabled {
     min-height: 48px;
   }
 
-  .admin-subnav,
   .admin-game-tabs,
   .member-detail-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .admin-subnav button,
   .admin-game-tabs button,
   .member-detail-tabs button {
     min-width: 0;
@@ -5159,7 +5160,6 @@ select:disabled {
 }
 
 @media (max-width: 420px) {
-  .admin-subnav,
   .admin-game-tabs,
   .member-detail-tabs,
   .apply-option-grid--area {

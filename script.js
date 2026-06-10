@@ -4191,6 +4191,7 @@ document.addEventListener("click", (event) => {
 
   activeAdminSection = sectionButton.dataset.adminSection;
   renderAdminSections();
+  document.querySelector(`[data-admin-page="${activeAdminSection}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.addEventListener("click", (event) => {
