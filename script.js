@@ -145,6 +145,26 @@ const migrationSqlMap = {
   add column if not exists is_hidden boolean not null default false;`,
   "auto-closed": `alter table applications
   add column if not exists auto_closed boolean not null default false;`,
+  "site-settings": `create table if not exists site_settings (
+  key text primary key,
+  value jsonb not null default '""'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create or replace function update_site_settings_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists site_settings_updated_at on site_settings;
+
+create trigger site_settings_updated_at
+before update on site_settings
+for each row
+execute function update_site_settings_updated_at();`,
 };
 
 function formatPhoneInput(value) {
@@ -1991,7 +2011,8 @@ function renderAdminGameManager() {
   const isSupabase = (system.storage || "json") === "supabase";
   const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
   const needsAutoClosedMigration = Boolean(isSupabase && system.schemaStatus?.autoClosedApplications === false);
-  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration].filter(Boolean).length;
+  const needsSiteSettingsMigration = Boolean(isSupabase && system.schemaStatus?.siteSettings === false);
+  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration, needsSiteSettingsMigration].filter(Boolean).length;
   const categoryButtons = gameCategoryOptions
     .map(
       (option) => `
@@ -2126,6 +2147,7 @@ function renderAdminSiteSettings() {
               <span>Supabase 설정 테이블 필요</span>
               <strong>site_settings 테이블이 아직 없습니다</strong>
               <p><code>supabase-add-site-settings.sql</code>을 Supabase SQL Editor에서 실행하면 이 설정이 DB에 영구 저장됩니다. 실행 전에는 기본값으로 계속 동작합니다.</p>
+              <button class="secondary-button" type="button" data-copy-migration-sql="site-settings">SQL 복사</button>
             </div>
           </div>`
         : ""
@@ -2294,6 +2316,18 @@ function renderAdminSystemStatus() {
               <strong>자동 취소 기록 컬럼 미적용</strong>
               <p><code>supabase-add-auto-closed-applications.sql</code>을 Supabase SQL Editor에서 실행해야 자동 취소/환불 필터 기록이 영구 저장됩니다.</p>
               <button class="secondary-button" type="button" data-copy-migration-sql="auto-closed">SQL 복사</button>
+            </div>
+          </div>`
+        : ""
+    }
+    ${
+      needsSiteSettingsMigration
+        ? `<div class="system-status-card warning system-status-warning">
+            <div>
+              <span>DB 마이그레이션 필요</span>
+              <strong>사이트 설정 테이블 미적용</strong>
+              <p><code>supabase-add-site-settings.sql</code>을 Supabase SQL Editor에서 실행해야 참가비, 계좌, 환불 기준 설정이 DB에 영구 저장됩니다.</p>
+              <button class="secondary-button" type="button" data-copy-migration-sql="site-settings">SQL 복사</button>
             </div>
           </div>`
         : ""
