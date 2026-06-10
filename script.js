@@ -367,6 +367,24 @@ function openAdminSiteSettings() {
   }, 0);
 }
 
+function openAdminMemberDetail(memberId, section = "summary") {
+  if (!appState.isAdmin) {
+    showToast("운영자 권한 확인 후 확인할 수 있습니다.");
+    setActiveView("admin");
+    return;
+  }
+
+  activeAdminSection = "members";
+  activeMemberId = memberId || null;
+  activeMemberDetailSection = section;
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    document.querySelector("#memberDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
 function openAuthView() {
   const currentView = document.querySelector(".view.active");
   if (currentView?.id && currentView.id !== "auth") {
@@ -1403,19 +1421,36 @@ function renderRankingControls() {
 
 function renderRankings() {
   renderRankingControls();
-  document.querySelector("#rankingRows").innerHTML = sortedRankings()
-    .map(
-      (row, index) => `
-        <div class="table-row">
-          <span><b class="rank-badge">${index + 1}</b></span>
-          <span><strong>${row.nickname}</strong></span>
-          <span>${row.record}</span>
-          <span><strong>${row.rate}</strong></span>
-          <span>${row.area || "-"}</span>
+  const rows = document.querySelector("#rankingRows");
+  const adminToolbar = appState.isAdmin
+    ? `
+      <div class="page-admin-toolbar ranking-admin-toolbar">
+        <div>
+          <strong>랭킹 회원 관리</strong>
+          <span>회원 행을 누르면 회원 상세, 정보 수정, 신청 이력 화면으로 이동합니다.</span>
         </div>
-      `,
-    )
-    .join("");
+        <button class="secondary-button" type="button" data-open-admin-members>회원 관리 열기</button>
+      </div>
+    `
+    : "";
+
+  rows.innerHTML = `${adminToolbar}${sortedRankings()
+    .map((row, index) => {
+      const tag = appState.isAdmin ? "button" : "div";
+      const attributes = appState.isAdmin
+        ? `type="button" data-open-admin-member="${row.id}" title="${escapeHtml(row.nickname)} 회원 관리 열기"`
+        : "";
+      return `
+        <${tag} class="table-row ${appState.isAdmin ? "ranking-member-row" : ""}" ${attributes}>
+          <span><b class="rank-badge">${index + 1}</b></span>
+          <span><strong>${escapeHtml(row.nickname)}</strong></span>
+          <span>${escapeHtml(row.record)}</span>
+          <span><strong>${escapeHtml(row.rate)}</strong></span>
+          <span>${escapeHtml(row.area || "-")}</span>
+        </${tag}>
+      `;
+    })
+    .join("")}`;
 }
 
 function getGameTags(game) {
@@ -4400,6 +4435,18 @@ document.addEventListener("click", async (event) => {
   const openAdminSiteSettingsButton = event.target.closest("[data-open-admin-site-settings]");
   if (openAdminSiteSettingsButton) {
     openAdminSiteSettings();
+    return;
+  }
+
+  const openAdminMembersButton = event.target.closest("[data-open-admin-members]");
+  if (openAdminMembersButton) {
+    openAdminMemberDetail(null, "summary");
+    return;
+  }
+
+  const openAdminMemberButton = event.target.closest("[data-open-admin-member]");
+  if (openAdminMemberButton) {
+    openAdminMemberDetail(openAdminMemberButton.dataset.openAdminMember, "summary");
     return;
   }
 

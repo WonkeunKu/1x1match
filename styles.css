@@ -1479,6 +1479,10 @@ select:disabled {
   overflow: hidden;
 }
 
+.ranking-admin-toolbar {
+  margin: 12px;
+}
+
 .table-row {
   display: grid;
   grid-template-columns: 70px minmax(140px, 1fr) 120px 90px 100px;
@@ -1495,6 +1499,26 @@ select:disabled {
   color: #fff;
   font-size: 13px;
   font-weight: 800;
+}
+
+.ranking-member-row {
+  width: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ranking-member-row:hover {
+  background: rgba(255, 74, 57, 0.08);
+}
+
+.ranking-member-row:focus-visible {
+  outline: 2px solid rgba(231, 185, 87, 0.72);
+  outline-offset: -2px;
 }
 
 .rank-badge {
