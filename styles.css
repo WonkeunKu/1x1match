@@ -1822,6 +1822,37 @@ select:disabled {
   justify-content: flex-start;
 }
 
+.game-inline-editor {
+  margin: 0 0 18px;
+  border: 1px solid rgba(184, 135, 45, 0.28);
+  border-radius: 8px;
+  background: rgba(184, 135, 45, 0.07);
+}
+
+.game-inline-editor summary {
+  cursor: pointer;
+  padding: 13px 14px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.game-inline-editor-form {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid rgba(184, 135, 45, 0.18);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.game-inline-editor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .rule-section-title {
   display: flex;
   align-items: center;
@@ -4325,6 +4356,17 @@ select:disabled {
   }
 
   .game-detail-actions .secondary-button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .game-inline-editor-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .game-inline-editor-actions .primary-button,
+  .game-inline-editor-actions .secondary-button {
     width: 100%;
     min-height: 42px;
   }

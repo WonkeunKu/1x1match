@@ -1633,6 +1633,7 @@ function renderGames(gameId, options = {}) {
         }
       </div>
     </div>
+    ${appState.isAdmin ? renderGameInlineEditor(activeGame) : ""}
     <div class="rule-section-title">
       <strong>게임 규칙</strong>
       <span>${activeGame.rules.length}개 항목</span>
@@ -1647,6 +1648,41 @@ function renderGames(gameId, options = {}) {
     <div class="game-bottom-actions">
       <button class="secondary-button" type="button" data-game-list>목록</button>
     </div>
+  `;
+}
+
+function renderGameInlineEditor(game) {
+  return `
+    <details class="game-inline-editor">
+      <summary>이 페이지에서 게임 수정</summary>
+      <form class="admin-game-form game-inline-editor-form" data-update-game-form="${game.id}">
+        <input name="gameId" type="hidden" value="${escapeHtml(game.id)}" />
+        <label>
+          게임명
+          <input name="title" type="text" value="${escapeHtml(game.title)}" required />
+        </label>
+        <label>
+          분류
+          <select name="category">${gameCategorySelectOptions(getGameCategory(game))}</select>
+        </label>
+        <label class="wide">
+          요약
+          <input name="summary" type="text" value="${escapeHtml(game.summary)}" required />
+        </label>
+        <label class="wide">
+          규칙
+          <textarea name="rules" rows="7" required>${escapeHtml((game.rules || []).join("\n"))}</textarea>
+        </label>
+        <label class="wide">
+          승리 조건
+          <input name="win" type="text" value="${escapeHtml(game.win)}" required />
+        </label>
+        <div class="game-inline-editor-actions">
+          <button class="secondary-button" type="button" data-open-admin-game-editor="${game.id}">운영관리에서 열기</button>
+          <button class="primary-button" type="submit">게임 수정 저장</button>
+        </div>
+      </form>
+    </details>
   `;
 }
 
