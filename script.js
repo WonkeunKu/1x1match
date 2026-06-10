@@ -1961,12 +1961,27 @@ function renderAdminBackupPanel() {
   const panel = document.querySelector("#adminBackupPanel");
   if (!panel) return;
 
+  const matches = appState.matches || [];
+  const applications = matches.reduce((count, match) => count + (match.allPlayers?.length || match.applications?.length || 0), 0);
+  const events = appState.allEvents || appState.events || [];
+  const lastEvent = events
+    .map((event) => (typeof event === "string" ? { message: event, createdAt: null } : event))
+    .find((event) => event.createdAt);
+  const lastBackupHint = lastEvent ? formatEventTime(lastEvent.createdAt) : "기록 없음";
+
   panel.innerHTML = `
     <div class="backup-card">
       <div>
         <span>운영 데이터 백업</span>
         <strong>회원·신청·매치 데이터 내보내기</strong>
         <p>비밀번호 정보는 제외하고 내려받습니다. CSV는 신청 현황 확인용, JSON은 전체 백업용입니다.</p>
+        <div class="backup-meta">
+          <span><strong>${appState.members?.length || 0}</strong>회원</span>
+          <span><strong>${matches.length}</strong>매치</span>
+          <span><strong>${applications}</strong>신청 기록</span>
+          <span><strong>${events.length}</strong>운영 로그</span>
+          <span><strong>${lastBackupHint}</strong>마지막 변경</span>
+        </div>
       </div>
       <div class="backup-actions">
         <button class="secondary-button" type="button" data-admin-export="csv">CSV 다운로드</button>
