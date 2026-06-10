@@ -14,7 +14,6 @@ export function createJsonStorage({ path, omitKeys = [] }) {
     schemaStatus: {
       gameAdminFields: true,
       autoClosedApplications: true,
-      siteSettings: true,
     },
 
     async load() {
@@ -53,7 +52,6 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
   const key = requireEnv(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY");
   const schemaStatus = {
     gameAdminFields: true,
-    siteSettings: true,
   };
   const headers = {
     apikey: key,
@@ -239,35 +237,12 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
     });
   }
 
-  async function loadSiteSettings() {
-    try {
-      const rows = await list("site_settings", "select=key,value");
-      schemaStatus.siteSettings = true;
-      return Object.fromEntries((rows || []).map((row) => [row.key, row.value]));
-    } catch (error) {
-      schemaStatus.siteSettings = false;
-      return {};
-    }
-  }
-
-  async function saveSiteSettings(settings) {
-    const rows = Object.entries(settings || {}).map(([key, value]) => ({ key, value }));
-    if (!rows.length) return;
-
-    try {
-      await upsert("site_settings", rows, "key");
-      schemaStatus.siteSettings = true;
-    } catch (error) {
-      schemaStatus.siteSettings = false;
-    }
-  }
-
   return {
     name: "supabase",
     schemaStatus,
 
     async load() {
-      const [members, games, matches, applications, results, notificationLogs, events, siteSettings] = await Promise.all([
+      const [members, games, matches, applications, results, notificationLogs, events] = await Promise.all([
         listWithFallback(
           "members",
           "select=id,nickname,real_name,birth_date,phone,area,password_hash,wins,losses",
@@ -297,7 +272,6 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
         list("match_results", "select=match_id,winner_id,loser_id"),
         list("notification_logs", "select=match_id,message_key"),
         list("event_logs", "select=id,message,created_at&order=created_at.desc&limit=1000"),
-        loadSiteSettings(),
       ]);
 
       if (!members.length && !games.length && !matches.length) {
@@ -356,7 +330,6 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
           message: event.message,
           createdAt: event.created_at,
         })),
-        siteSettings,
       };
     },
 
@@ -442,7 +415,6 @@ export function createSupabaseStorage({ url, serviceRoleKey }) {
       await upsert("match_results", buildResults(matches), "match_id");
       await upsert("notification_logs", buildNotificationLogs(matches));
       await upsert("event_logs", buildEventLogs(state.events));
-      await saveSiteSettings(state.siteSettings);
     },
 
     async deleteMember(memberId) {

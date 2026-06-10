@@ -42,51 +42,6 @@ const sessionSecret = process.env.SESSION_SECRET || adminPassword;
 const bankAccountLabel = process.env.BANK_ACCOUNT_LABEL || "계좌 정보 준비 중";
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || "127.0.0.1";
-const defaultSiteSettings = {
-  participationFee: 1000,
-  regularFee: 5000,
-  feeNotice: "6월 시범운영 1,000원",
-  bankAccountLabel,
-  accountHolder: "구원근",
-  depositNameGuide: "회원가입 닉네임과 동일",
-  drinkFeeNotice: "카페 음료 비용 별도",
-  refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
-  exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
-  brandName: "1VS1매치",
-  brandTagline: "1:1 두뇌 서바이벌 리그",
-  heroEyebrow: "서울 카페 오프라인 매치",
-  heroTitle: "두 명이 모이면 게임이 열린다",
-  applyIntro: "1VS1매치는 두뇌 서바이벌 게임을 1:1로 겨루는 오프라인 매치입니다. 날짜와 지역을 고르면 2명이 모였을 때 매치가 확정됩니다.",
-  privacyDetailTitle: "회원 정보는 운영 확인에 필요한 범위에서만 사용합니다",
-  privacyDetailIntro: "입금자 확인과 현장 본인 확인을 위해 필요한 정보만 받고, 공개하는 정보는 운영상 확인된 정보를 분리합니다.",
-  privacyCollectionItems: "이름, 생년월일, 닉네임, 전화번호, 주 활동지, 비밀번호를 수집합니다. 비밀번호는 로그인 확인을 위해 암호화된 값으로 저장합니다.",
-  privacyUsagePurpose: "참가 신청 확인, 입금자 확인, 현장 본인 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대에만 사용합니다.",
-  privacyRetentionPolicy: "운영 기록 확인과 분쟁 대응을 위해 필요한 기간 동안 보관하며, 회원 삭제 시 신청 이력과 결과 기록을 함께 정리합니다.",
-  smsRecruitingTemplate: "[1VS1매치] {date} {time} {location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. {exactVenueNotice} 신청: {siteUrl}",
-  smsPaymentGuideTemplate: "[1VS1매치] {date} {time} {location} 참가 신청이 접수되었습니다. 정상 참가비는 {regularFee}이고 현재 참가비는 {fee}입니다. {account}으로 입금해 주세요. {drinkFeeNotice}. {exactVenueNotice} 입금자명은 {depositNameGuide}로 보내주세요. 대상: {targetPlayers}",
-  smsConfirmedTemplate: "[1VS1매치] {date} {time} {location} 1:1 매치가 확정되었습니다. 참가자: {players}. 게임과 정확한 장소는 시작 24시간 전에 함께 공개됩니다.",
-  smsGameRevealedTemplate: "[1VS1매치] {date} {time} {location} 매치의 게임은 \"{gameTitle}\"입니다. {venueNotice} 사이트 게임 목록에서 규칙을 확인해 주세요. {siteUrl}",
-  smsRefundPendingTemplate: "[1VS1매치] {date} {time} 매치가 {refundPolicy} 기준에 해당하면 참가비 {fee}이 환불 처리됩니다. 현재 신청자: {targetPlayers}.",
-  smsCancelRequestTemplate: "[1VS1매치] {date} {time} {location} 매치 신청 취소 요청이 접수되었습니다. 대상: {targetPlayers}. 운영자 확인 후 입금 전 신청은 취소 처리되고, 입금 완료 신청은 환불 요청으로 전환됩니다.",
-  smsRefundRequestedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 요청 대상 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.",
-  smsRefundScheduledTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 예정 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.",
-  smsRefundCompletedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 완료 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불 처리가 완료되었습니다.",
-  navApplyLabel: "참가 신청",
-  navNoticeLabel: "확정 공지",
-  navRankingLabel: "랭킹",
-  navGamesLabel: "게임 목록",
-  navPolicyLabel: "운영 안내",
-  navApplyVisible: true,
-  navNoticeVisible: true,
-  navRankingVisible: true,
-  navGamesVisible: true,
-  navPolicyVisible: true,
-  publicLocationSuffix: "일대 카페",
-  emptyPublicLocationLabel: "신촌/강남 일대 카페",
-  bulkMatchLocations: "강남 카페 매치룸\n신촌 카페 매치룸",
-  bulkWeekdayTime: "19:00",
-  bulkWeekendTime: "14:00",
-};
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -96,7 +51,6 @@ const types = {
 const state = {
   currentUserId: null,
   isAdmin: false,
-  siteSettings: { ...defaultSiteSettings },
   members: [],
   games: [
     {
@@ -981,101 +935,11 @@ function hydrateStoredState(stored) {
     })),
     ...(state.games || []).filter((game) => !defaultGameIds.has(game.id)),
   ].map(normalizeGame);
-  state.siteSettings = normalizeSiteSettings(state.siteSettings);
   state.isAdmin = false;
 }
 
 async function persistState() {
   await storage.save(state);
-}
-
-function cleanText(value, fallback = "") {
-  const text = String(value ?? "").trim();
-  return text || fallback;
-}
-
-function textLines(value) {
-  return String(value || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function cleanAmount(value, fallback) {
-  const amount = Number(value);
-  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : fallback;
-}
-
-function cleanBoolean(value, fallback) {
-  if (value === true || value === "true" || value === "on" || value === "1") return true;
-  if (value === false || value === "false" || value === "off" || value === "0") return false;
-  return fallback;
-}
-
-function cleanTime(value, fallback) {
-  const text = String(value ?? "").trim();
-  return /^\d{2}:\d{2}$/.test(text) ? text : fallback;
-}
-
-function normalizeSiteSettings(settings = {}) {
-  return {
-    participationFee: cleanAmount(settings.participationFee, defaultSiteSettings.participationFee),
-    regularFee: cleanAmount(settings.regularFee, defaultSiteSettings.regularFee),
-    feeNotice: cleanText(settings.feeNotice, defaultSiteSettings.feeNotice),
-    bankAccountLabel: cleanText(settings.bankAccountLabel, defaultSiteSettings.bankAccountLabel),
-    accountHolder: cleanText(settings.accountHolder, defaultSiteSettings.accountHolder),
-    depositNameGuide: cleanText(settings.depositNameGuide, defaultSiteSettings.depositNameGuide),
-    drinkFeeNotice: cleanText(settings.drinkFeeNotice, defaultSiteSettings.drinkFeeNotice),
-    refundPolicy: cleanText(settings.refundPolicy, defaultSiteSettings.refundPolicy),
-    exactVenueNotice: cleanText(settings.exactVenueNotice, defaultSiteSettings.exactVenueNotice),
-    brandName: cleanText(settings.brandName, defaultSiteSettings.brandName),
-    brandTagline: cleanText(settings.brandTagline, defaultSiteSettings.brandTagline),
-    heroEyebrow: cleanText(settings.heroEyebrow, defaultSiteSettings.heroEyebrow),
-    heroTitle: cleanText(settings.heroTitle, defaultSiteSettings.heroTitle),
-    applyIntro: cleanText(settings.applyIntro, defaultSiteSettings.applyIntro),
-    privacyDetailTitle: cleanText(settings.privacyDetailTitle, defaultSiteSettings.privacyDetailTitle),
-    privacyDetailIntro: cleanText(settings.privacyDetailIntro, defaultSiteSettings.privacyDetailIntro),
-    privacyCollectionItems: cleanText(settings.privacyCollectionItems, defaultSiteSettings.privacyCollectionItems),
-    privacyUsagePurpose: cleanText(settings.privacyUsagePurpose, defaultSiteSettings.privacyUsagePurpose),
-    privacyRetentionPolicy: cleanText(settings.privacyRetentionPolicy, defaultSiteSettings.privacyRetentionPolicy),
-    smsRecruitingTemplate: cleanText(settings.smsRecruitingTemplate, defaultSiteSettings.smsRecruitingTemplate),
-    smsPaymentGuideTemplate: cleanText(settings.smsPaymentGuideTemplate, defaultSiteSettings.smsPaymentGuideTemplate),
-    smsConfirmedTemplate: cleanText(settings.smsConfirmedTemplate, defaultSiteSettings.smsConfirmedTemplate),
-    smsGameRevealedTemplate: cleanText(settings.smsGameRevealedTemplate, defaultSiteSettings.smsGameRevealedTemplate),
-    smsRefundPendingTemplate: cleanText(settings.smsRefundPendingTemplate, defaultSiteSettings.smsRefundPendingTemplate),
-    smsCancelRequestTemplate: cleanText(settings.smsCancelRequestTemplate, defaultSiteSettings.smsCancelRequestTemplate),
-    smsRefundRequestedTemplate: cleanText(settings.smsRefundRequestedTemplate, defaultSiteSettings.smsRefundRequestedTemplate),
-    smsRefundScheduledTemplate: cleanText(settings.smsRefundScheduledTemplate, defaultSiteSettings.smsRefundScheduledTemplate),
-    smsRefundCompletedTemplate: cleanText(settings.smsRefundCompletedTemplate, defaultSiteSettings.smsRefundCompletedTemplate),
-    navApplyLabel: cleanText(settings.navApplyLabel, defaultSiteSettings.navApplyLabel),
-    navNoticeLabel: cleanText(settings.navNoticeLabel, defaultSiteSettings.navNoticeLabel),
-    navRankingLabel: cleanText(settings.navRankingLabel, defaultSiteSettings.navRankingLabel),
-    navGamesLabel: cleanText(settings.navGamesLabel, defaultSiteSettings.navGamesLabel),
-    navPolicyLabel: cleanText(settings.navPolicyLabel, defaultSiteSettings.navPolicyLabel),
-    navApplyVisible: cleanBoolean(settings.navApplyVisible, defaultSiteSettings.navApplyVisible),
-    navNoticeVisible: cleanBoolean(settings.navNoticeVisible, defaultSiteSettings.navNoticeVisible),
-    navRankingVisible: cleanBoolean(settings.navRankingVisible, defaultSiteSettings.navRankingVisible),
-    navGamesVisible: cleanBoolean(settings.navGamesVisible, defaultSiteSettings.navGamesVisible),
-    navPolicyVisible: cleanBoolean(settings.navPolicyVisible, defaultSiteSettings.navPolicyVisible),
-    publicLocationSuffix: cleanText(settings.publicLocationSuffix, defaultSiteSettings.publicLocationSuffix),
-    emptyPublicLocationLabel: cleanText(settings.emptyPublicLocationLabel, defaultSiteSettings.emptyPublicLocationLabel),
-    bulkMatchLocations: cleanText(settings.bulkMatchLocations, defaultSiteSettings.bulkMatchLocations),
-    bulkWeekdayTime: cleanTime(settings.bulkWeekdayTime, defaultSiteSettings.bulkWeekdayTime),
-    bulkWeekendTime: cleanTime(settings.bulkWeekendTime, defaultSiteSettings.bulkWeekendTime),
-  };
-}
-
-function siteSettings() {
-  state.siteSettings = normalizeSiteSettings(state.siteSettings);
-  return state.siteSettings;
-}
-
-function participationFee() {
-  return siteSettings().participationFee;
-}
-
-function won(amount) {
-  return `${Number(amount || 0).toLocaleString("ko-KR")}원`;
 }
 
 function currentUser() {
@@ -1115,7 +979,6 @@ function logEvent(message) {
 
 function publicState() {
   const events = state.events.map(normalizeEvent);
-  const settings = siteSettings();
   const rankings = [...state.members]
     .filter((member) => member.wins + member.losses > 0)
     .map((member) => {
@@ -1140,11 +1003,10 @@ function publicState() {
     events: events.slice(0, 8),
     allEvents: state.isAdmin ? events : [],
     metrics: buildMetrics(),
-    siteSettings: settings,
     payment: {
-      amount: settings.participationFee,
+      amount: 1000,
       method: "bank_transfer",
-      bankAccountLabel: settings.bankAccountLabel,
+      bankAccountLabel,
     },
     system: state.isAdmin
       ? {
@@ -1532,10 +1394,6 @@ function matchIdFor(matchDate, time, location) {
   return `${matchDate}-${String(time).replace(":", "")}-${matchLocationSlug(location)}`;
 }
 
-function bulkMatchLocations() {
-  return [...new Set(textLines(siteSettings().bulkMatchLocations))];
-}
-
 function matchDisplayDate(matchDate) {
   const dateObject = new Date(`${matchDate}T00:00:00+09:00`);
   const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
@@ -1673,44 +1531,15 @@ function adminEventsCsv() {
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
 }
 
-function renderMessageTemplate(template, values) {
-  return String(template || "").replace(/\{([a-zA-Z0-9_]+)\}/g, (fullMatch, key) => {
-    if (Object.prototype.hasOwnProperty.call(values, key)) {
-      return values[key] ?? "";
-    }
-
-    return fullMatch;
-  });
-}
-
 function messageForMatch(match, type) {
   const players = activePaidApplications(match).map((application) => findMember(application.memberId)).filter(Boolean);
-  const settings = siteSettings();
-  const game = state.games.find((candidate) => candidate.id === match.gameId);
-  const values = {
-    date: match.date,
-    time: match.time,
-    location: match.location,
-    exactLocation: match.exactVenue || "",
-    siteUrl: "https://www.1x1match.com",
-    account: `${settings.bankAccountLabel} ${settings.accountHolder}`,
-    fee: settings.feeNotice || won(settings.participationFee),
-    regularFee: won(settings.regularFee),
-    drinkFeeNotice: settings.drinkFeeNotice,
-    refundPolicy: settings.refundPolicy,
-    exactVenueNotice: settings.exactVenueNotice,
-    depositNameGuide: settings.depositNameGuide,
-    players: players.map((player) => player.nickname).join(" vs "),
-    targetPlayers: players.map((player) => player.nickname).join(", "),
-    gameTitle: game?.title || "미정",
-    venueNotice: match.exactVenue ? `정확한 장소는 ${match.exactVenue}입니다.` : settings.exactVenueNotice,
-  };
 
   if (type === "game-revealed") {
-    return renderMessageTemplate(settings.smsGameRevealedTemplate, values);
+    const game = state.games.find((candidate) => candidate.id === match.gameId);
+    return `[1VS1매치] ${match.date} ${match.time} ${match.location} match game: ${game?.title || "TBA"}. Check the web notice for rules.`;
   }
 
-  return renderMessageTemplate(settings.smsConfirmedTemplate, values);
+  return `[1VS1매치] ${match.date} ${match.time} ${match.location} 1:1 match confirmed. Players: ${players.map((player) => player.nickname).join(" vs ")}.`;
 }
 
 async function sendMatchSms(match, type) {
@@ -2172,17 +2001,6 @@ async function handleApi(request, response, pathname) {
     return;
   }
 
-  if (request.method === "POST" && pathname === "/api/admin/site-settings") {
-    if (!requireAdmin(response)) return;
-
-    const body = await parseBody(request);
-    state.siteSettings = normalizeSiteSettings(body);
-    logEvent("운영자가 사이트 신청 안내 설정을 수정했습니다.");
-    await persistState();
-    sendJson(response, 200, publicStateWithSession());
-    return;
-  }
-
   if (request.method === "POST" && pathname === "/api/apply") {
     const body = await parseBody(request);
     const match = state.matches.find((candidate) => candidate.id === body.matchId);
@@ -2210,7 +2028,7 @@ async function handleApi(request, response, pathname) {
     }
 
     match.applications.push({ memberId: member.id, paid: false, paymentStatus: "payment_pending" });
-    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 ${won(participationFee())} 결제 대기.`);
+    logEvent(`${member.nickname}님이 ${match.date} ${match.time} 매치에 신청했습니다. 참가비 1,000원 결제 대기.`);
     await persistState();
     sendJson(response, 201, publicState());
     return;
@@ -2234,10 +2052,10 @@ async function handleApi(request, response, pathname) {
       return;
     }
 
-    await paymentProvider.captureParticipationFee({ member, match, amount: participationFee() });
+    await paymentProvider.captureParticipationFee({ member, match, amount: 1000 });
     application.paid = true;
     application.paymentStatus = "paid";
-    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 참가비 ${won(participationFee())} 입금을 확인했습니다.`);
+    logEvent(`${member.nickname}님의 ${match.date} ${match.time} 참가비 1,000원 입금을 확인했습니다.`);
     await maybeConfirm(match);
     await persistState();
     sendJson(response, 200, publicState());
@@ -2510,7 +2328,7 @@ async function handleApi(request, response, pathname) {
     requireField(body.weekdayTime, "화/목 시간");
     requireField(body.weekendTime, "토/일 시간");
 
-    const locations = bulkMatchLocations().filter((location) => body[`bulkLocation_${matchLocationSlug(location)}`]);
+    const locations = ["강남 카페 매치룸", "신촌 카페 매치룸"].filter((location) => body[matchLocationSlug(location)]);
 
     if (!locations.length) {
       sendJson(response, 400, { error: "지역을 하나 이상 선택해 주세요." });
@@ -2913,7 +2731,7 @@ async function handleApi(request, response, pathname) {
 
     for (const application of targets) {
       const member = findMember(application.memberId);
-      await paymentProvider.refundParticipationFee({ member, match, amount: participationFee() });
+      await paymentProvider.refundParticipationFee({ member, match, amount: 1000 });
       application.paymentStatus = "refunded";
       application.paid = false;
     }

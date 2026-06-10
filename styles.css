@@ -57,7 +57,6 @@ body {
 
 .brand,
 .user-chip,
-.admin-edit-badge,
 .top-actions,
 .player-row,
 .table-row,
@@ -193,18 +192,6 @@ button {
   background: linear-gradient(135deg, #8f171d, #171010);
   color: #fff8ef;
   box-shadow: inset 0 0 0 1px rgba(255, 204, 122, 0.18);
-}
-
-.nav-item-hidden-public {
-  opacity: 0.58;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.nav-item-hidden-public::after {
-  content: "숨김";
-  margin-left: auto;
-  color: var(--muted);
-  font-size: 0.72rem;
 }
 
 [data-icon] {
@@ -354,40 +341,6 @@ h3 {
     transform 160ms ease;
 }
 
-.admin-edit-badge {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid rgba(184, 135, 45, 0.36);
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(184, 135, 45, 0.2), rgba(79, 24, 18, 0.72));
-  color: #f8eee1;
-  text-align: left;
-  box-shadow: 0 10px 24px rgba(184, 135, 45, 0.12);
-}
-
-.admin-edit-badge span,
-.admin-edit-badge strong {
-  display: block;
-  line-height: 1.15;
-}
-
-.admin-edit-badge span {
-  color: #d8c4a2;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.admin-edit-badge strong {
-  margin-top: 2px;
-  font-size: 13px;
-}
-
-.admin-edit-badge:hover,
-.admin-edit-badge:focus-visible {
-  border-color: rgba(231, 185, 87, 0.72);
-  outline: none;
-}
-
 .user-chip:hover,
 .user-chip:focus-visible {
   border-color: rgba(255, 204, 122, 0.34);
@@ -467,7 +420,6 @@ h3 {
 .admin-login-panel,
 .admin-create-form,
 .admin-game-manager,
-.admin-site-settings,
 .notice-main,
 .ranking-table,
 .game-detail,
@@ -1041,18 +993,6 @@ h3 {
   font-size: 1.04rem;
 }
 
-.apply-admin-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 248, 239, 0.08);
-}
-
-.apply-admin-actions .secondary-button {
-  min-height: 40px;
-}
-
 .apply-venue-note {
   color: #f3cf88 !important;
   line-height: 1.35;
@@ -1259,17 +1199,8 @@ textarea {
 }
 
 .danger-button {
-  border-color: rgba(255, 74, 57, 0.48);
-  background: rgba(181, 31, 36, 0.14);
+  border-color: rgba(255, 74, 57, 0.34);
   color: #ffb8ad;
-}
-
-.danger-button:hover:not(:disabled),
-.secondary-button.danger:hover:not(:disabled),
-.inline-action.danger:hover:not(:disabled) {
-  border-color: rgba(255, 117, 92, 0.72);
-  background: rgba(181, 31, 36, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(255, 183, 82, 0.12);
 }
 
 .bank-guide {
@@ -1284,62 +1215,6 @@ textarea {
 .bank-guide strong {
   color: var(--ink);
   font-size: 0.95rem;
-}
-
-.apply-page-admin-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(184, 135, 45, 0.28);
-  border-radius: 8px;
-  background: rgba(184, 135, 45, 0.08);
-}
-
-.apply-page-admin-toolbar strong,
-.apply-page-admin-toolbar span {
-  display: block;
-}
-
-.apply-page-admin-toolbar strong {
-  color: var(--ink);
-}
-
-.apply-page-admin-toolbar span {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-}
-
-.page-admin-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(184, 135, 45, 0.28);
-  border-radius: 8px;
-  background: rgba(184, 135, 45, 0.08);
-}
-
-.page-admin-toolbar strong,
-.page-admin-toolbar span {
-  display: block;
-}
-
-.page-admin-toolbar strong {
-  color: var(--ink);
-}
-
-.page-admin-toolbar span {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
 }
 
 .bank-guide span {
@@ -1449,18 +1324,6 @@ select:disabled {
   margin-top: 14px;
 }
 
-.notice-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.notice-actions .notice-action {
-  flex: 1 1 140px;
-  margin-top: 0;
-}
-
 .notice-board {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1559,10 +1422,6 @@ select:disabled {
   overflow: hidden;
 }
 
-.ranking-admin-toolbar {
-  margin: 12px;
-}
-
 .table-row {
   display: grid;
   grid-template-columns: 70px minmax(140px, 1fr) 120px 90px 100px;
@@ -1579,26 +1438,6 @@ select:disabled {
   color: #fff;
   font-size: 13px;
   font-weight: 800;
-}
-
-.ranking-member-row {
-  width: 100%;
-  border-right: 0;
-  border-bottom: 0;
-  border-left: 0;
-  background: transparent;
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-
-.ranking-member-row:hover {
-  background: rgba(255, 74, 57, 0.08);
-}
-
-.ranking-member-row:focus-visible {
-  outline: 2px solid rgba(231, 185, 87, 0.72);
-  outline-offset: -2px;
 }
 
 .rank-badge {
@@ -1677,59 +1516,6 @@ select:disabled {
   }
 }
 
-.game-page-admin-toolbar {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(184, 135, 45, 0.28);
-  border-radius: 8px;
-  background: rgba(184, 135, 45, 0.08);
-}
-
-.game-page-admin-toolbar strong,
-.game-page-admin-toolbar span {
-  display: block;
-}
-
-.game-page-admin-toolbar strong {
-  color: var(--ink);
-}
-
-.game-page-admin-toolbar span {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.45;
-}
-
-.game-page-admin-toolbar > div:last-child {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.game-card-shell {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-}
-
-.game-card-quick-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.game-card-quick-actions .secondary-button {
-  width: 100%;
-  min-height: 38px;
-}
-
 .game-card {
   --game-category-color: var(--line);
   --game-category-glow: rgba(255, 74, 57, 0.08);
@@ -1791,11 +1577,6 @@ select:disabled {
   transform: translateY(-1px);
 }
 
-.game-card-is-hidden {
-  opacity: 0.64;
-  border-style: dashed;
-}
-
 .game-card strong {
   display: -webkit-box;
   overflow: hidden;
@@ -1812,21 +1593,6 @@ select:disabled {
   line-height: 1.65;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
-}
-
-.game-card em {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  height: 22px;
-  margin-top: 8px;
-  padding: 0 8px;
-  border: 1px solid rgba(255, 248, 239, 0.22);
-  border-radius: 999px;
-  color: #d8c9ba;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 900;
 }
 
 .game-tags {
@@ -1893,37 +1659,6 @@ select:disabled {
 .game-detail-actions {
   display: flex;
   justify-content: flex-start;
-}
-
-.game-inline-editor {
-  margin: 0 0 18px;
-  border: 1px solid rgba(184, 135, 45, 0.28);
-  border-radius: 8px;
-  background: rgba(184, 135, 45, 0.07);
-}
-
-.game-inline-editor summary {
-  cursor: pointer;
-  padding: 13px 14px;
-  color: var(--ink);
-  font-weight: 900;
-}
-
-.game-inline-editor-form {
-  margin: 0;
-  border: 0;
-  border-top: 1px solid rgba(184, 135, 45, 0.18);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.game-inline-editor-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .rule-section-title {
@@ -2039,16 +1774,6 @@ select:disabled {
   line-height: 1.7;
 }
 
-.policy-admin-card {
-  border-color: rgba(184, 135, 45, 0.34);
-  background: linear-gradient(135deg, rgba(44, 34, 19, 0.94), rgba(18, 13, 10, 0.96));
-}
-
-.policy-admin-card .secondary-button {
-  align-self: end;
-  width: fit-content;
-}
-
 .privacy-detail-panel {
   display: grid;
   gap: 16px;
@@ -2149,7 +1874,6 @@ select:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
   margin-bottom: 16px;
   padding: 8px;
   border: 1px solid rgba(255, 74, 57, 0.13);
@@ -2158,7 +1882,6 @@ select:disabled {
 }
 
 .admin-subnav button {
-  flex: 0 0 auto;
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2168,7 +1891,6 @@ select:disabled {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  white-space: nowrap;
 }
 
 .admin-subnav button:hover,
@@ -2299,32 +2021,6 @@ select:disabled {
   color: var(--muted);
 }
 
-.backup-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.backup-meta span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 0 9px;
-  border: 1px solid rgba(255, 248, 239, 0.1);
-  border-radius: 999px;
-  background: rgba(255, 248, 239, 0.04);
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.backup-meta strong {
-  margin: 0;
-  color: #f3d08a;
-  font-size: 12px;
-}
-
 .backup-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2360,61 +2056,6 @@ select:disabled {
   gap: 14px;
   margin-bottom: 16px;
   padding: 16px;
-}
-
-.admin-site-settings {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding: 16px;
-}
-
-.admin-site-settings-form {
-  grid-template-columns: repeat(2, minmax(160px, 0.7fr)) minmax(220px, 1fr);
-  margin-bottom: 0;
-}
-
-.admin-site-settings-form .wide {
-  grid-column: 1 / -1;
-}
-
-.admin-site-settings-form textarea {
-  min-height: 84px;
-  resize: vertical;
-}
-
-.site-settings-divider {
-  display: grid;
-  gap: 4px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.site-settings-divider strong {
-  color: var(--text);
-}
-
-.site-settings-divider span {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.setting-checkbox-line {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  gap: 10px;
-  min-height: 44px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: var(--text);
-}
-
-.setting-checkbox-line input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--red);
 }
 
 .admin-game-head,
@@ -2934,8 +2575,6 @@ select:disabled {
 
 .member-edit-actions {
   grid-column: 1 / -1;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 74, 57, 0.16);
 }
 
 .secondary-button.danger {
@@ -3575,8 +3214,7 @@ select:disabled {
 }
 
 .ops-action-group-danger {
-  border-color: rgba(216, 39, 47, 0.42);
-  background: rgba(181, 31, 36, 0.08);
+  border-color: rgba(216, 39, 47, 0.28);
   box-shadow: inset 3px 0 0 rgba(216, 39, 47, 0.68);
 }
 
@@ -3602,11 +3240,6 @@ select:disabled {
   padding: 8px;
   border-color: rgba(255, 255, 255, 0.06);
   background: rgba(18, 15, 15, 0.52);
-}
-
-.ops-action-group-danger.compact {
-  border-color: rgba(216, 39, 47, 0.28);
-  background: rgba(181, 31, 36, 0.1);
 }
 
 .recommendation-box {
@@ -4051,42 +3684,8 @@ select:disabled {
     grid-template-columns: 1fr;
   }
 
-  .apply-page-admin-toolbar {
-    display: grid;
-    gap: 10px;
-  }
-
-  .page-admin-toolbar {
-    display: grid;
-    gap: 10px;
-  }
-
-  .page-admin-toolbar .secondary-button {
-    width: 100%;
-    min-height: 42px;
-  }
-
-  .apply-page-admin-toolbar .secondary-button {
-    width: 100%;
-    min-height: 42px;
-  }
-
-  .apply-admin-actions {
-    display: grid;
-    justify-content: stretch;
-  }
-
-  .apply-admin-actions .secondary-button {
-    width: 100%;
-    min-height: 42px;
-  }
-
   .admin-create-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-site-settings-form {
-    grid-template-columns: 1fr;
   }
 
   .admin-game-form {
@@ -4192,15 +3791,6 @@ select:disabled {
 
   .backup-card {
     display: grid;
-  }
-
-  .backup-meta {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .backup-meta span {
-    justify-content: center;
   }
 
   .backup-actions {
@@ -4336,16 +3926,6 @@ select:disabled {
     margin-top: 0;
   }
 
-  .notice-actions {
-    display: grid;
-    gap: 8px;
-    margin-top: 0;
-  }
-
-  .notice-actions .notice-action {
-    width: 100%;
-  }
-
   .member-detail-head {
     display: grid;
   }
@@ -4439,11 +4019,6 @@ select:disabled {
     padding: 14px;
   }
 
-  .policy-admin-card .secondary-button {
-    width: 100%;
-    min-height: 42px;
-  }
-
   .game-card strong {
     -webkit-line-clamp: 2;
   }
@@ -4451,22 +4026,6 @@ select:disabled {
   .game-card span {
     line-height: 1.45;
     -webkit-line-clamp: 2;
-  }
-
-  .game-page-admin-toolbar {
-    display: grid;
-    gap: 10px;
-  }
-
-  .game-page-admin-toolbar > div:last-child {
-    display: grid;
-    grid-template-columns: 1fr;
-    justify-content: stretch;
-  }
-
-  .game-page-admin-toolbar .secondary-button {
-    width: 100%;
-    min-height: 42px;
   }
 
   .game-detail {
@@ -4509,17 +4068,6 @@ select:disabled {
   }
 
   .game-detail-actions .secondary-button {
-    width: 100%;
-    min-height: 42px;
-  }
-
-  .game-inline-editor-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .game-inline-editor-actions .primary-button,
-  .game-inline-editor-actions .secondary-button {
     width: 100%;
     min-height: 42px;
   }
@@ -4727,7 +4275,6 @@ select:disabled {
 
   .share-button,
   .header-auth-button,
-  .admin-edit-badge,
   .user-chip {
     width: 100%;
   }
@@ -4831,12 +4378,14 @@ select:disabled {
     min-height: 48px;
   }
 
+  .admin-subnav,
   .admin-game-tabs,
   .member-detail-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-subnav button,
   .admin-game-tabs button,
   .member-detail-tabs button {
     min-width: 0;
@@ -5160,6 +4709,7 @@ select:disabled {
 }
 
 @media (max-width: 420px) {
+  .admin-subnav,
   .admin-game-tabs,
   .member-detail-tabs,
   .apply-option-grid--area {

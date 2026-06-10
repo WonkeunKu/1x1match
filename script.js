@@ -43,52 +43,6 @@ let activeApplyDate = "";
 let activeApplyTimeMatchId = "";
 let activeApplyMonthKey = "";
 
-const defaultSiteSettings = {
-  participationFee: 1000,
-  regularFee: 5000,
-  feeNotice: "6월 시범운영 1,000원",
-  bankAccountLabel: "카카오뱅크 3333-21-1861396",
-  accountHolder: "구원근",
-  depositNameGuide: "회원가입 닉네임과 동일",
-  drinkFeeNotice: "카페 음료 비용 별도",
-  refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
-  exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
-  brandName: "1VS1매치",
-  brandTagline: "1:1 두뇌 서바이벌 리그",
-  heroEyebrow: "서울 카페 오프라인 매치",
-  heroTitle: "두 명이 모이면 게임이 열린다",
-  applyIntro: "1VS1매치는 두뇌 서바이벌 게임을 1:1로 겨루는 오프라인 매치입니다. 날짜와 지역을 고르면 2명이 모였을 때 매치가 확정됩니다.",
-  privacyDetailTitle: "회원 정보는 운영 확인에 필요한 범위에서만 사용합니다",
-  privacyDetailIntro: "입금자 확인과 현장 본인 확인을 위해 필요한 정보만 받고, 공개하는 정보는 운영상 확인된 정보를 분리합니다.",
-  privacyCollectionItems: "이름, 생년월일, 닉네임, 전화번호, 주 활동지, 비밀번호를 수집합니다. 비밀번호는 로그인 확인을 위해 암호화된 값으로 저장합니다.",
-  privacyUsagePurpose: "참가 신청 확인, 입금자 확인, 현장 본인 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대에만 사용합니다.",
-  privacyRetentionPolicy: "운영 기록 확인과 분쟁 대응을 위해 필요한 기간 동안 보관하며, 회원 삭제 시 신청 이력과 결과 기록을 함께 정리합니다.",
-  smsRecruitingTemplate: "[1VS1매치] {date} {time} {location} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. {exactVenueNotice} 신청: {siteUrl}",
-  smsPaymentGuideTemplate: "[1VS1매치] {date} {time} {location} 참가 신청이 접수되었습니다. 정상 참가비는 {regularFee}이고 현재 참가비는 {fee}입니다. {account}으로 입금해 주세요. {drinkFeeNotice}. {exactVenueNotice} 입금자명은 {depositNameGuide}로 보내주세요. 대상: {targetPlayers}",
-  smsConfirmedTemplate: "[1VS1매치] {date} {time} {location} 1:1 매치가 확정되었습니다. 참가자: {players}. 게임과 정확한 장소는 시작 24시간 전에 함께 공개됩니다.",
-  smsGameRevealedTemplate: "[1VS1매치] {date} {time} {location} 매치의 게임은 \"{gameTitle}\"입니다. {venueNotice} 사이트 게임 목록에서 규칙을 확인해 주세요. {siteUrl}",
-  smsRefundPendingTemplate: "[1VS1매치] {date} {time} 매치가 {refundPolicy} 기준에 해당하면 참가비 {fee}이 환불 처리됩니다. 현재 신청자: {targetPlayers}.",
-  smsCancelRequestTemplate: "[1VS1매치] {date} {time} {location} 매치 신청 취소 요청이 접수되었습니다. 대상: {targetPlayers}. 운영자 확인 후 입금 전 신청은 취소 처리되고, 입금 완료 신청은 환불 요청으로 전환됩니다.",
-  smsRefundRequestedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 요청 대상 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.",
-  smsRefundScheduledTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 예정 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.",
-  smsRefundCompletedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 완료 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불 처리가 완료되었습니다.",
-  navApplyLabel: "참가 신청",
-  navNoticeLabel: "확정 공지",
-  navRankingLabel: "랭킹",
-  navGamesLabel: "게임 목록",
-  navPolicyLabel: "운영 안내",
-  navApplyVisible: true,
-  navNoticeVisible: true,
-  navRankingVisible: true,
-  navGamesVisible: true,
-  navPolicyVisible: true,
-  publicLocationSuffix: "일대 카페",
-  emptyPublicLocationLabel: "신촌/강남 일대 카페",
-  bulkMatchLocations: "강남 카페 매치룸\n신촌 카페 매치룸",
-  bulkWeekdayTime: "19:00",
-  bulkWeekendTime: "14:00",
-};
-
 const gameTagMap = {
   "memory-dinner": ["기억", "암기", "매칭"],
   "position-combo": ["기억", "조합", "족보"],
@@ -179,26 +133,6 @@ const migrationSqlMap = {
   add column if not exists is_hidden boolean not null default false;`,
   "auto-closed": `alter table applications
   add column if not exists auto_closed boolean not null default false;`,
-  "site-settings": `create table if not exists site_settings (
-  key text primary key,
-  value jsonb not null default '""'::jsonb,
-  updated_at timestamptz not null default now()
-);
-
-create or replace function update_site_settings_updated_at()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
-drop trigger if exists site_settings_updated_at on site_settings;
-
-create trigger site_settings_updated_at
-before update on site_settings
-for each row
-execute function update_site_settings_updated_at();`,
 };
 
 function formatPhoneInput(value) {
@@ -341,7 +275,6 @@ async function loadState() {
 }
 
 function renderAll() {
-  renderSiteCopy();
   renderNavigation();
   renderUser();
   renderAuth();
@@ -351,103 +284,15 @@ function renderAll() {
   renderMyApplications();
   renderMatches();
   renderNotices();
-  renderPolicy();
   renderRankings();
   renderGames(activeGameId || appState.games[0]?.id);
   renderAdmin();
   renderIcons();
 }
 
-function setText(selector, value) {
-  const node = document.querySelector(selector);
-  if (node) node.textContent = value;
-}
-
-function renderSiteCopy() {
-  const settings = siteSettings();
-  document.title = settings.brandName || defaultSiteSettings.brandName;
-  setText("#brandNameText", settings.brandName);
-  setText("#brandTaglineText", settings.brandTagline);
-  setText(".topbar .eyebrow", settings.heroEyebrow);
-  setText(".topbar h1", settings.heroTitle);
-  setText("#apply .section-head p", settings.applyIntro);
-  setText(".privacy-detail-head h3", settings.privacyDetailTitle);
-  setText(".privacy-detail-head p", settings.privacyDetailIntro);
-
-  const privacyGrid = document.querySelector(".privacy-detail-grid");
-  if (privacyGrid) {
-    privacyGrid.innerHTML = `
-      <article>
-        <strong>수집 항목</strong>
-        <p>${escapeHtml(settings.privacyCollectionItems)}</p>
-      </article>
-      <article>
-        <strong>사용 목적</strong>
-        <p>${escapeHtml(settings.privacyUsagePurpose)}</p>
-      </article>
-      <article>
-        <strong>보관 및 삭제</strong>
-        <p>${escapeHtml(settings.privacyRetentionPolicy)}</p>
-      </article>
-    `;
-  }
-
-  renderBulkMatchDefaults();
-}
-
-function renderBulkMatchDefaults() {
-  const form = document.querySelector("#bulkCreateMatchesForm");
-  if (!form) return;
-
-  const settings = siteSettings();
-  const weekdayInput = form.elements.weekdayTime;
-  const weekendInput = form.elements.weekendTime;
-  if (weekdayInput && !weekdayInput.dataset.touched) weekdayInput.value = settings.bulkWeekdayTime;
-  if (weekendInput && !weekendInput.dataset.touched) weekendInput.value = settings.bulkWeekendTime;
-
-  Array.from(form.children)
-    .filter((node) => node.classList?.contains("check-line") || node.classList?.contains("bulk-location-option"))
-    .forEach((node) => node.remove());
-  const submitButton = form.querySelector('button[type="submit"]');
-  const locationMarkup = bulkMatchLocations()
-    .map((location) => {
-      const name = `bulkLocation_${matchLocationSlug(location)}`;
-      return `
-        <label class="check-line bulk-location-option">
-          <input type="checkbox" name="${escapeHtml(name)}" checked />
-          <span>${escapeHtml(location)}</span>
-        </label>
-      `;
-    })
-    .join("");
-  submitButton?.insertAdjacentHTML("beforebegin", locationMarkup);
-}
-
 function renderNavigation() {
   const adminNav = document.querySelector('[data-view="admin"]');
   if (!adminNav) return;
-
-  const settings = siteSettings();
-  const navItems = [
-    { view: "apply", label: settings.navApplyLabel, visible: settings.navApplyVisible },
-    { view: "notice", label: settings.navNoticeLabel, visible: settings.navNoticeVisible },
-    { view: "ranking", label: settings.navRankingLabel, visible: settings.navRankingVisible },
-    { view: "games", label: settings.navGamesLabel, visible: settings.navGamesVisible },
-    { view: "policy", label: settings.navPolicyLabel, visible: settings.navPolicyVisible },
-  ];
-
-  navItems.forEach((item) => {
-    const button = document.querySelector(`[data-view="${item.view}"]`);
-    if (!button) return;
-
-    button.hidden = !item.visible && !appState.isAdmin;
-    button.classList.toggle("nav-item-hidden-public", !item.visible && appState.isAdmin);
-    button.setAttribute("aria-label", item.label);
-    Array.from(button.childNodes).forEach((node) => {
-      if (node.nodeType === 3) node.remove();
-    });
-    button.append(document.createTextNode(item.label));
-  });
 
   adminNav.hidden = !appState.isAuthenticated;
 
@@ -456,12 +301,6 @@ function renderNavigation() {
     document.querySelector("#admin")?.classList.remove("active");
     document.querySelector('[data-view="apply"]')?.classList.add("active");
     document.querySelector("#apply")?.classList.add("active");
-  }
-
-  const activeHiddenItem = navItems.find((item) => !item.visible && document.querySelector(`#${item.view}`)?.classList.contains("active"));
-  if (activeHiddenItem && !appState.isAdmin) {
-    const fallback = navItems.find((item) => item.visible)?.view || "apply";
-    setActiveView(fallback);
   }
 }
 
@@ -481,77 +320,6 @@ function setActiveView(viewId) {
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
-function openGameAdminEditor(gameId = null, section = "library") {
-  if (!appState.isAdmin) {
-    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
-    setActiveView("admin");
-    return;
-  }
-
-  activeAdminSection = "games";
-  activeAdminGameSection = section;
-  activeAdminGameId = gameId || null;
-  setActiveView("admin");
-  renderAdmin();
-
-  window.setTimeout(() => {
-    document.querySelector("#adminGameManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 0);
-}
-
-function openAdminSiteSettings() {
-  if (!appState.isAdmin) {
-    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
-    setActiveView("admin");
-    return;
-  }
-
-  activeAdminSection = "settings";
-  setActiveView("admin");
-  renderAdmin();
-
-  window.setTimeout(() => {
-    document.querySelector("#adminSiteSettings")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 0);
-}
-
-function openAdminMemberDetail(memberId, section = "summary") {
-  if (!appState.isAdmin) {
-    showToast("운영자 권한 확인 후 확인할 수 있습니다.");
-    setActiveView("admin");
-    return;
-  }
-
-  activeAdminSection = "members";
-  activeMemberId = memberId || null;
-  activeMemberDetailSection = section;
-  setActiveView("admin");
-  renderAdmin();
-
-  window.setTimeout(() => {
-    document.querySelector("#memberDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 0);
-}
-
-function openAdminMatchDetail(matchId = null) {
-  if (!appState.isAdmin) {
-    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
-    setActiveView("admin");
-    return;
-  }
-
-  activeAdminSection = "matches";
-  activeOpsFilter = "all";
-  activeOpsMatchId = matchId || null;
-  setActiveView("admin");
-  renderAdmin();
-
-  window.setTimeout(() => {
-    const target = matchId ? document.querySelector(`[data-toggle-ops-match="${matchId}"]`) : document.querySelector("#opsList");
-    target?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 0);
-}
-
 function openAuthView() {
   const currentView = document.querySelector(".view.active");
   if (currentView?.id && currentView.id !== "auth") {
@@ -565,52 +333,10 @@ function closeAuthView() {
   setActiveView(authReturnView || "apply");
 }
 
-function siteSettings() {
-  return { ...defaultSiteSettings, ...(appState?.siteSettings || {}) };
-}
-
-function textLines(value) {
-  return String(value || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function matchLocationSlug(location) {
-  const text = String(location || "").trim();
-  const slug = text
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
-  return slug || "match";
-}
-
-function bulkMatchLocations() {
-  const locations = textLines(siteSettings().bulkMatchLocations);
-  return [...new Set(locations)];
-}
-
-function won(amount) {
-  return `${Number(amount || 0).toLocaleString("ko-KR")}원`;
-}
-
-function participationFeeText() {
-  const settings = siteSettings();
-  return settings.feeNotice || won(settings.participationFee);
-}
-
-function regularFeeText() {
-  return won(siteSettings().regularFee);
-}
-
 function renderPaymentGuide() {
   const guide = document.querySelector("#bankGuide");
   if (!guide) return;
-  renderApplyAdminToolbar();
-  renderRefundConsentText();
   const account = paymentAccountText();
-  const settings = siteSettings();
   const match = selectedApplyMatch();
   const matchLine = match ? `${match.date} ${match.time} · ${displayMatchLocation(match)}` : "선택한 매치";
   const playerLine = match ? `현재 ${match.playerCount}/2명 신청` : "선택 후 확인 가능";
@@ -622,56 +348,19 @@ function renderPaymentGuide() {
       <small>${playerLine}</small>
     </div>
     <div class="final-check-grid">
-      <span><strong>참가비</strong>${participationFeeText()}</span>
+      <span><strong>참가비</strong>6월 시범운영 1,000원</span>
       <span><strong>계좌</strong>${account}</span>
-      <span><strong>입금자명</strong>${settings.depositNameGuide}</span>
-      <span><strong>음료비</strong>${settings.drinkFeeNotice}</span>
-      <span><strong>환불</strong>${settings.refundPolicy}</span>
+      <span><strong>입금자명</strong>회원가입 닉네임과 동일</span>
+      <span><strong>음료비</strong>카페 음료 비용 별도</span>
+      <span><strong>환불</strong>시작 24시간 전까지 2명 미달 시 참가비 환불</span>
       <span><strong>정확한 장소</strong>${exactVenueNotice()}</span>
     </div>
   `;
 }
 
 function paymentAccountText() {
-  const settings = siteSettings();
-  const account = settings.bankAccountLabel || appState.payment?.bankAccountLabel || defaultSiteSettings.bankAccountLabel;
-  return account.includes(settings.accountHolder) ? account : `${account} / 예금주: ${settings.accountHolder}`;
-}
-
-function renderRefundConsentText() {
-  const consentText = document.querySelector('input[name="refundConsent"]')?.nextElementSibling;
-  if (!consentText) return;
-
-  const settings = siteSettings();
-  consentText.textContent = `참가비 ${participationFeeText()}, ${settings.drinkFeeNotice}, ${settings.refundPolicy} 기준을 확인했습니다.`;
-}
-
-function renderApplyAdminToolbar() {
-  const form = document.querySelector("#applyForm");
-  if (!form) return;
-
-  const existing = form.querySelector(".apply-page-admin-toolbar");
-  if (!appState?.isAdmin) {
-    existing?.remove();
-    return;
-  }
-
-  const html = `
-    <div class="apply-page-admin-toolbar">
-      <div>
-        <strong>참가 신청 안내 편집</strong>
-        <span>참가비, 계좌, 환불 기준, 장소 안내 문구를 수정합니다.</span>
-      </div>
-      <button class="secondary-button" type="button" data-open-admin-site-settings>신청 안내 수정</button>
-    </div>
-  `;
-
-  if (existing) {
-    existing.outerHTML = html;
-    return;
-  }
-
-  form.querySelector(":scope > div:first-child")?.insertAdjacentHTML("afterend", html);
+  const account = appState.payment?.bankAccountLabel || "카카오뱅크 3333-21-1861396";
+  return account.includes("구원근") ? account : `${account} / 예금주: 구원근`;
 }
 
 function selectedApplyMatch() {
@@ -685,8 +374,7 @@ function getMatchArea(match) {
 
 function publicMatchLocation(match) {
   const area = getMatchArea(match);
-  const settings = siteSettings();
-  return area ? `${area} ${settings.publicLocationSuffix}` : settings.emptyPublicLocationLabel;
+  return area ? `${area} 일대 카페` : "신촌/강남 일대 카페";
 }
 
 function exactMatchVenue(match) {
@@ -698,7 +386,7 @@ function displayMatchLocation(match) {
 }
 
 function exactVenueNotice() {
-  return siteSettings().exactVenueNotice;
+  return "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.";
 }
 
 function gameRevealVenueNotice(match) {
@@ -925,15 +613,6 @@ function renderApplySelector() {
   const selectedMatch = timeMatches.find((match) => match.id === activeApplyTimeMatchId);
   const canApplySelectedMatch = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe;
   hiddenInput.value = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe ? selectedMatch.id : "";
-  const applyAdminActions = appState.isAdmin
-    ? `
-      <div class="apply-admin-actions">
-        <button class="secondary-button" type="button" data-open-admin-match="${selectedMatch?.id || ""}">
-          ${selectedMatch ? "선택 매치 관리" : "매치 관리 열기"}
-        </button>
-      </div>
-    `
-    : "";
 
   selector.innerHTML = `
     <div class="apply-step">
@@ -989,7 +668,6 @@ function renderApplySelector() {
         <strong>${matchSeatLabel(selectedMatch)}</strong>
         <small>${canApplySelectedMatch ? "신청 전 참가비 안내를 확인합니다." : "마감 또는 이미 신청한 매치입니다."}</small>
       </div>
-      ${applyAdminActions}
     </div>
   `;
 }
@@ -1033,11 +711,6 @@ function renderAreaFilters() {
 function renderUser() {
   const userChip = document.querySelector("#userChip");
   const authButton = document.querySelector("#openAuthButton");
-  const adminEditBadge = document.querySelector("#adminEditModeBadge");
-
-  if (adminEditBadge) {
-    adminEditBadge.hidden = !appState.isAdmin;
-  }
 
   if (!appState.isAuthenticated) {
     if (authButton) {
@@ -1440,14 +1113,6 @@ function renderNoticeCard(match) {
       ? `${match.game.summary} 이번 매치의 상세 규칙이 공개되었습니다.`
       : "시작 24시간 전에 운영자가 게임과 규칙을 공개합니다.";
   const playerNames = match.players.map((player) => player.nickname);
-  const noticeActions = [
-    match.gameRevealed && match.game
-      ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
-      : "",
-    appState.isAdmin ? `<button class="secondary-button notice-action" type="button" data-open-admin-match="${match.id}">매치 관리</button>` : "",
-  ]
-    .filter(Boolean)
-    .join("");
 
   return `
     <article class="notice-main notice-card">
@@ -1468,7 +1133,11 @@ function renderNoticeCard(match) {
         <strong>VS</strong>
         <span>${playerNames[1] || "참가자 2"}</span>
       </div>
-      ${noticeActions ? `<div class="notice-actions">${noticeActions}</div>` : ""}
+      ${
+        match.gameRevealed && match.game
+          ? `<button class="secondary-button notice-action" data-open-game="${match.game.id}">규칙 보기</button>`
+          : ""
+      }
     </article>
   `;
 }
@@ -1510,20 +1179,8 @@ function renderNotices() {
         <p>2명이 모이면 이곳에 확정 공지가 표시됩니다.</p>
       </article>
     `;
-  const noticeAdminToolbar = appState.isAdmin
-    ? `
-      <div class="page-admin-toolbar notice-admin-toolbar">
-        <div>
-          <strong>확정 공지 안내 편집</strong>
-          <span>정확한 장소 안내, 참가비, 환불 기준 문구는 사이트 설정에서 수정합니다.</span>
-        </div>
-        <button class="secondary-button" type="button" data-open-admin-site-settings>공지 안내 수정</button>
-      </div>
-    `
-    : "";
 
   board.innerHTML = `
-    ${noticeAdminToolbar}
     <div class="notice-toolbar">
       <div class="segmented notice-area-filter">${areaButtons}</div>
       <span class="notice-count">${filteredMatches.length}개 확정 매치</span>
@@ -1547,47 +1204,6 @@ function renderNotices() {
             .join("")
         : emptyMessage
     }
-  `;
-}
-
-function renderPolicy() {
-  const grid = document.querySelector("#policyGrid");
-  if (!grid) return;
-
-  const settings = siteSettings();
-  const adminCard = appState.isAdmin
-    ? `
-      <article class="policy-card policy-admin-card">
-        <span class="status-pill waiting">운영자</span>
-        <h3>운영 안내 수정</h3>
-        <p>참가비, 계좌, 환불 기준, 정확한 장소 안내 문구는 사이트 설정에서 바로 수정합니다.</p>
-        <button class="secondary-button" type="button" data-open-admin-site-settings>사이트 설정 열기</button>
-      </article>
-    `
-    : "";
-
-  grid.innerHTML = `
-    ${adminCard}
-    <article class="policy-card">
-      <span class="status-pill revealed-pill">개인정보</span>
-      <h3>수집 항목과 목적</h3>
-      <p>${escapeHtml(settings.privacyUsagePurpose)}</p>
-    </article>
-    <article class="policy-card">
-      <span class="status-pill waiting">참가비</span>
-      <h3>${participationFeeText()}</h3>
-      <p>정상 참가비는 ${regularFeeText()}입니다. 현재 적용 참가비는 ${participationFeeText()}이며, ${escapeHtml(settings.drinkFeeNotice)}입니다.</p>
-    </article>
-    <article class="policy-card">
-      <span class="status-pill refunding">환불</span>
-      <h3>환불 기준</h3>
-      <p>${escapeHtml(settings.refundPolicy)}. 환불은 운영자가 입금 여부를 확인한 뒤 수동으로 처리합니다.</p>
-    </article>
-    <article class="policy-card">
-      <span class="status-pill confirmed">게임 공개</span>
-      <h3>24시간 전 공지</h3>
-      <p>${escapeHtml(settings.exactVenueNotice)} 진행 게임, 방식, 규칙도 확정 공지 탭에 함께 공개됩니다.</p>
-    </article>
   `;
 }
 
@@ -1630,36 +1246,19 @@ function renderRankingControls() {
 
 function renderRankings() {
   renderRankingControls();
-  const rows = document.querySelector("#rankingRows");
-  const adminToolbar = appState.isAdmin
-    ? `
-      <div class="page-admin-toolbar ranking-admin-toolbar">
-        <div>
-          <strong>랭킹 회원 관리</strong>
-          <span>회원 행을 누르면 회원 상세, 정보 수정, 신청 이력 화면으로 이동합니다.</span>
-        </div>
-        <button class="secondary-button" type="button" data-open-admin-members>회원 관리 열기</button>
-      </div>
-    `
-    : "";
-
-  rows.innerHTML = `${adminToolbar}${sortedRankings()
-    .map((row, index) => {
-      const tag = appState.isAdmin ? "button" : "div";
-      const attributes = appState.isAdmin
-        ? `type="button" data-open-admin-member="${row.id}" title="${escapeHtml(row.nickname)} 회원 관리 열기"`
-        : "";
-      return `
-        <${tag} class="table-row ${appState.isAdmin ? "ranking-member-row" : ""}" ${attributes}>
+  document.querySelector("#rankingRows").innerHTML = sortedRankings()
+    .map(
+      (row, index) => `
+        <div class="table-row">
           <span><b class="rank-badge">${index + 1}</b></span>
-          <span><strong>${escapeHtml(row.nickname)}</strong></span>
-          <span>${escapeHtml(row.record)}</span>
-          <span><strong>${escapeHtml(row.rate)}</strong></span>
-          <span>${escapeHtml(row.area || "-")}</span>
-        </${tag}>
-      `;
-    })
-    .join("")}`;
+          <span><strong>${row.nickname}</strong></span>
+          <span>${row.record}</span>
+          <span><strong>${row.rate}</strong></span>
+          <span>${row.area || "-"}</span>
+        </div>
+      `,
+    )
+    .join("");
 }
 
 function getGameTags(game) {
@@ -1700,7 +1299,7 @@ function renderGames(gameId, options = {}) {
   }
 
   const query = gameSearchQuery.trim().toLowerCase();
-  const publicGames = appState.isAdmin ? appState.games : appState.games.filter((game) => !game.hidden);
+  const publicGames = appState.games.filter((game) => !game.hidden);
   const categoryFilteredGames =
     activeGameCategoryFilter === "all"
       ? publicGames
@@ -1751,50 +1350,21 @@ function renderGames(gameId, options = {}) {
     gameDetail.hidden = !isGameDetailOpen;
   }
 
-  const gamePageAdminToolbar = appState.isAdmin
-    ? `
-      <div class="game-page-admin-toolbar">
-        <div>
-          <strong>게임 목록 편집</strong>
-          <span>게임 추가, 수정, 숨김, 분류 색상 변경을 이 페이지에서 시작합니다.</span>
-        </div>
-        <div>
-          <button class="secondary-button" type="button" data-open-admin-game-new>새 게임 추가</button>
-          <button class="secondary-button" type="button" data-open-admin-game-editor="${activeGame?.id || ""}" ${activeGame ? "" : "disabled"}>선택 게임 수정</button>
-        </div>
-      </div>
-    `
-    : "";
-
   gameList.innerHTML = visibleGames.length
-    ? `${gamePageAdminToolbar}${visibleGames
+    ? visibleGames
         .map((game) => {
           const tags = getGameTags(game);
           const category = getGameCategory(game);
-          const cardMarkup = `
-            <button class="game-card game-card--${category} ${game.hidden ? "game-card-is-hidden" : ""}" data-game="${game.id}">
+          return `
+            <button class="game-card game-card--${category}" data-game="${game.id}">
               <strong>${game.title}</strong>
               <span>${game.summary}</span>
-              ${appState.isAdmin && game.hidden ? `<em>숨김</em>` : ""}
               ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
             </button>
           `;
-          if (!appState.isAdmin) return cardMarkup;
-
-          return `
-            <div class="game-card-shell">
-              ${cardMarkup}
-              <div class="game-card-quick-actions">
-                <button class="secondary-button" type="button" data-open-admin-game-editor="${game.id}">수정</button>
-                <button class="secondary-button ${game.hidden ? "" : "danger-button"}" type="button" data-page-toggle-game-hidden="${game.id}">
-                  ${game.hidden ? "공개" : "숨김"}
-                </button>
-              </div>
-            </div>
-          `;
         })
-        .join("")}`
-    : `${gamePageAdminToolbar}<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
+        .join("")
+    : `<div class="game-empty">검색 결과가 없습니다. 다른 키워드로 찾아보세요.</div>`;
 
   if (!activeGame) {
     gameDetail.innerHTML = "";
@@ -1812,17 +1382,8 @@ function renderGames(gameId, options = {}) {
       ${activeGameTags.length ? `<div class="game-tags detail-tags">${activeGameTags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
       <div class="game-detail-actions">
         <button class="secondary-button" type="button" data-copy-game-rules="${activeGame.id}">규칙 복사</button>
-        ${
-          appState.isAdmin
-            ? `<button class="secondary-button" type="button" data-open-admin-game-editor="${activeGame.id}">게임 수정</button>
-               <button class="secondary-button ${activeGame.hidden ? "" : "danger-button"}" type="button" data-page-toggle-game-hidden="${activeGame.id}">
-                 ${activeGame.hidden ? "게임 공개" : "게임 숨김"}
-               </button>`
-            : ""
-        }
       </div>
     </div>
-    ${appState.isAdmin ? renderGameInlineEditor(activeGame) : ""}
     <div class="rule-section-title">
       <strong>게임 규칙</strong>
       <span>${activeGame.rules.length}개 항목</span>
@@ -1837,41 +1398,6 @@ function renderGames(gameId, options = {}) {
     <div class="game-bottom-actions">
       <button class="secondary-button" type="button" data-game-list>목록</button>
     </div>
-  `;
-}
-
-function renderGameInlineEditor(game) {
-  return `
-    <details class="game-inline-editor">
-      <summary>이 페이지에서 게임 수정</summary>
-      <form class="admin-game-form game-inline-editor-form" data-update-game-form="${game.id}">
-        <input name="gameId" type="hidden" value="${escapeHtml(game.id)}" />
-        <label>
-          게임명
-          <input name="title" type="text" value="${escapeHtml(game.title)}" required />
-        </label>
-        <label>
-          분류
-          <select name="category">${gameCategorySelectOptions(getGameCategory(game))}</select>
-        </label>
-        <label class="wide">
-          요약
-          <input name="summary" type="text" value="${escapeHtml(game.summary)}" required />
-        </label>
-        <label class="wide">
-          규칙
-          <textarea name="rules" rows="7" required>${escapeHtml((game.rules || []).join("\n"))}</textarea>
-        </label>
-        <label class="wide">
-          승리 조건
-          <input name="win" type="text" value="${escapeHtml(game.win)}" required />
-        </label>
-        <div class="game-inline-editor-actions">
-          <button class="secondary-button" type="button" data-open-admin-game-editor="${game.id}">운영관리에서 열기</button>
-          <button class="primary-button" type="submit">게임 수정 저장</button>
-        </div>
-      </form>
-    </details>
   `;
 }
 
@@ -1984,7 +1510,6 @@ function renderAdmin() {
   renderAdminSystemStatus();
   renderAdminBackupPanel();
   renderAdminGameManager();
-  renderAdminSiteSettings();
 
   const metrics = [
     ["전체 회원", appState.members?.length || 0, "all"],
@@ -2112,27 +1637,12 @@ function renderAdminBackupPanel() {
   const panel = document.querySelector("#adminBackupPanel");
   if (!panel) return;
 
-  const matches = appState.matches || [];
-  const applications = matches.reduce((count, match) => count + (match.allPlayers?.length || match.applications?.length || 0), 0);
-  const events = appState.allEvents || appState.events || [];
-  const lastEvent = events
-    .map((event) => (typeof event === "string" ? { message: event, createdAt: null } : event))
-    .find((event) => event.createdAt);
-  const lastBackupHint = lastEvent ? formatEventTime(lastEvent.createdAt) : "기록 없음";
-
   panel.innerHTML = `
     <div class="backup-card">
       <div>
         <span>운영 데이터 백업</span>
         <strong>회원·신청·매치 데이터 내보내기</strong>
         <p>비밀번호 정보는 제외하고 내려받습니다. CSV는 신청 현황 확인용, JSON은 전체 백업용입니다.</p>
-        <div class="backup-meta">
-          <span><strong>${appState.members?.length || 0}</strong>회원</span>
-          <span><strong>${matches.length}</strong>매치</span>
-          <span><strong>${applications}</strong>신청 기록</span>
-          <span><strong>${events.length}</strong>운영 로그</span>
-          <span><strong>${lastBackupHint}</strong>마지막 변경</span>
-        </div>
       </div>
       <div class="backup-actions">
         <button class="secondary-button" type="button" data-admin-export="csv">CSV 다운로드</button>
@@ -2177,8 +1687,7 @@ function renderAdminGameManager() {
   const isSupabase = (system.storage || "json") === "supabase";
   const needsGameAdminMigration = Boolean(isSupabase && system.schemaStatus?.gameAdminFields === false);
   const needsAutoClosedMigration = Boolean(isSupabase && system.schemaStatus?.autoClosedApplications === false);
-  const needsSiteSettingsMigration = Boolean(isSupabase && system.schemaStatus?.siteSettings === false);
-  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration, needsSiteSettingsMigration].filter(Boolean).length;
+  const migrationIssueCount = [needsGameAdminMigration, needsAutoClosedMigration].filter(Boolean).length;
   const categoryButtons = gameCategoryOptions
     .map(
       (option) => `
@@ -2285,235 +1794,6 @@ function renderAdminGameManager() {
         }
       </div>
     </section>
-  `;
-}
-
-function renderAdminSiteSettings() {
-  const panel = document.querySelector("#adminSiteSettings");
-  if (!panel) return;
-
-  const settings = siteSettings();
-  const system = appState.system || {};
-  const needsSiteSettingsMigration = Boolean((system.storage || "json") === "supabase" && system.schemaStatus?.siteSettings === false);
-
-  panel.innerHTML = `
-    <div class="admin-game-head">
-      <div>
-        <h3>사이트 설정</h3>
-        <p>참가 신청 화면과 안내 문자에 쓰는 참가비, 계좌, 환불 기준 문구를 수정합니다.</p>
-      </div>
-      <span class="status-pill ${needsSiteSettingsMigration ? "waiting" : "confirmed"}">
-        ${needsSiteSettingsMigration ? "DB 적용 필요" : "저장 가능"}
-      </span>
-    </div>
-    ${
-      needsSiteSettingsMigration
-        ? `<div class="system-status-card warning system-status-warning">
-            <div>
-              <span>Supabase 설정 테이블 필요</span>
-              <strong>site_settings 테이블이 아직 없습니다</strong>
-              <p><code>supabase-add-site-settings.sql</code>을 Supabase SQL Editor에서 실행하면 이 설정이 DB에 영구 저장됩니다. 실행 전에는 기본값으로 계속 동작합니다.</p>
-              <button class="secondary-button" type="button" data-copy-migration-sql="site-settings">SQL 복사</button>
-            </div>
-          </div>`
-        : ""
-    }
-    <form class="admin-create-form admin-site-settings-form" id="siteSettingsForm">
-      <label>
-        현재 참가비
-        <input name="participationFee" type="number" min="0" step="100" value="${escapeHtml(settings.participationFee)}" required />
-      </label>
-      <label>
-        정상 참가비
-        <input name="regularFee" type="number" min="0" step="100" value="${escapeHtml(settings.regularFee)}" required />
-      </label>
-      <label class="wide">
-        참가비 표시 문구
-        <input name="feeNotice" type="text" value="${escapeHtml(settings.feeNotice)}" required />
-      </label>
-      <label class="wide">
-        입금 계좌
-        <input name="bankAccountLabel" type="text" value="${escapeHtml(settings.bankAccountLabel)}" required />
-      </label>
-      <label>
-        예금주
-        <input name="accountHolder" type="text" value="${escapeHtml(settings.accountHolder)}" required />
-      </label>
-      <label>
-        입금자명 안내
-        <input name="depositNameGuide" type="text" value="${escapeHtml(settings.depositNameGuide)}" required />
-      </label>
-      <label class="wide">
-        음료비 안내
-        <input name="drinkFeeNotice" type="text" value="${escapeHtml(settings.drinkFeeNotice)}" required />
-      </label>
-      <label class="wide">
-        환불 기준
-        <textarea name="refundPolicy" rows="3" required>${escapeHtml(settings.refundPolicy)}</textarea>
-      </label>
-      <label class="wide">
-        정확한 장소 안내
-        <textarea name="exactVenueNotice" rows="3" required>${escapeHtml(settings.exactVenueNotice)}</textarea>
-      </label>
-      <div class="site-settings-divider wide">
-        <strong>사이트 문구</strong>
-        <span>상단 브랜드, 신청 안내, 개인정보 상세 문구를 수정합니다.</span>
-      </div>
-      <label>
-        브랜드명
-        <input name="brandName" type="text" value="${escapeHtml(settings.brandName)}" required />
-      </label>
-      <label>
-        브랜드 설명
-        <input name="brandTagline" type="text" value="${escapeHtml(settings.brandTagline)}" required />
-      </label>
-      <label class="wide">
-        상단 작은 문구
-        <input name="heroEyebrow" type="text" value="${escapeHtml(settings.heroEyebrow)}" required />
-      </label>
-      <label class="wide">
-        상단 큰 문구
-        <input name="heroTitle" type="text" value="${escapeHtml(settings.heroTitle)}" required />
-      </label>
-      <label class="wide">
-        참가 신청 소개 문구
-        <textarea name="applyIntro" rows="3" required>${escapeHtml(settings.applyIntro)}</textarea>
-      </label>
-      <label class="wide">
-        개인정보 상세 제목
-        <input name="privacyDetailTitle" type="text" value="${escapeHtml(settings.privacyDetailTitle)}" required />
-      </label>
-      <label class="wide">
-        개인정보 상세 소개
-        <textarea name="privacyDetailIntro" rows="2" required>${escapeHtml(settings.privacyDetailIntro)}</textarea>
-      </label>
-      <label class="wide">
-        개인정보 수집 항목
-        <textarea name="privacyCollectionItems" rows="3" required>${escapeHtml(settings.privacyCollectionItems)}</textarea>
-      </label>
-      <label class="wide">
-        개인정보 사용 목적
-        <textarea name="privacyUsagePurpose" rows="3" required>${escapeHtml(settings.privacyUsagePurpose)}</textarea>
-      </label>
-      <label class="wide">
-        개인정보 보관 및 삭제
-        <textarea name="privacyRetentionPolicy" rows="3" required>${escapeHtml(settings.privacyRetentionPolicy)}</textarea>
-      </label>
-      <div class="site-settings-divider wide">
-        <strong>메뉴 설정</strong>
-        <span>운영자는 숨긴 메뉴도 계속 볼 수 있고, 일반 사용자에게만 숨겨집니다.</span>
-      </div>
-      <label>
-        참가 신청 메뉴명
-        <input name="navApplyLabel" type="text" value="${escapeHtml(settings.navApplyLabel)}" required />
-      </label>
-      <label class="setting-checkbox-line">
-        <input name="navApplyVisible" type="hidden" value="false" />
-        <input name="navApplyVisible" type="checkbox" value="true" ${settings.navApplyVisible ? "checked" : ""} />
-        일반 사용자에게 표시
-      </label>
-      <label>
-        확정 공지 메뉴명
-        <input name="navNoticeLabel" type="text" value="${escapeHtml(settings.navNoticeLabel)}" required />
-      </label>
-      <label class="setting-checkbox-line">
-        <input name="navNoticeVisible" type="hidden" value="false" />
-        <input name="navNoticeVisible" type="checkbox" value="true" ${settings.navNoticeVisible ? "checked" : ""} />
-        일반 사용자에게 표시
-      </label>
-      <label>
-        랭킹 메뉴명
-        <input name="navRankingLabel" type="text" value="${escapeHtml(settings.navRankingLabel)}" required />
-      </label>
-      <label class="setting-checkbox-line">
-        <input name="navRankingVisible" type="hidden" value="false" />
-        <input name="navRankingVisible" type="checkbox" value="true" ${settings.navRankingVisible ? "checked" : ""} />
-        일반 사용자에게 표시
-      </label>
-      <label>
-        게임 목록 메뉴명
-        <input name="navGamesLabel" type="text" value="${escapeHtml(settings.navGamesLabel)}" required />
-      </label>
-      <label class="setting-checkbox-line">
-        <input name="navGamesVisible" type="hidden" value="false" />
-        <input name="navGamesVisible" type="checkbox" value="true" ${settings.navGamesVisible ? "checked" : ""} />
-        일반 사용자에게 표시
-      </label>
-      <label>
-        운영 안내 메뉴명
-        <input name="navPolicyLabel" type="text" value="${escapeHtml(settings.navPolicyLabel)}" required />
-      </label>
-      <label class="setting-checkbox-line">
-        <input name="navPolicyVisible" type="hidden" value="false" />
-        <input name="navPolicyVisible" type="checkbox" value="true" ${settings.navPolicyVisible ? "checked" : ""} />
-        일반 사용자에게 표시
-      </label>
-      <div class="site-settings-divider wide">
-        <strong>매치 지역/시간 기본값</strong>
-        <span>신청 화면 공개 장소 문구와 운영관리 일괄 생성 기본값을 수정합니다.</span>
-      </div>
-      <label>
-        공개 장소 접미사
-        <input name="publicLocationSuffix" type="text" value="${escapeHtml(settings.publicLocationSuffix)}" required />
-      </label>
-      <label>
-        지역 없음 표시
-        <input name="emptyPublicLocationLabel" type="text" value="${escapeHtml(settings.emptyPublicLocationLabel)}" required />
-      </label>
-      <label>
-        일괄 생성 평일 시간
-        <input name="bulkWeekdayTime" type="time" value="${escapeHtml(settings.bulkWeekdayTime)}" required />
-      </label>
-      <label>
-        일괄 생성 주말 시간
-        <input name="bulkWeekendTime" type="time" value="${escapeHtml(settings.bulkWeekendTime)}" required />
-      </label>
-      <label class="wide">
-        일괄 생성 장소 목록
-        <textarea name="bulkMatchLocations" rows="4" required>${escapeHtml(settings.bulkMatchLocations)}</textarea>
-      </label>
-      <div class="site-settings-divider wide">
-        <strong>문자 템플릿</strong>
-        <span>{date}, {time}, {location}, {fee}, {players}, {targetPlayers}, {gameTitle}, {siteUrl} 같은 값을 사용할 수 있습니다.</span>
-      </div>
-      <label class="wide">
-        모집 안내 문자
-        <textarea name="smsRecruitingTemplate" rows="3" required>${escapeHtml(settings.smsRecruitingTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        입금 안내 문자
-        <textarea name="smsPaymentGuideTemplate" rows="4" required>${escapeHtml(settings.smsPaymentGuideTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        매치 확정 문자
-        <textarea name="smsConfirmedTemplate" rows="3" required>${escapeHtml(settings.smsConfirmedTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        게임 공개 문자
-        <textarea name="smsGameRevealedTemplate" rows="3" required>${escapeHtml(settings.smsGameRevealedTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        미달 환불 안내 문자
-        <textarea name="smsRefundPendingTemplate" rows="3" required>${escapeHtml(settings.smsRefundPendingTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        취소 요청 접수 문자
-        <textarea name="smsCancelRequestTemplate" rows="3" required>${escapeHtml(settings.smsCancelRequestTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        환불 요청 안내 문자
-        <textarea name="smsRefundRequestedTemplate" rows="3" required>${escapeHtml(settings.smsRefundRequestedTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        환불 예정 안내 문자
-        <textarea name="smsRefundScheduledTemplate" rows="3" required>${escapeHtml(settings.smsRefundScheduledTemplate)}</textarea>
-      </label>
-      <label class="wide">
-        환불 완료 안내 문자
-        <textarea name="smsRefundCompletedTemplate" rows="3" required>${escapeHtml(settings.smsRefundCompletedTemplate)}</textarea>
-      </label>
-      <button class="primary-button" type="submit">사이트 설정 저장</button>
-    </form>
   `;
 }
 
@@ -2639,18 +1919,6 @@ function renderAdminSystemStatus() {
               <strong>자동 취소 기록 컬럼 미적용</strong>
               <p><code>supabase-add-auto-closed-applications.sql</code>을 Supabase SQL Editor에서 실행해야 자동 취소/환불 필터 기록이 영구 저장됩니다.</p>
               <button class="secondary-button" type="button" data-copy-migration-sql="auto-closed">SQL 복사</button>
-            </div>
-          </div>`
-        : ""
-    }
-    ${
-      needsSiteSettingsMigration
-        ? `<div class="system-status-card warning system-status-warning">
-            <div>
-              <span>DB 마이그레이션 필요</span>
-              <strong>사이트 설정 테이블 미적용</strong>
-              <p><code>supabase-add-site-settings.sql</code>을 Supabase SQL Editor에서 실행해야 참가비, 계좌, 환불 기준 설정이 DB에 영구 저장됩니다.</p>
-              <button class="secondary-button" type="button" data-copy-migration-sql="site-settings">SQL 복사</button>
             </div>
           </div>`
         : ""
@@ -3493,7 +2761,7 @@ function renderOpsCard(match) {
                 </div>`
               : ""
           }
-          <p>${escapeHtml(messageText.body)}</p>
+          <p>${messageText.body}</p>
         </div>
       `;
     })
@@ -3620,23 +2888,10 @@ function renderOpsCard(match) {
   `;
 }
 
-function renderMessageTemplate(template, values) {
-  return String(template || "").replace(/\{([a-zA-Z0-9_]+)\}/g, (fullMatch, key) => {
-    if (Object.prototype.hasOwnProperty.call(values, key)) {
-      return values[key] ?? "";
-    }
-
-    return fullMatch;
-  });
-}
-
 function buildAdminMessages(match) {
   const messages = [];
   const siteUrl = "https://www.1x1match.com";
   const account = paymentAccountText();
-  const settings = siteSettings();
-  const feeText = participationFeeText();
-  const normalFeeText = regularFeeText();
   const activeApplicants = match.allPlayers.filter((player) => !player.cancelled);
   const paymentPendingPlayers = activeApplicants.filter((player) => player.paymentStatus === "payment_pending");
   const cancelRequestPlayers = match.allPlayers.filter((player) =>
@@ -3645,27 +2900,6 @@ function buildAdminMessages(match) {
   const refundRequestedPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refund_requested");
   const refundScheduledPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refund_scheduled");
   const refundedPlayers = match.allPlayers.filter((player) => player.paymentStatus === "refunded");
-  const baseValues = {
-    date: match.date,
-    time: match.time,
-    location: publicMatchLocation(match),
-    exactLocation: exactMatchVenue(match) || "",
-    siteUrl,
-    account,
-    fee: feeText,
-    regularFee: normalFeeText,
-    drinkFeeNotice: settings.drinkFeeNotice,
-    refundPolicy: settings.refundPolicy,
-    exactVenueNotice: exactVenueNotice(),
-    depositNameGuide: settings.depositNameGuide,
-    players: match.players.map((player) => player.nickname).join(" vs "),
-    gameTitle: match.game?.title || "미정",
-    venueNotice: gameRevealVenueNotice(match),
-  };
-  const withTargets = (players) => ({
-    ...baseValues,
-    targetPlayers: players.map((player) => player.nickname).join(", "),
-  });
   const targetedMessageKey = (baseKey, players) =>
     `${baseKey}:${players
       .map((player) => player.memberId)
@@ -3677,7 +2911,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "recruiting",
       type: "모집 안내",
-      body: renderMessageTemplate(settings.smsRecruitingTemplate, baseValues),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 1:1 두뇌 서바이벌 매치 신청을 받고 있습니다. 2명이 모이면 확정됩니다. ${exactVenueNotice()} 신청: ${siteUrl}`,
     });
   }
 
@@ -3685,15 +2919,16 @@ function buildAdminMessages(match) {
     messages.push({
       key: "payment-guide",
       type: "입금 안내",
-      body: renderMessageTemplate(settings.smsPaymentGuideTemplate, withTargets(paymentPendingPlayers)),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 참가 신청이 접수되었습니다. 정상 참가비는 5,000원이지만 6월 시범운영 기간에는 1,000원입니다. ${account}으로 입금해 주세요. 카페 진행 시 음료 비용은 별도입니다. ${exactVenueNotice()} 입금자명은 회원가입 닉네임과 같게 보내주세요. 대상: ${paymentPendingPlayers.map((player) => player.nickname).join(", ")}`,
     });
   }
 
   if (match.confirmed) {
+    const names = match.players.map((player) => player.nickname).join(" vs ");
     messages.push({
       key: "confirmed",
       type: "매치 확정 안내",
-      body: renderMessageTemplate(settings.smsConfirmedTemplate, baseValues),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 1:1 매치가 확정되었습니다. 참가자: ${names}. 게임과 정확한 장소는 시작 24시간 전에 함께 공개됩니다.`,
     });
   }
 
@@ -3701,7 +2936,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "game-revealed",
       type: "게임 공개 안내",
-      body: renderMessageTemplate(settings.smsGameRevealedTemplate, baseValues),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치의 게임은 "${match.game.title}"입니다. ${gameRevealVenueNotice(match)} 사이트 게임 목록에서 규칙을 확인해 주세요. ${siteUrl}`,
     });
   }
 
@@ -3709,7 +2944,7 @@ function buildAdminMessages(match) {
     messages.push({
       key: "refund-pending",
       type: "미달 환불 안내",
-      body: renderMessageTemplate(settings.smsRefundPendingTemplate, withTargets([match.players[0]])),
+      body: `[1VS1매치] ${match.date} ${match.time} 매치가 시작 24시간 전까지 2명 미달이면 6월 시범운영 참가비 1,000원이 환불 처리됩니다. 현재 신청자: ${match.players[0].nickname}.`,
     });
   }
 
@@ -3718,7 +2953,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("cancel-request-received", cancelRequestPlayers),
       type: "취소 요청 접수",
       targetLabel: targetLabel(cancelRequestPlayers),
-      body: renderMessageTemplate(settings.smsCancelRequestTemplate, withTargets(cancelRequestPlayers)),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 신청 취소 요청이 접수되었습니다. 대상: ${cancelRequestPlayers.map((player) => player.nickname).join(", ")}. 운영자 확인 후 입금 전 신청은 취소 처리되고, 입금 완료 신청은 환불 요청으로 전환됩니다.`,
     });
   }
 
@@ -3727,7 +2962,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-requested-guide", refundRequestedPlayers),
       type: "환불 요청 안내",
       targetLabel: targetLabel(refundRequestedPlayers),
-      body: renderMessageTemplate(settings.smsRefundRequestedTemplate, withTargets(refundRequestedPlayers)),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 요청 대상 안내입니다. 대상: ${refundRequestedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.`,
     });
   }
 
@@ -3736,7 +2971,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-scheduled-guide", refundScheduledPlayers),
       type: "환불 예정 안내",
       targetLabel: targetLabel(refundScheduledPlayers),
-      body: renderMessageTemplate(settings.smsRefundScheduledTemplate, withTargets(refundScheduledPlayers)),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 예정 안내입니다. 대상: ${refundScheduledPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.`,
     });
   }
 
@@ -3745,7 +2980,7 @@ function buildAdminMessages(match) {
       key: targetedMessageKey("refund-completed-guide", refundedPlayers),
       type: "환불 완료 안내",
       targetLabel: targetLabel(refundedPlayers),
-      body: renderMessageTemplate(settings.smsRefundCompletedTemplate, withTargets(refundedPlayers)),
+      body: `[1VS1매치] ${match.date} ${match.time} ${publicMatchLocation(match)} 매치 환불 완료 안내입니다. 대상: ${refundedPlayers.map((player) => player.nickname).join(", ")}. 시범운영 참가비 1,000원 환불 처리가 완료되었습니다.`,
     });
   }
 
@@ -3768,7 +3003,6 @@ function buildPromoText(matchId) {
   const match = appState.matches.find((candidate) => candidate.id === matchId);
   if (!match) return "";
 
-  const settings = siteSettings();
   const statusLine = match.confirmed ? "현재 매치 확정" : `현재 ${match.playerCount}/2명 신청`;
   return [
     "[1VS1매치 참가자 모집]",
@@ -3779,8 +3013,8 @@ function buildPromoText(matchId) {
     "",
     "두 명이 모이면 1:1 두뇌 서바이벌 게임이 열립니다.",
     "게임과 정확한 장소는 매치 24시간 전에 함께 공개됩니다.",
-    `정상 참가비 ${regularFeeText()}, 현재 참가비 ${participationFeeText()}`,
-    `${settings.drinkFeeNotice}, ${settings.refundPolicy}`,
+    "정상 참가비 5,000원, 6월 시범운영 1,000원",
+    "카페 진행 시 음료 비용 별도, 2명 미달 시 참가비 환불",
     "",
     "신청: https://www.1x1match.com",
   ].join("\n");
@@ -3959,13 +3193,6 @@ document.querySelector("#openAuthButton")?.addEventListener("click", () => {
 
 document.querySelector("#userChip")?.addEventListener("click", () => {
   setActiveView("mypage");
-});
-
-document.querySelector("#adminEditModeBadge")?.addEventListener("click", () => {
-  if (!appState.isAdmin) return;
-  activeAdminSection = "dashboard";
-  setActiveView("admin");
-  renderAdmin();
 });
 
 document.querySelector("#userChip")?.addEventListener("keydown", (event) => {
@@ -4193,7 +3420,6 @@ document.addEventListener("click", (event) => {
 
   activeAdminSection = sectionButton.dataset.adminSection;
   renderAdminSections();
-  document.querySelector(`[data-admin-page="${activeAdminSection}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.addEventListener("click", (event) => {
@@ -4575,21 +3801,6 @@ document.addEventListener("submit", async (event) => {
 });
 
 document.addEventListener("submit", async (event) => {
-  const form = event.target.closest("#siteSettingsForm");
-  if (!form) return;
-
-  event.preventDefault();
-
-  try {
-    appState = await submitForm("/api/admin/site-settings", form);
-    renderAll();
-    showToast("사이트 설정을 저장했습니다.");
-  } catch (error) {
-    showToast(error.message);
-  }
-});
-
-document.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-update-member]");
   if (!form) return;
 
@@ -4902,62 +4113,6 @@ document.addEventListener("click", async (event) => {
       renderAll();
       scrollToAdminLog();
       showToast("매치를 삭제했습니다.");
-    } catch (error) {
-      showToast(error.message);
-    }
-    return;
-  }
-
-  const openAdminGameNewButton = event.target.closest("[data-open-admin-game-new]");
-  if (openAdminGameNewButton) {
-    openGameAdminEditor(null, "new");
-    return;
-  }
-
-  const openAdminSiteSettingsButton = event.target.closest("[data-open-admin-site-settings]");
-  if (openAdminSiteSettingsButton) {
-    openAdminSiteSettings();
-    return;
-  }
-
-  const openAdminMembersButton = event.target.closest("[data-open-admin-members]");
-  if (openAdminMembersButton) {
-    openAdminMemberDetail(null, "summary");
-    return;
-  }
-
-  const openAdminMatchButton = event.target.closest("[data-open-admin-match]");
-  if (openAdminMatchButton) {
-    openAdminMatchDetail(openAdminMatchButton.dataset.openAdminMatch || null);
-    return;
-  }
-
-  const openAdminMemberButton = event.target.closest("[data-open-admin-member]");
-  if (openAdminMemberButton) {
-    openAdminMemberDetail(openAdminMemberButton.dataset.openAdminMember, "summary");
-    return;
-  }
-
-  const openAdminGameEditorButton = event.target.closest("[data-open-admin-game-editor]");
-  if (openAdminGameEditorButton) {
-    openGameAdminEditor(openAdminGameEditorButton.dataset.openAdminGameEditor, "library");
-    return;
-  }
-
-  const pageToggleGameHiddenButton = event.target.closest("[data-page-toggle-game-hidden]");
-  if (pageToggleGameHiddenButton) {
-    const game = appState.games.find((item) => item.id === pageToggleGameHiddenButton.dataset.pageToggleGameHidden);
-    const nextState = game?.hidden ? "공개" : "숨김";
-    if (!window.confirm(`${game?.title || "선택한 게임"}을(를) ${nextState} 처리할까요?`)) return;
-
-    try {
-      appState = await request("/api/admin/toggle-game-hidden", {
-        method: "POST",
-        body: JSON.stringify({ gameId: pageToggleGameHiddenButton.dataset.pageToggleGameHidden }),
-      });
-      renderAll();
-      renderGames(activeGameId, { detail: isGameDetailOpen });
-      showToast("게임 공개 상태를 변경했습니다.");
     } catch (error) {
       showToast(error.message);
     }

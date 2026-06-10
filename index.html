@@ -23,8 +23,8 @@
             <span class="mark-node mark-node-right"></span>
           </div>
           <div>
-            <strong id="brandNameText">1VS1매치</strong>
-            <span id="brandTaglineText">1:1 두뇌 서바이벌 리그</span>
+            <strong>1VS1매치</strong>
+            <span>1:1 두뇌 서바이벌 리그</span>
           </div>
         </div>
 
@@ -73,10 +73,6 @@
               링크 복사
             </button>
             <button class="secondary-button header-auth-button" type="button" id="openAuthButton">로그인</button>
-            <button class="admin-edit-badge" type="button" id="adminEditModeBadge" hidden>
-              <span>편집 모드</span>
-              <strong>운영자</strong>
-            </button>
             <div class="user-chip" id="userChip"></div>
           </div>
         </header>
@@ -287,7 +283,7 @@
             </div>
           </div>
 
-          <div class="policy-grid" id="policyGrid">
+          <div class="policy-grid">
             <article class="policy-card">
               <span class="status-pill revealed-pill">개인정보</span>
               <h3>수집 항목과 목적</h3>
@@ -366,7 +362,6 @@
               <button type="button" data-admin-section="matches">매치 관리</button>
               <button type="button" data-admin-section="members">회원 관리</button>
               <button type="button" data-admin-section="games">게임 관리</button>
-              <button type="button" data-admin-section="settings">사이트 설정</button>
               <button type="button" data-admin-section="logs">운영 로그</button>
             </div>
             <section class="admin-section active" data-admin-page="dashboard">
@@ -377,9 +372,6 @@
             </section>
             <section class="admin-section" data-admin-page="games">
             <section class="admin-game-manager" id="adminGameManager"></section>
-            </section>
-            <section class="admin-section" data-admin-page="settings">
-            <section class="admin-site-settings" id="adminSiteSettings"></section>
             </section>
             <section class="admin-section" data-admin-page="matches">
             <form class="admin-create-form" id="createMatchForm">

@@ -98,12 +98,6 @@ create table if not exists event_logs (
   created_at timestamptz not null default now()
 );
 
-create table if not exists site_settings (
-  key text primary key,
-  value jsonb not null default '""'::jsonb,
-  updated_at timestamptz not null default now()
-);
-
 create or replace view confirmed_match_roster as
 select
   matches.id as match_id,
