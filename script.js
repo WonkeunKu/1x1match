@@ -72,6 +72,16 @@ const defaultSiteSettings = {
   smsRefundRequestedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 요청 대상 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.",
   smsRefundScheduledTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 예정 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.",
   smsRefundCompletedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 완료 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불 처리가 완료되었습니다.",
+  navApplyLabel: "참가 신청",
+  navNoticeLabel: "확정 공지",
+  navRankingLabel: "랭킹",
+  navGamesLabel: "게임 목록",
+  navPolicyLabel: "운영 안내",
+  navApplyVisible: true,
+  navNoticeVisible: true,
+  navRankingVisible: true,
+  navGamesVisible: true,
+  navPolicyVisible: true,
 };
 
 const gameTagMap = {
@@ -382,6 +392,28 @@ function renderNavigation() {
   const adminNav = document.querySelector('[data-view="admin"]');
   if (!adminNav) return;
 
+  const settings = siteSettings();
+  const navItems = [
+    { view: "apply", label: settings.navApplyLabel, visible: settings.navApplyVisible },
+    { view: "notice", label: settings.navNoticeLabel, visible: settings.navNoticeVisible },
+    { view: "ranking", label: settings.navRankingLabel, visible: settings.navRankingVisible },
+    { view: "games", label: settings.navGamesLabel, visible: settings.navGamesVisible },
+    { view: "policy", label: settings.navPolicyLabel, visible: settings.navPolicyVisible },
+  ];
+
+  navItems.forEach((item) => {
+    const button = document.querySelector(`[data-view="${item.view}"]`);
+    if (!button) return;
+
+    button.hidden = !item.visible && !appState.isAdmin;
+    button.classList.toggle("nav-item-hidden-public", !item.visible && appState.isAdmin);
+    button.setAttribute("aria-label", item.label);
+    Array.from(button.childNodes).forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) node.remove();
+    });
+    button.append(document.createTextNode(item.label));
+  });
+
   adminNav.hidden = !appState.isAuthenticated;
 
   if (!appState.isAuthenticated && adminNav.classList.contains("active")) {
@@ -389,6 +421,12 @@ function renderNavigation() {
     document.querySelector("#admin")?.classList.remove("active");
     document.querySelector('[data-view="apply"]')?.classList.add("active");
     document.querySelector("#apply")?.classList.add("active");
+  }
+
+  const activeHiddenItem = navItems.find((item) => !item.visible && document.querySelector(`#${item.view}`)?.classList.contains("active"));
+  if (activeHiddenItem && !appState.isAdmin) {
+    const fallback = navItems.find((item) => item.visible)?.view || "apply";
+    setActiveView(fallback);
   }
 }
 
@@ -2302,6 +2340,55 @@ function renderAdminSiteSettings() {
       <label class="wide">
         개인정보 보관 및 삭제
         <textarea name="privacyRetentionPolicy" rows="3" required>${escapeHtml(settings.privacyRetentionPolicy)}</textarea>
+      </label>
+      <div class="site-settings-divider wide">
+        <strong>메뉴 설정</strong>
+        <span>운영자는 숨긴 메뉴도 계속 볼 수 있고, 일반 사용자에게만 숨겨집니다.</span>
+      </div>
+      <label>
+        참가 신청 메뉴명
+        <input name="navApplyLabel" type="text" value="${escapeHtml(settings.navApplyLabel)}" required />
+      </label>
+      <label class="setting-checkbox-line">
+        <input name="navApplyVisible" type="hidden" value="false" />
+        <input name="navApplyVisible" type="checkbox" value="true" ${settings.navApplyVisible ? "checked" : ""} />
+        일반 사용자에게 표시
+      </label>
+      <label>
+        확정 공지 메뉴명
+        <input name="navNoticeLabel" type="text" value="${escapeHtml(settings.navNoticeLabel)}" required />
+      </label>
+      <label class="setting-checkbox-line">
+        <input name="navNoticeVisible" type="hidden" value="false" />
+        <input name="navNoticeVisible" type="checkbox" value="true" ${settings.navNoticeVisible ? "checked" : ""} />
+        일반 사용자에게 표시
+      </label>
+      <label>
+        랭킹 메뉴명
+        <input name="navRankingLabel" type="text" value="${escapeHtml(settings.navRankingLabel)}" required />
+      </label>
+      <label class="setting-checkbox-line">
+        <input name="navRankingVisible" type="hidden" value="false" />
+        <input name="navRankingVisible" type="checkbox" value="true" ${settings.navRankingVisible ? "checked" : ""} />
+        일반 사용자에게 표시
+      </label>
+      <label>
+        게임 목록 메뉴명
+        <input name="navGamesLabel" type="text" value="${escapeHtml(settings.navGamesLabel)}" required />
+      </label>
+      <label class="setting-checkbox-line">
+        <input name="navGamesVisible" type="hidden" value="false" />
+        <input name="navGamesVisible" type="checkbox" value="true" ${settings.navGamesVisible ? "checked" : ""} />
+        일반 사용자에게 표시
+      </label>
+      <label>
+        운영 안내 메뉴명
+        <input name="navPolicyLabel" type="text" value="${escapeHtml(settings.navPolicyLabel)}" required />
+      </label>
+      <label class="setting-checkbox-line">
+        <input name="navPolicyVisible" type="hidden" value="false" />
+        <input name="navPolicyVisible" type="checkbox" value="true" ${settings.navPolicyVisible ? "checked" : ""} />
+        일반 사용자에게 표시
       </label>
       <div class="site-settings-divider wide">
         <strong>문자 템플릿</strong>

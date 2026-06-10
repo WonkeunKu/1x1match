@@ -71,6 +71,16 @@ const defaultSiteSettings = {
   smsRefundRequestedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 요청 대상 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불을 순차 처리하겠습니다. 실제 송금 완료 후 다시 안내드리겠습니다.",
   smsRefundScheduledTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 예정 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불이 예약되어 있으며, 실제 송금 완료 후 완료 안내를 드리겠습니다.",
   smsRefundCompletedTemplate: "[1VS1매치] {date} {time} {location} 매치 환불 완료 안내입니다. 대상: {targetPlayers}. 참가비 {fee} 환불 처리가 완료되었습니다.",
+  navApplyLabel: "참가 신청",
+  navNoticeLabel: "확정 공지",
+  navRankingLabel: "랭킹",
+  navGamesLabel: "게임 목록",
+  navPolicyLabel: "운영 안내",
+  navApplyVisible: true,
+  navNoticeVisible: true,
+  navRankingVisible: true,
+  navGamesVisible: true,
+  navPolicyVisible: true,
 };
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -984,6 +994,12 @@ function cleanAmount(value, fallback) {
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : fallback;
 }
 
+function cleanBoolean(value, fallback) {
+  if (value === true || value === "true" || value === "on" || value === "1") return true;
+  if (value === false || value === "false" || value === "off" || value === "0") return false;
+  return fallback;
+}
+
 function normalizeSiteSettings(settings = {}) {
   return {
     participationFee: cleanAmount(settings.participationFee, defaultSiteSettings.participationFee),
@@ -1014,6 +1030,16 @@ function normalizeSiteSettings(settings = {}) {
     smsRefundRequestedTemplate: cleanText(settings.smsRefundRequestedTemplate, defaultSiteSettings.smsRefundRequestedTemplate),
     smsRefundScheduledTemplate: cleanText(settings.smsRefundScheduledTemplate, defaultSiteSettings.smsRefundScheduledTemplate),
     smsRefundCompletedTemplate: cleanText(settings.smsRefundCompletedTemplate, defaultSiteSettings.smsRefundCompletedTemplate),
+    navApplyLabel: cleanText(settings.navApplyLabel, defaultSiteSettings.navApplyLabel),
+    navNoticeLabel: cleanText(settings.navNoticeLabel, defaultSiteSettings.navNoticeLabel),
+    navRankingLabel: cleanText(settings.navRankingLabel, defaultSiteSettings.navRankingLabel),
+    navGamesLabel: cleanText(settings.navGamesLabel, defaultSiteSettings.navGamesLabel),
+    navPolicyLabel: cleanText(settings.navPolicyLabel, defaultSiteSettings.navPolicyLabel),
+    navApplyVisible: cleanBoolean(settings.navApplyVisible, defaultSiteSettings.navApplyVisible),
+    navNoticeVisible: cleanBoolean(settings.navNoticeVisible, defaultSiteSettings.navNoticeVisible),
+    navRankingVisible: cleanBoolean(settings.navRankingVisible, defaultSiteSettings.navRankingVisible),
+    navGamesVisible: cleanBoolean(settings.navGamesVisible, defaultSiteSettings.navGamesVisible),
+    navPolicyVisible: cleanBoolean(settings.navPolicyVisible, defaultSiteSettings.navPolicyVisible),
   };
 }
 

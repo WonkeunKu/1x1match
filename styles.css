@@ -195,6 +195,18 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 204, 122, 0.18);
 }
 
+.nav-item-hidden-public {
+  opacity: 0.58;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-hidden-public::after {
+  content: "숨김";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 [data-icon] {
   display: inline-grid;
   place-items: center;
@@ -2382,6 +2394,24 @@ select:disabled {
 .site-settings-divider span {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.setting-checkbox-line {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.setting-checkbox-line input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
 }
 
 .admin-game-head,
