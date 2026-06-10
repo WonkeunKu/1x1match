@@ -1657,6 +1657,23 @@ select:disabled {
   gap: 8px;
 }
 
+.game-card-shell {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.game-card-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.game-card-quick-actions .secondary-button {
+  width: 100%;
+  min-height: 38px;
+}
+
 .game-card {
   --game-category-color: var(--line);
   --game-category-glow: rgba(255, 74, 57, 0.08);

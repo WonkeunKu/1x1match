@@ -1595,13 +1595,26 @@ function renderGames(gameId, options = {}) {
         .map((game) => {
           const tags = getGameTags(game);
           const category = getGameCategory(game);
-          return `
+          const cardMarkup = `
             <button class="game-card game-card--${category} ${game.hidden ? "game-card-is-hidden" : ""}" data-game="${game.id}">
               <strong>${game.title}</strong>
               <span>${game.summary}</span>
               ${appState.isAdmin && game.hidden ? `<em>숨김</em>` : ""}
               ${tags.length ? `<div class="game-tags">${tags.map((tag) => `<small>${tag}</small>`).join("")}</div>` : ""}
             </button>
+          `;
+          if (!appState.isAdmin) return cardMarkup;
+
+          return `
+            <div class="game-card-shell">
+              ${cardMarkup}
+              <div class="game-card-quick-actions">
+                <button class="secondary-button" type="button" data-open-admin-game-editor="${game.id}">수정</button>
+                <button class="secondary-button ${game.hidden ? "" : "danger-button"}" type="button" data-page-toggle-game-hidden="${game.id}">
+                  ${game.hidden ? "공개" : "숨김"}
+                </button>
+              </div>
+            </div>
           `;
         })
         .join("")}`
