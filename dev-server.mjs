@@ -52,6 +52,16 @@ const defaultSiteSettings = {
   drinkFeeNotice: "카페 음료 비용 별도",
   refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
   exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
+  brandName: "1VS1매치",
+  brandTagline: "1:1 두뇌 서바이벌 리그",
+  heroEyebrow: "서울 카페 오프라인 매치",
+  heroTitle: "두 명이 모이면 게임이 열린다",
+  applyIntro: "1VS1매치는 두뇌 서바이벌 게임을 1:1로 겨루는 오프라인 매치입니다. 날짜와 지역을 고르면 2명이 모였을 때 매치가 확정됩니다.",
+  privacyDetailTitle: "회원 정보는 운영 확인에 필요한 범위에서만 사용합니다",
+  privacyDetailIntro: "입금자 확인과 현장 본인 확인을 위해 필요한 정보만 받고, 공개하는 정보는 운영상 확인된 정보를 분리합니다.",
+  privacyCollectionItems: "이름, 생년월일, 닉네임, 전화번호, 주 활동지, 비밀번호를 수집합니다. 비밀번호는 로그인 확인을 위해 암호화된 값으로 저장합니다.",
+  privacyUsagePurpose: "참가 신청 확인, 입금자 확인, 현장 본인 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대에만 사용합니다.",
+  privacyRetentionPolicy: "운영 기록 확인과 분쟁 대응을 위해 필요한 기간 동안 보관하며, 회원 삭제 시 신청 이력과 결과 기록을 함께 정리합니다.",
 };
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -976,6 +986,16 @@ function normalizeSiteSettings(settings = {}) {
     drinkFeeNotice: cleanText(settings.drinkFeeNotice, defaultSiteSettings.drinkFeeNotice),
     refundPolicy: cleanText(settings.refundPolicy, defaultSiteSettings.refundPolicy),
     exactVenueNotice: cleanText(settings.exactVenueNotice, defaultSiteSettings.exactVenueNotice),
+    brandName: cleanText(settings.brandName, defaultSiteSettings.brandName),
+    brandTagline: cleanText(settings.brandTagline, defaultSiteSettings.brandTagline),
+    heroEyebrow: cleanText(settings.heroEyebrow, defaultSiteSettings.heroEyebrow),
+    heroTitle: cleanText(settings.heroTitle, defaultSiteSettings.heroTitle),
+    applyIntro: cleanText(settings.applyIntro, defaultSiteSettings.applyIntro),
+    privacyDetailTitle: cleanText(settings.privacyDetailTitle, defaultSiteSettings.privacyDetailTitle),
+    privacyDetailIntro: cleanText(settings.privacyDetailIntro, defaultSiteSettings.privacyDetailIntro),
+    privacyCollectionItems: cleanText(settings.privacyCollectionItems, defaultSiteSettings.privacyCollectionItems),
+    privacyUsagePurpose: cleanText(settings.privacyUsagePurpose, defaultSiteSettings.privacyUsagePurpose),
+    privacyRetentionPolicy: cleanText(settings.privacyRetentionPolicy, defaultSiteSettings.privacyRetentionPolicy),
   };
 }
 

@@ -53,6 +53,16 @@ const defaultSiteSettings = {
   drinkFeeNotice: "카페 음료 비용 별도",
   refundPolicy: "시작 24시간 전까지 2명 미달 시 참가비 환불",
   exactVenueNotice: "정확한 장소는 2명 확정 후 게임 시작 24시간 전에 게임과 함께 공지됩니다.",
+  brandName: "1VS1매치",
+  brandTagline: "1:1 두뇌 서바이벌 리그",
+  heroEyebrow: "서울 카페 오프라인 매치",
+  heroTitle: "두 명이 모이면 게임이 열린다",
+  applyIntro: "1VS1매치는 두뇌 서바이벌 게임을 1:1로 겨루는 오프라인 매치입니다. 날짜와 지역을 고르면 2명이 모였을 때 매치가 확정됩니다.",
+  privacyDetailTitle: "회원 정보는 운영 확인에 필요한 범위에서만 사용합니다",
+  privacyDetailIntro: "입금자 확인과 현장 본인 확인을 위해 필요한 정보만 받고, 공개하는 정보는 운영상 확인된 정보를 분리합니다.",
+  privacyCollectionItems: "이름, 생년월일, 닉네임, 전화번호, 주 활동지, 비밀번호를 수집합니다. 비밀번호는 로그인 확인을 위해 암호화된 값으로 저장합니다.",
+  privacyUsagePurpose: "참가 신청 확인, 입금자 확인, 현장 본인 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대에만 사용합니다.",
+  privacyRetentionPolicy: "운영 기록 확인과 분쟁 대응을 위해 필요한 기간 동안 보관하며, 회원 삭제 시 신청 이력과 결과 기록을 함께 정리합니다.",
 };
 
 const gameTagMap = {
@@ -307,6 +317,7 @@ async function loadState() {
 }
 
 function renderAll() {
+  renderSiteCopy();
   renderNavigation();
   renderUser();
   renderAuth();
@@ -321,6 +332,41 @@ function renderAll() {
   renderGames(activeGameId || appState.games[0]?.id);
   renderAdmin();
   renderIcons();
+}
+
+function setText(selector, value) {
+  const node = document.querySelector(selector);
+  if (node) node.textContent = value;
+}
+
+function renderSiteCopy() {
+  const settings = siteSettings();
+  document.title = settings.brandName || defaultSiteSettings.brandName;
+  setText("#brandNameText", settings.brandName);
+  setText("#brandTaglineText", settings.brandTagline);
+  setText(".topbar .eyebrow", settings.heroEyebrow);
+  setText(".topbar h1", settings.heroTitle);
+  setText("#apply .section-head p", settings.applyIntro);
+  setText(".privacy-detail-head h3", settings.privacyDetailTitle);
+  setText(".privacy-detail-head p", settings.privacyDetailIntro);
+
+  const privacyGrid = document.querySelector(".privacy-detail-grid");
+  if (privacyGrid) {
+    privacyGrid.innerHTML = `
+      <article>
+        <strong>수집 항목</strong>
+        <p>${escapeHtml(settings.privacyCollectionItems)}</p>
+      </article>
+      <article>
+        <strong>사용 목적</strong>
+        <p>${escapeHtml(settings.privacyUsagePurpose)}</p>
+      </article>
+      <article>
+        <strong>보관 및 삭제</strong>
+        <p>${escapeHtml(settings.privacyRetentionPolicy)}</p>
+      </article>
+    `;
+  }
 }
 
 function renderNavigation() {
@@ -1420,22 +1466,22 @@ function renderPolicy() {
     <article class="policy-card">
       <span class="status-pill revealed-pill">개인정보</span>
       <h3>수집 항목과 목적</h3>
-      <p>닉네임, 이름, 생년월일, 전화번호, 주 활동지는 참가 신청 확인, 매치 확정 안내, 환불 안내, 운영 문의 응대를 위해서만 사용합니다.</p>
+      <p>${escapeHtml(settings.privacyUsagePurpose)}</p>
     </article>
     <article class="policy-card">
       <span class="status-pill waiting">참가비</span>
       <h3>${participationFeeText()}</h3>
-      <p>정상 참가비는 ${regularFeeText()}입니다. 현재 적용 참가비는 ${participationFeeText()}이며, ${settings.drinkFeeNotice}입니다.</p>
+      <p>정상 참가비는 ${regularFeeText()}입니다. 현재 적용 참가비는 ${participationFeeText()}이며, ${escapeHtml(settings.drinkFeeNotice)}입니다.</p>
     </article>
     <article class="policy-card">
       <span class="status-pill refunding">환불</span>
       <h3>환불 기준</h3>
-      <p>${settings.refundPolicy}. 환불은 운영자가 입금 여부를 확인한 뒤 수동으로 처리합니다.</p>
+      <p>${escapeHtml(settings.refundPolicy)}. 환불은 운영자가 입금 여부를 확인한 뒤 수동으로 처리합니다.</p>
     </article>
     <article class="policy-card">
       <span class="status-pill confirmed">게임 공개</span>
       <h3>24시간 전 공지</h3>
-      <p>${settings.exactVenueNotice} 진행 게임, 방식, 규칙도 확정 공지 탭에 함께 공개됩니다.</p>
+      <p>${escapeHtml(settings.exactVenueNotice)} 진행 게임, 방식, 규칙도 확정 공지 탭에 함께 공개됩니다.</p>
     </article>
   `;
 }
@@ -2203,6 +2249,50 @@ function renderAdminSiteSettings() {
       <label class="wide">
         정확한 장소 안내
         <textarea name="exactVenueNotice" rows="3" required>${escapeHtml(settings.exactVenueNotice)}</textarea>
+      </label>
+      <div class="site-settings-divider wide">
+        <strong>사이트 문구</strong>
+        <span>상단 브랜드, 신청 안내, 개인정보 상세 문구를 수정합니다.</span>
+      </div>
+      <label>
+        브랜드명
+        <input name="brandName" type="text" value="${escapeHtml(settings.brandName)}" required />
+      </label>
+      <label>
+        브랜드 설명
+        <input name="brandTagline" type="text" value="${escapeHtml(settings.brandTagline)}" required />
+      </label>
+      <label class="wide">
+        상단 작은 문구
+        <input name="heroEyebrow" type="text" value="${escapeHtml(settings.heroEyebrow)}" required />
+      </label>
+      <label class="wide">
+        상단 큰 문구
+        <input name="heroTitle" type="text" value="${escapeHtml(settings.heroTitle)}" required />
+      </label>
+      <label class="wide">
+        참가 신청 소개 문구
+        <textarea name="applyIntro" rows="3" required>${escapeHtml(settings.applyIntro)}</textarea>
+      </label>
+      <label class="wide">
+        개인정보 상세 제목
+        <input name="privacyDetailTitle" type="text" value="${escapeHtml(settings.privacyDetailTitle)}" required />
+      </label>
+      <label class="wide">
+        개인정보 상세 소개
+        <textarea name="privacyDetailIntro" rows="2" required>${escapeHtml(settings.privacyDetailIntro)}</textarea>
+      </label>
+      <label class="wide">
+        개인정보 수집 항목
+        <textarea name="privacyCollectionItems" rows="3" required>${escapeHtml(settings.privacyCollectionItems)}</textarea>
+      </label>
+      <label class="wide">
+        개인정보 사용 목적
+        <textarea name="privacyUsagePurpose" rows="3" required>${escapeHtml(settings.privacyUsagePurpose)}</textarea>
+      </label>
+      <label class="wide">
+        개인정보 보관 및 삭제
+        <textarea name="privacyRetentionPolicy" rows="3" required>${escapeHtml(settings.privacyRetentionPolicy)}</textarea>
       </label>
       <button class="primary-button" type="submit">사이트 설정 저장</button>
     </form>

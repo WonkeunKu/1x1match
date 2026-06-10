@@ -2368,6 +2368,22 @@ select:disabled {
   resize: vertical;
 }
 
+.site-settings-divider {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.site-settings-divider strong {
+  color: var(--text);
+}
+
+.site-settings-divider span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .admin-game-head,
 .admin-game-row-head {
   display: flex;
