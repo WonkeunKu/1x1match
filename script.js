@@ -385,6 +385,25 @@ function openAdminMemberDetail(memberId, section = "summary") {
   }, 0);
 }
 
+function openAdminMatchDetail(matchId = null) {
+  if (!appState.isAdmin) {
+    showToast("운영자 권한 확인 후 수정할 수 있습니다.");
+    setActiveView("admin");
+    return;
+  }
+
+  activeAdminSection = "matches";
+  activeOpsFilter = "all";
+  activeOpsMatchId = matchId || null;
+  setActiveView("admin");
+  renderAdmin();
+
+  window.setTimeout(() => {
+    const target = matchId ? document.querySelector(`[data-toggle-ops-match="${matchId}"]`) : document.querySelector("#opsList");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 0);
+}
+
 function openAuthView() {
   const currentView = document.querySelector(".view.active");
   if (currentView?.id && currentView.id !== "auth") {
@@ -735,6 +754,15 @@ function renderApplySelector() {
   const selectedMatch = timeMatches.find((match) => match.id === activeApplyTimeMatchId);
   const canApplySelectedMatch = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe;
   hiddenInput.value = selectedMatch && selectedMatch.playerCount < 2 && !selectedMatch.appliedByMe ? selectedMatch.id : "";
+  const applyAdminActions = appState.isAdmin
+    ? `
+      <div class="apply-admin-actions">
+        <button class="secondary-button" type="button" data-open-admin-match="${selectedMatch?.id || ""}">
+          ${selectedMatch ? "선택 매치 관리" : "매치 관리 열기"}
+        </button>
+      </div>
+    `
+    : "";
 
   selector.innerHTML = `
     <div class="apply-step">
@@ -790,6 +818,7 @@ function renderApplySelector() {
         <strong>${matchSeatLabel(selectedMatch)}</strong>
         <small>${canApplySelectedMatch ? "신청 전 참가비 안내를 확인합니다." : "마감 또는 이미 신청한 매치입니다."}</small>
       </div>
+      ${applyAdminActions}
     </div>
   `;
 }
@@ -4441,6 +4470,12 @@ document.addEventListener("click", async (event) => {
   const openAdminMembersButton = event.target.closest("[data-open-admin-members]");
   if (openAdminMembersButton) {
     openAdminMemberDetail(null, "summary");
+    return;
+  }
+
+  const openAdminMatchButton = event.target.closest("[data-open-admin-match]");
+  if (openAdminMatchButton) {
+    openAdminMatchDetail(openAdminMatchButton.dataset.openAdminMatch || null);
     return;
   }
 
