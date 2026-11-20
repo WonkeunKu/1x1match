@@ -414,7 +414,7 @@ function curPanel() {
     cardHtml = `<div class="chance ${c.kind === 'release' ? 'rel' : ''}"><span class="eyebrow" style="color:inherit">${cur.tile + 1}번 · 찬스 카드</span><span class="nm">${esc(c.name)}</span><p>${esc(c.effect)}</p></div>`;
   } else {
     cardHtml = `<div class="cardbox"><div class="photo"><img src="../photos/${esc(c.id)}.jpg" alt="${esc(c.name)} 선수 사진"></div>
-      <div class="cinfo"><span class="eyebrow">${cur.tile + 1}번 카드</span><span class="nm">${esc(c.name)}</span><span class="tm">${esc(c.team)}</span>
+      <div class="cinfo"><span class="eyebrow">${cur.tile + 1}번 카드</span><span class="nm">${esc(c.name)}</span><span class="tm">${esc(c.team)}${c.foreign ? ' · 외국인' : ''}</span>
       <div class="facts"><span>${esc(c.seasons)}</span><span>${esc(c.term)} 계약</span></div>
       <span class="hint">${esc(c.hint)}</span></div></div>`;
   }
@@ -579,6 +579,6 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
-<script src="/rules.js?v=1" defer></script>
+<script src="/rules.js?v=2" defer></script>
 </body>
 </html>

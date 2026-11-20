@@ -1,6 +1,6 @@
 // 연봉 블라인드 경매 온라인 방 (4인, 각자 폰). 상태는 서버 메모리에만 있고, 화면에는 SSE로 각자 볼 수 있는 내용만 보낸다.
 import { randomBytes, randomInt } from 'node:crypto';
-import { CARDS, START_CUBES, CHANCE_AFTER } from './auction-cards.mjs';
+import { CARDS, START_CUBES, CHANCE_AFTER, PLAYERS_PER_GAME } from './auction-cards.mjs';
 
 const BY_ID = Object.fromEntries(CARDS.map(c => [c.id, c]));
 const SEATS = 4;
@@ -140,6 +140,9 @@ function startGame(room) {
   room.gameNo = (room.gameNo || 0) + 1;
   room.phase = 'play';
   room.deck = Array(16).fill(null);
+  // 이번 게임에 쓸 카드: 선수 풀에서 무작위 13명 + 찬스 카드 3장
+  const players = shuffle(CARDS.filter(c => c.type === 'player').map(c => c.id)).slice(0, PLAYERS_PER_GAME);
+  room.pool = players.concat(CARDS.filter(c => c.type === 'chance').map(c => c.id));
   room.opened = {};
   room.players.forEach(p => Object.assign(p, { cubes: START_CUBES, cards: [], chances: [], pendingRelease: null }));
   room.opener = 0; // 1라운드는 1번(방장)이 열고, 이후 2·3·4·1번… 순서로 한 칸씩 넘어감. 입찰도 연 사람부터 시계방향
@@ -150,7 +153,7 @@ function startGame(room) {
 }
 function drawCard(room) {
   const used = new Set(room.deck.filter(Boolean));
-  let pool = CARDS.map(c => c.id).filter(id => !used.has(id));
+  let pool = (room.pool || CARDS.map(c => c.id)).filter(id => !used.has(id));
   const playersOut = room.deck.filter(id => id && BY_ID[id].type === 'player').length;
   const allowed = pool.filter(id => BY_ID[id].type === 'player' || playersOut >= (CHANCE_AFTER[BY_ID[id].kind] || 0));
   if (allowed.length) pool = allowed;
@@ -475,8 +478,12 @@ function cubesPerEok(room, k) {
   // 남은(아직 안 열린) 선수들의 내 추정 연봉 합 중 내가 가져갈 몫(약 1/4)에 내 큐브를 나눠 씀
   const opened = new Set(room.deck.filter(Boolean));
   const cur = room.cur && room.deck[room.cur.tile];
-  let rest = 0;
-  for (const c of CARDS) if (c.type === 'player' && (!opened.has(c.id) || c.id === cur)) rest += estOf(room, k, c.id);
+  // AI도 이번 게임에 어떤 선수가 숨어 있는지는 모름 → 남은 선수 수 × 아직 안 나온 선수들의 평균 추정 연봉
+  const openedPlayers = [...opened].filter(id => BY_ID[id].type === 'player' && id !== cur).length;
+  const left = Math.max(0, PLAYERS_PER_GAME - openedPlayers);
+  const unseen = CARDS.filter(c => c.type === 'player' && (!opened.has(c.id) || c.id === cur));
+  const avg = unseen.reduce((s, c) => s + estOf(room, k, c.id), 0) / Math.max(1, unseen.length);
+  const rest = left * avg;
   return room.players[k].cubes / Math.max(20, rest * 0.3);
 }
 function botWorth(room, k, id) {
