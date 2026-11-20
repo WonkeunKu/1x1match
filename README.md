@@ -16,4 +16,6 @@ npm start
 
 의존성이 없는 정적 서버(`server.mjs`)입니다. `PORT`, `HOST` 환경 변수를 따르고, `/api/health`는 `{ "ok": true }`를 돌려줍니다.
 
+회원 기능은 Supabase가 필요해요: `supabase-setup.sql`을 SQL Editor에서 한 번 실행하고, 서버 환경변수 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`를 넣으세요. (선택) `SESSION_SECRET`.
+
 이전 1VS1매치 신청/운영 서비스 코드는 `legacy-1vs1match` 브랜치에 그대로 남아 있습니다.

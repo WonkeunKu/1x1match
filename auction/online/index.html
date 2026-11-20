@@ -178,6 +178,9 @@ button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 7
 .chip.mine { border-color: var(--pc); }
 .chip.mine b { color: var(--amber); font-family: var(--f-mono); margin-left: 2px; }
 
+.login-note a { color: var(--amber); font-weight: 700; }
+input[readonly] { opacity: 0.85; border-style: dashed; }
+
 /* AI */
 .aichip { font-family: var(--f-body); font-size: 11px; font-weight: 700; background: var(--p1); color: #0a1a22; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
 .seg.three { grid-template-columns: repeat(3, 1fr); }
@@ -216,6 +219,20 @@ const store = {
 const app = document.getElementById('app');
 const AI_MODE = location.pathname.startsWith('/auction/ai');
 const LEVEL_KO = { low: '하', mid: '중', high: '상' };
+/* 로그인 상태: 로그인했으면 이름 칸에 닉네임을 넣고 고정 */
+let ME = null;
+const meReady = fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { ME = d.user; return ME; }).catch(() => null);
+function applyLogin() {
+  meReady.then(u => {
+    const nm = document.getElementById('nm');
+    const note = document.getElementById('loginNote');
+    if (u && nm) { nm.value = u.nickname; nm.readOnly = true; }
+    if (note) note.innerHTML = u
+      ? `<b>${esc(u.nickname)}</b>님으로 로그인했어요. 이 닉네임으로 참여하고, 경기 결과가 <a href="/history/">내 경기 기록</a>에 남아요.`
+      : `로그인하지 않아도 할 수 있어요. <a href="/account/?next=${encodeURIComponent(location.pathname + location.search)}">로그인</a>하면 닉네임이 자동으로 들어가고 경기 기록이 남아요.`;
+  });
+}
+
 const params = new URLSearchParams(location.search);
 let code = (params.get('room') || '').toUpperCase();
 let token = code ? store.get('auction-online:' + code) : null;
@@ -243,6 +260,7 @@ function renderAiEntry(msg) {
     <div class="entryGrid"><div class="colL"><div class="panel">
       <label class="muted" for="nm">내 이름</label>
       <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
+      <p class="muted login-note" id="loginNote"></p>
     </div></div><div class="colR"><div class="panel"><h2>AI 난이도</h2>
       <div class="seg three" role="radiogroup" aria-label="AI 난이도">
         ${['low', 'mid', 'high'].map(l => `<button type="button" role="radio" data-level="${l}" aria-checked="${l === level}">${LEVEL_KO[l]}</button>`).join('')}
@@ -254,6 +272,7 @@ function renderAiEntry(msg) {
   const setLv = l => { level = l; app.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.level === l))); document.getElementById('lvNote').textContent = notes[l]; };
   app.querySelectorAll('[data-level]').forEach(b => b.onclick = () => setLv(b.dataset.level));
   setLv(level);
+  applyLogin();
   document.getElementById('aiStart').onclick = async () => {
     try {
       const n = document.getElementById('nm').value.trim();
@@ -274,6 +293,7 @@ function renderEntry(msg) {
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
       <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
+      <p class="muted login-note" id="loginNote"></p>
     </div>
     <div class="panel">
       <h2>${code ? `방 ${esc(code)} 들어가기` : '방 들어가기'}</h2>
@@ -296,6 +316,7 @@ function renderEntry(msg) {
     <p class="err" id="err">${esc(msg || '')}</p>
     <p class="muted"><a href="/" style="color:var(--chalk-dim)">← 1x1 MATCH 첫 화면</a></p>`;
   app.classList.add('narrow');
+  applyLogin();
   const nameOf = () => { const n = document.getElementById('nm').value.trim(); if (!n) throw new Error('이름을 입력하세요.'); store.set('auction-online:name', n); return n; };
   const showErr = e => { document.getElementById('err').textContent = e.message; };
   document.getElementById('joinBtn').onclick = async () => {
@@ -487,30 +508,7 @@ function renderLobby() {
     catch { inp.select(); }
   };
 }
-
-/* 내 경기 기록: 이 브라우저에만 저장 (첫 화면 '내 경기 기록'에서 봄) */
-function saveHistory(entry) {
-  try {
-    const KEY = '1x1:history';
-    const list = JSON.parse(localStorage.getItem(KEY) || '[]');
-    if (list.some(x => x.id === entry.id)) return;
-    list.unshift(Object.assign({ at: Date.now() }, entry));
-    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 200)));
-  } catch (e) {}
-}
-function recordAuction() {
-  const sums = V.totals.map(t => Math.round(t.sum * 100) / 100);
-  const rank = 1 + sums.filter(x => x > sums[V.me]).length;
-  saveHistory({
-    id: `auction:${V.code}:${V.gameNo}`, game: 'auction',
-    mode: V.ai ? 'ai' : 'online', level: V.ai || null,
-    rank, total: V.players.length, score: sums[V.me],
-    players: V.players.map((p, k) => ({ name: p.name, score: sums[k], me: k === V.me, bot: !!p.bot })),
-    mine: V.players[V.me].cards.map(id => ({ name: playerCard(id).name, aav: V.salaries[id] }))
-  });
-}
 function renderResult() {
-  recordAuction();
   const order = V.players.map((p, k) => k).sort((a, b) => V.totals[b].sum - V.totals[a].sum);
   const rows = order.map((k, r) => {
     const p = V.players[k], t = V.totals[k];

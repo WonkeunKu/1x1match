@@ -6,6 +6,13 @@ import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
+import * as Accounts from './game-data/accounts.mjs';
+
+// 로그인한 사람이 방에서 경기를 끝내면 기록을 저장
+const saveFinish = (uid, entry) => Accounts.addHistory(uid, entry).catch(e => console.error('history save failed', e.message));
+Rooms.setFinishHook(saveFinish);
+BwRooms.setFinishHook(saveFinish);
+console.log(Accounts.usingSupabase ? 'Accounts: Supabase' : 'Accounts: local data/accounts.json (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set)');
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const HOST = process.env.HOST || '0.0.0.0';
@@ -20,7 +27,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'robots.txt', 'favicon.ico'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -56,7 +63,7 @@ function roomApi(R, prefix) {
   return async (req, res, path, url) => {
     const fail = e => e instanceof R.GameError ? json(res, 400, { error: e.message }) : (console.error(e), json(res, 500, { error: '서버 오류가 났어요. 다시 시도해 주세요.' }));
     if (path === prefix + '/quick' && req.method === 'POST') {
-      try { return json(res, 200, R.quickJoin((await readJson(req)).name)); } catch (e) { return fail(e); }
+      try { return json(res, 200, R.quickJoin((await readJson(req)).name, Accounts.userFromReq(req))); } catch (e) { return fail(e); }
     }
     const m = path.match(re);
     if (!m) return json(res, 404, { error: '없는 주소예요.' });
@@ -66,8 +73,9 @@ function roomApi(R, prefix) {
       if (req.method === 'GET' && !code && !op) return json(res, 200, { rooms: R.listRooms() });
       if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
       const body = await readJson(req);
-      if (!code && !op) return json(res, 200, R.createRoom(body.name, body.public));
-      if (op === 'join') return json(res, 200, R.joinRoom(code, body.name, body.token));
+      const user = Accounts.userFromReq(req);
+      if (!code && !op) return json(res, 200, R.createRoom(body.name, body.public, user));
+      if (op === 'join') return json(res, 200, R.joinRoom(code, body.name, body.token, user));
       if (op === 'leave') { R.leaveRoom(code, body.token); return json(res, 200, { ok: true }); }
       if (op === 'act') { R.act(code, body.token, body); return json(res, 200, { ok: true }); }
       if (op === 'restart') { R.restart(code, body.token); return json(res, 200, { ok: true }); }
@@ -76,15 +84,50 @@ function roomApi(R, prefix) {
   };
 }
 const auctionApi = roomApi(Rooms, '/api/auction');
+
+// 회원가입·로그인·경기 기록
+async function authApi(req, res, path, url) {
+  const secure = req.headers['x-forwarded-proto'] === 'https';
+  const send = (code, obj, cookie) => {
+    const h = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
+    if (cookie) h['set-cookie'] = cookie;
+    res.writeHead(code, h); res.end(JSON.stringify(obj));
+  };
+  try {
+    const user = Accounts.userFromReq(req);
+    if (path === '/api/auth/me' && req.method === 'GET') return send(200, { user });
+    if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
+    if (path === '/api/history' && req.method === 'GET') {
+      if (!user) return send(401, { error: '로그인해야 기록을 볼 수 있어요.' });
+      return send(200, { user, history: await Accounts.listHistory(user.id) });
+    }
+    if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
+    const body = await readJson(req);
+    if (path === '/api/auth/signup') { const u = await Accounts.signup(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
+    if (path === '/api/auth/login') { const u = await Accounts.login(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
+    if (path === '/api/auth/logout') return send(200, { ok: true }, Accounts.clearCookie(secure));
+    if (path === '/api/history') {
+      if (!user) return send(401, { error: '로그인하지 않아서 기록을 저장하지 않았어요.' });
+      await Accounts.addHistory(user.id, Accounts.cleanClientEntry(body));
+      return send(200, { ok: true });
+    }
+    return send(404, { error: '없는 주소예요.' });
+  } catch (e) {
+    if (e instanceof Accounts.AuthError) return send(e.status, { error: e.message, field: e.field });
+    console.error(e);
+    return send(500, { error: '서버 오류가 났어요. 잠시 뒤 다시 시도해 주세요.' });
+  }
+}
 const bwApi = roomApi(BwRooms, '/api/bw');
 
 createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   const path = url.pathname;
   if (path === '/api/auction/ai' && req.method === 'POST') {
-    try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level)); }
+    try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level, Accounts.userFromReq(req))); }
     catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
   }
+  if (path.startsWith('/api/auth/') || path === '/api/history') return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path === '/api/health') {
@@ -99,7 +142,7 @@ createServer(async (req, res) => {
     res.end();
     return;
   }
-  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history'].includes(path)) {
+  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;

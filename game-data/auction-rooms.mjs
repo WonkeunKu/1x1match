@@ -32,22 +32,22 @@ function publicCard(id) {
 function seatOf(room, tok) { return room.players.findIndex(p => p.token === tok); }
 
 /* ---------- room lifecycle ---------- */
-export function createRoom(name, isPublic) {
-  name = cleanName(name) || 'Player1';
+export function createRoom(name, isPublic, user) {
+  name = user ? user.nickname : (cleanName(name) || 'Player1');
   const room = {
     code: newCode(), phase: 'lobby', players: [], host: 0, ver: 0, touched: now(),
     clients: new Set(), log: [], public: !!isPublic, created: now(), deadline: null, actorKey: ''
   };
   rooms.set(room.code, room);
-  const t = addPlayer(room, name);
+  const t = addPlayer(room, name, user);
   return { code: room.code, token: t };
 }
-function addPlayer(room, name) {
+function addPlayer(room, name, user) {
   if (room.players.length >= SEATS) fail('방이 가득 찼어요 (4명).');
   if (room.phase !== 'lobby') fail('이미 게임이 시작된 방이에요.');
   if (room.players.some(p => p.name === name)) name = name + (room.players.length + 1);
   const t = token();
-  room.players.push({ token: t, name, cubes: START_CUBES, cards: [], chances: [], pendingRelease: null, seenAt: now() });
+  room.players.push({ token: t, name, uid: user ? user.id : null, cubes: START_CUBES, cards: [], chances: [], pendingRelease: null, seenAt: now() });
   return t;
 }
 export function listRooms() {
@@ -57,12 +57,12 @@ export function listRooms() {
     .slice(0, 30)
     .map(r => ({ code: r.code, host: r.players[r.host] ? r.players[r.host].name : '', count: r.players.length }));
 }
-export function quickJoin(name) {
-  name = cleanName(name);
+export function quickJoin(name, user) {
+  name = user ? user.nickname : cleanName(name);
   if (!name) fail('이름을 입력하세요.');
   const open = listRooms()[0];
-  if (open) return joinRoom(open.code, name);
-  return createRoom(name, true);
+  if (open) return joinRoom(open.code, name, null, user);
+  return createRoom(name, true, user);
 }
 function removeSeat(room, k, why) {
   const [gone] = room.players.splice(k, 1);
@@ -79,12 +79,12 @@ export function leaveRoom(code, tok) {
   if (room.phase !== 'lobby') fail('게임 중에는 나갈 수 없어요. 차례가 오면 자동으로 포기 처리돼요.');
   removeSeat(room, k, '나갔어요.');
 }
-export function joinRoom(code, name, tok) {
+export function joinRoom(code, name, tok, user) {
   const room = getRoom(code);
   if (tok && seatOf(room, tok) >= 0) return { code: room.code, token: tok };
-  name = cleanName(name);
+  name = user ? user.nickname : cleanName(name);
   if (!name) fail('이름을 입력하세요.');
-  const t = addPlayer(room, name);
+  const t = addPlayer(room, name, user);
   bump(room, `${room.players[room.players.length - 1].name}님이 들어왔어요.`);
   return { code: room.code, token: t };
 }
@@ -376,6 +376,7 @@ export function act(code, tok, body) {
 
 /* ---------- views & SSE ---------- */
 function bump(room, msg) {
+  recordFinish(room);
   scheduleBots(room);
   room.ver++;
   room.touched = now();
@@ -452,9 +453,9 @@ const LEVELS = {
   mid: { noise: 0.25, jitter: 0.15, push: 0.9, endgame: 0.5 },
   high: { noise: 0.08, jitter: 0.04, push: 0.7, endgame: 1.0 }
 };
-export function createAiRoom(name, level) {
+export function createAiRoom(name, level, user) {
   if (!LEVELS[level]) level = 'mid';
-  const { code, token: t } = createRoom(cleanName(name) || 'Player1', false);
+  const { code, token: t } = createRoom(cleanName(name) || 'Player1', false, user);
   const room = rooms.get(code);
   room.ai = level;
   const names = shuffle(BOT_NAMES).slice(0, 3);
@@ -539,6 +540,26 @@ function scheduleBots(room) {
     try { const msg = botAct(room); bump(room, msg); } catch (e) { console.error(e); }
   }, BOT_DELAY + randomInt(BOT_DELAY + 1));
   room.botTimer.unref?.();
+}
+
+
+/* ---------- 로그인한 참가자의 경기 기록 ---------- */
+let finishHook = null;
+export function setFinishHook(fn) { finishHook = fn; }
+function recordFinish(room) {
+  if (room.phase !== 'result' || room.recordedNo === room.gameNo) return;
+  room.recordedNo = room.gameNo;
+  if (!finishHook) return;
+  room.players.forEach((p, k) => { if (p.uid) { try { finishHook(p.uid, entryFor(room, k)); } catch (e) { console.error(e); } } });
+}
+function entryFor(room, k) {
+  const sums = totals(room).map(t => Math.round(t.sum * 100) / 100);
+  return {
+    game: 'auction', mode: room.ai ? 'ai' : 'online', level: room.ai || null,
+    rank: 1 + sums.filter(x => x > sums[k]).length, total: room.players.length, score: sums[k],
+    players: room.players.map((p, j) => ({ name: p.name, score: sums[j], me: j === k, bot: !!p.bot })),
+    mine: room.players[k].cards.map(id => ({ name: BY_ID[id].name, aav: BY_ID[id].aav }))
+  };
 }
 
 export { GameError };

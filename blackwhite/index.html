@@ -589,25 +589,16 @@ document.getElementById('hands').addEventListener('click', e => {
   commit(); S.pend[p] = +t.dataset.id; save(); render();
 });
 
-
-/* 내 경기 기록: 이 브라우저에만 저장 (첫 화면 '내 경기 기록'에서 봄) */
-function saveHistory(entry) {
-  try {
-    const KEY = '1x1:history';
-    const list = JSON.parse(localStorage.getItem(KEY) || '[]');
-    if (list.some(x => x.id === entry.id)) return;
-    list.unshift(Object.assign({ at: Date.now() }, entry));
-    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 200)));
-  } catch (e) {}
-}
 function recordAiGame() {
   if (!S.gid) S.gid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const w0 = wins(0), w1 = wins(1);
-  saveHistory({
-    id: 'bw-ai:' + S.gid, game: 'bw', mode: 'ai', level: S.level || 'mid',
-    result: w0 === w1 ? 'draw' : w0 > w1 ? 'win' : 'lose', myWins: w0, oppWins: w1,
-    me: S.names[0], opponent: 'AI', innings: S.innings.length
-  });
+  if (S.recorded === S.gid) return;
+  S.recorded = S.gid;
+  // 로그인했을 때만 서버에 저장됨 (로그인 안 했으면 서버가 거절하고 아무 일도 없음)
+  fetch('/api/history', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+    game: 'bw', mode: 'ai', level: S.level || 'mid',
+    result: w0 === w1 ? 'draw' : w0 > w1 ? 'win' : 'lose', myWins: w0, oppWins: w1, innings: S.innings.length
+  }) }).catch(() => {});
 }
 
 /* ---------- AI (2번 자리) ---------- */
@@ -701,6 +692,10 @@ document.getElementById('levelSeg').addEventListener('click', e => {
 
 S = load();
 render();
+// 로그인했으면 내 자리 이름을 닉네임으로
+fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
+  if (d.user && S.names[0] !== d.user.nickname) { S.names[0] = d.user.nickname; save(); render(); }
+}).catch(() => {});
 
 function fitStage() {
   const st = document.getElementById('stage');

@@ -163,6 +163,9 @@ button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 7
 .rank { font-family: var(--f-mono); color: var(--amber); }
 .x2 { font-size: 10px; background: var(--amber); color: #1a1405; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
 
+.login-note a { color: var(--amber); font-weight: 700; }
+input[readonly] { opacity: 0.85; border-style: dashed; }
+
 /* black & white */
 :root { --ink: #0a0f0e; }
 .score { display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--f-mono); font-weight: 600; }
@@ -233,6 +236,20 @@ let code = (params.get('room') || '').toUpperCase();
 let token = code ? store.get(KEY + code) : null;
 let deadlineAt = null;
 let V = null, es = null, connected = false, errMsg = '', listTimer = null;
+/* 로그인 상태: 로그인했으면 이름 칸에 닉네임을 넣고 고정 */
+let ME = null;
+const meReady = fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { ME = d.user; return ME; }).catch(() => null);
+function applyLogin() {
+  meReady.then(u => {
+    const nm = document.getElementById('nm');
+    const note = document.getElementById('loginNote');
+    if (u && nm) { nm.value = u.nickname; nm.readOnly = true; }
+    if (note) note.innerHTML = u
+      ? `<b>${esc(u.nickname)}</b>님으로 로그인했어요. 이 닉네임으로 참여하고, 경기 결과가 <a href="/history/">내 경기 기록</a>에 남아요.`
+      : `로그인하지 않아도 할 수 있어요. <a href="/account/?next=${encodeURIComponent(location.pathname + location.search)}">로그인</a>하면 닉네임이 자동으로 들어가고 경기 기록이 남아요.`;
+  });
+}
+
 const HDR = '<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1</div><h1>9이닝 흑과 백</h1></div></header>';
 
 async function post(path, body) {
@@ -256,6 +273,7 @@ function renderEntry(msg) {
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
       <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
+      <p class="muted login-note" id="loginNote"></p>
     </div>
     <div class="panel">
       <h2>${code ? `방 ${esc(code)} 들어가기` : '방 들어가기'}</h2>
@@ -276,6 +294,7 @@ function renderEntry(msg) {
       <button class="btn primary block" id="createBtn" type="button">방 만들기</button></div>`}
     </div></div>
     <p class="err" id="err">${esc(msg || '')}</p>`;
+  applyLogin();
   const nameOf = () => { const n = document.getElementById('nm').value.trim(); if (!n) throw new Error('이름을 입력하세요.'); store.set('online:name', n); return n; };
   const showErr = e => { document.getElementById('err').textContent = e.message; };
   document.getElementById('joinBtn').onclick = async () => {
@@ -429,29 +448,7 @@ function handPanel(k) {
 function renderGame() {
   app.innerHTML = topBar() + `<div class="cols"><div class="colL">${scorePanel()}${moundPanel()}</div><div class="colR">${handPanel(V.me)}${handPanel(1 - V.me)}<p class="muted">두 사람은 똑같은 9장을 받아요. 카드 색(흑·백)은 서로 보이지만 홈런 수는 경기가 끝나야 공개돼요. 이미 낸 카드 이름은 판정 후 공개돼요.</p></div></div>`;
 }
-
-/* 내 경기 기록: 이 브라우저에만 저장 (첫 화면 '내 경기 기록'에서 봄) */
-function saveHistory(entry) {
-  try {
-    const KEY = '1x1:history';
-    const list = JSON.parse(localStorage.getItem(KEY) || '[]');
-    if (list.some(x => x.id === entry.id)) return;
-    list.unshift(Object.assign({ at: Date.now() }, entry));
-    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 200)));
-  } catch (e) {}
-}
-function recordBw() {
-  const me = V.me, op = 1 - me;
-  const res = V.wins[me] === V.wins[op] ? 'draw' : V.wins[me] > V.wins[op] ? 'win' : 'lose';
-  saveHistory({
-    id: `bw:${V.code}:${V.gameNo}`, game: 'bw', mode: 'online', level: null,
-    result: res, myWins: V.wins[me], oppWins: V.wins[op],
-    me: V.players[me] ? V.players[me].name : '', opponent: V.players[op] ? V.players[op].name : '상대',
-    innings: V.innings.length
-  });
-}
 function renderResult() {
-  recordBw();
   const w = V.wins[0] === V.wins[1] ? -1 : V.wins[0] > V.wins[1] ? 0 : 1;
   const rows = V.innings.map((x, i) => {
     const cell = k => `<span class="${x.res === k ? 'w' : ''}" style="--pc:${PC[k]}">${esc(x.cards[k].name)}<span class="hr">${x.cards[k].hr}</span></span>`;

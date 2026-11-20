@@ -30,27 +30,27 @@ const seatOf = (room, tok) => room.players.findIndex(p => p.token === tok);
 const isOnline = (room, k) => [...room.clients].some(c => c.seat === k);
 
 /* ---------- lobby ---------- */
-export function createRoom(name, isPublic) {
-  name = cleanName(name) || 'Player1';
+export function createRoom(name, isPublic, user) {
+  name = user ? user.nickname : (cleanName(name) || 'Player1');
   const room = { code: newCode(), phase: 'lobby', players: [], host: 0, public: !!isPublic, created: now(), touched: now(), clients: new Set(), deadline: null, actorKey: '' };
   rooms.set(room.code, room);
-  return { code: room.code, token: addPlayer(room, name) };
+  return { code: room.code, token: addPlayer(room, name, user) };
 }
-function addPlayer(room, name) {
+function addPlayer(room, name, user) {
   if (room.players.length >= SEATS) fail('방이 가득 찼어요 (2명).');
   if (room.phase !== 'lobby') fail('이미 경기가 시작된 방이에요.');
   if (room.players.some(p => p.name === name)) name += room.players.length + 1;
   const t = token();
-  room.players.push({ token: t, name, seenAt: now() });
+  room.players.push({ token: t, name, uid: user ? user.id : null, seenAt: now() });
   return t;
 }
-export function joinRoom(code, name, tok) {
+export function joinRoom(code, name, tok, user) {
   const room = getRoom(code);
   if (tok && seatOf(room, tok) >= 0) return { code: room.code, token: tok };
-  name = cleanName(name);
+  name = user ? user.nickname : cleanName(name);
   if (!name) fail('이름을 입력하세요.');
-  const t = addPlayer(room, name);
-  bump(room, `${name}님이 들어왔어요.`);
+  const t = addPlayer(room, name, user);
+  bump(room, `${room.players[room.players.length - 1].name}님이 들어왔어요.`);
   return { code: room.code, token: t };
 }
 export function listRooms() {
@@ -59,11 +59,11 @@ export function listRooms() {
     .sort((a, b) => a.created - b.created).slice(0, 30)
     .map(r => ({ code: r.code, host: r.players[0].name, count: r.players.length }));
 }
-export function quickJoin(name) {
-  name = cleanName(name);
+export function quickJoin(name, user) {
+  name = user ? user.nickname : cleanName(name);
   if (!name) fail('이름을 입력하세요.');
   const open = listRooms()[0];
-  return open ? joinRoom(open.code, name) : createRoom(name, true);
+  return open ? joinRoom(open.code, name, null, user) : createRoom(name, true, user);
 }
 function removeSeat(room, k, why) {
   const [gone] = room.players.splice(k, 1);
@@ -176,6 +176,7 @@ export function act(code, tok, body) {
 
 /* ---------- views & SSE ---------- */
 function bump(room, msg) {
+  recordFinish(room);
   room.touched = now();
   if (msg) room.lastEvent = msg;
   const g = room.game;
@@ -228,4 +229,19 @@ export function restart(code, tok) {
   startGame(room);
   bump(room, `재경기 시작! 1이닝 선공은 ${room.players[room.game.lead].name}님이에요.`);
 }
+
+/* ---------- 로그인한 참가자의 경기 기록 ---------- */
+let finishHook = null;
+export function setFinishHook(fn) { finishHook = fn; }
+function recordFinish(room) {
+  if (room.phase !== 'result' || room.recordedNo === room.gameNo) return;
+  room.recordedNo = room.gameNo;
+  if (!finishHook) return;
+  room.players.forEach((p, k) => { if (p.uid) { try { finishHook(p.uid, entryFor(room, k)); } catch (e) { console.error(e); } } });
+}
+function entryFor(room, k) {
+  const g = room.game, o = 1 - k, w = wins(g, k), l = wins(g, o);
+  return { game: 'bw', mode: 'online', level: null, result: w === l ? 'draw' : w > l ? 'win' : 'lose', myWins: w, oppWins: l, opponent: room.players[o] ? room.players[o].name : '상대', innings: g.innings.length };
+}
+
 export { GameError };

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>로그인 · 회원가입 · 1x1 MATCH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow form column (max 460px) on the scoreboard green, with login / signup tabs. Same palette as the game pages. */
+:root {
+  --board: #10302a; --board-2: #163d35; --slot: #0b2420;
+  --chalk: #f1eee4; --chalk-dim: #a7bcb2; --line: rgba(241, 238, 228, 0.14);
+  --amber: #f3b641; --red: #e8604a; --ok: #7bd88f;
+  --f-display: "Black Han Sans", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: #071815; }
+body {
+  margin: 0; min-height: 100vh; color: var(--chalk); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  background-color: var(--board);
+  background-image: repeating-linear-gradient(90deg, transparent 0 79px, rgba(0,0,0,0.1) 79px 80px), repeating-linear-gradient(0deg, transparent 0 79px, rgba(0,0,0,0.08) 79px 80px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 460px; margin: 0 auto; padding-block: 28px 48px; display: grid; gap: 16px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo { font-family: var(--f-display); font-size: 28px; line-height: 1; color: var(--chalk); text-decoration: none; padding-right: 12px; border-right: 1px solid var(--line); }
+.logo span { color: var(--amber); }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--chalk-dim); text-transform: uppercase; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 32px; line-height: 1.05; margin: 2px 0 0; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--slot); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
+.tabs button { border: 0; background: transparent; border-radius: 7px; padding: 10px; font-weight: 700; color: var(--chalk-dim); }
+.tabs button[aria-selected="true"] { background: var(--chalk); color: var(--board); }
+form { background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 13px; font-weight: 700; }
+.row { display: flex; gap: 6px; }
+.row > input { flex: 1; min-width: 0; }
+input[type=text], input[type=password], input[type=tel] {
+  width: 100%; background: var(--board); border: 1px solid var(--line); color: var(--chalk); border-radius: 8px; padding: 12px; font: inherit; font-size: 16px;
+}
+input.bad { border-color: var(--red); }
+input.good { border-color: var(--ok); }
+.eye { flex: none; border: 1px solid var(--line); background: var(--board-2); border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 700; min-width: 64px; }
+.msg { font-size: 12.5px; color: var(--chalk-dim); margin: 0; min-height: 18px; }
+.msg.bad { color: var(--red); }
+.msg.good { color: var(--ok); }
+.rules { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.rules li { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--board-2); color: var(--chalk-dim); }
+.rules li.ok { background: rgba(123,216,143,0.18); color: var(--ok); }
+.rules li.ok::before { content: "✓ "; }
+.agree { display: grid; gap: 6px; font-size: 13px; background: var(--board-2); border-radius: 8px; padding: 10px 12px; }
+.agree label { display: flex; gap: 8px; align-items: center; font-weight: 700; }
+.agree input { width: 18px; height: 18px; accent-color: var(--amber); }
+.agree details { color: var(--chalk-dim); font-size: 12.5px; }
+.agree summary { cursor: pointer; }
+.btn { border: 1px solid var(--line); background: var(--board-2); padding: 12px 14px; border-radius: 8px; font-weight: 700; font-size: 16px; }
+.btn.primary { background: var(--amber); color: #1a1405; border-color: var(--amber); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.err { color: var(--red); font-size: 13px; margin: 0; min-height: 18px; }
+.muted { color: var(--chalk-dim); font-size: 13px; margin: 0; }
+.muted a, .links a { color: var(--amber); font-weight: 700; text-decoration: none; }
+.links { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+.me { background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
+.me b { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH</div><h1 id="title">로그인</h1></div></header>
+
+  <section class="me" id="meBox" hidden>
+    <div><span class="muted">로그인 중</span><br><b id="meName"></b></div>
+    <div class="links"><a href="/history/">내 경기 기록</a><a href="/">게임 하러 가기</a></div>
+    <button class="btn" type="button" id="logoutBtn">로그아웃</button>
+  </section>
+
+  <div id="forms">
+    <div class="tabs" role="tablist" aria-label="로그인 또는 회원가입">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true" aria-controls="loginForm">로그인</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false" aria-controls="signupForm">회원가입</button>
+    </div>
+
+    <form id="loginForm" role="tabpanel" aria-labelledby="tabLogin" novalidate style="margin-top:12px">
+      <div class="field"><label for="lgId">닉네임 또는 전화번호</label><input type="text" id="lgId" autocomplete="username" placeholder="예: 구원근 또는 010-1234-5678"></div>
+      <div class="field"><label for="lgPw">비밀번호</label>
+        <div class="row"><input type="password" id="lgPw" autocomplete="current-password"><button type="button" class="eye" data-eye="lgPw" aria-pressed="false">보기</button></div></div>
+      <p class="err" id="lgErr"></p>
+      <button class="btn primary" type="submit">로그인</button>
+      <p class="muted">회원이 아니어도 게임은 할 수 있어요. 로그인하면 닉네임이 자동으로 들어가고 경기 기록이 남아요.</p>
+    </form>
+
+    <form id="signupForm" role="tabpanel" aria-labelledby="tabSignup" novalidate hidden style="margin-top:12px">
+      <div class="field"><label for="suNick">닉네임</label>
+        <input type="text" id="suNick" maxlength="10" autocomplete="nickname" placeholder="게임에서 쓸 이름 (2~10자)">
+        <p class="msg" id="nickMsg">한글·영문·숫자·밑줄(_)로 2~10자. 다른 사람과 겹칠 수 없어요.</p></div>
+      <div class="field"><label for="suName">이름</label><input type="text" id="suName" maxlength="20" autocomplete="name" placeholder="실명"><p class="msg" id="nameMsg"></p></div>
+      <div class="field"><label for="suPhone">전화번호</label>
+        <input type="tel" id="suPhone" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="숫자만 입력하면 - 가 자동으로 들어가요">
+        <p class="msg" id="phoneMsg">전화번호 하나당 계정은 하나만 만들 수 있어요.</p></div>
+      <div class="field"><label for="suPw">비밀번호</label>
+        <div class="row"><input type="password" id="suPw" autocomplete="new-password" maxlength="64"><button type="button" class="eye" data-eye="suPw" aria-pressed="false">보기</button></div>
+        <ul class="rules" id="pwRules"><li data-r="en">영문</li><li data-r="num">숫자</li><li data-r="sp">특수문자</li><li data-r="len">8자 이상</li></ul></div>
+      <div class="field"><label for="suPw2">비밀번호 확인</label>
+        <div class="row"><input type="password" id="suPw2" autocomplete="new-password" maxlength="64"><button type="button" class="eye" data-eye="suPw2" aria-pressed="false">보기</button></div>
+        <p class="msg" id="pw2Msg"></p></div>
+      <div class="agree">
+        <label><input type="checkbox" id="suAgree"> 개인정보 수집·이용에 동의해요 (필수)</label>
+        <details><summary>자세히 보기</summary>
+          수집 항목: 닉네임, 이름, 전화번호, 비밀번호(암호화해서 저장)<br>
+          이용 목적: 회원 식별, 중복 가입 방지, 경기 기록 제공<br>
+          보관 기간: 회원 탈퇴 시까지
+        </details>
+      </div>
+      <p class="err" id="suErr"></p>
+      <button class="btn primary" type="submit" id="suBtn">가입하기</button>
+    </form>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const next = (() => { const n = new URLSearchParams(location.search).get('next') || '/'; return n.startsWith('/') && !n.startsWith('//') ? n : '/'; })();
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
+  const j = await r.json().catch(() => ({ error: '서버 응답을 읽지 못했어요.' }));
+  if (!r.ok) { const e = new Error(j.error || '요청이 실패했어요.'); e.field = j.field; throw e; }
+  return j;
+}
+
+/* tabs */
+function showTab(which) {
+  const login = which === 'login';
+  $('tabLogin').setAttribute('aria-selected', String(login));
+  $('tabSignup').setAttribute('aria-selected', String(!login));
+  $('loginForm').hidden = !login; $('signupForm').hidden = login;
+  $('title').textContent = login ? '로그인' : '회원가입';
+}
+$('tabLogin').onclick = () => showTab('login');
+$('tabSignup').onclick = () => showTab('signup');
+if (new URLSearchParams(location.search).get('tab') === 'signup') showTab('signup');
+
+/* 비밀번호 보기·숨김 (기본은 숨김) */
+document.querySelectorAll('[data-eye]').forEach(b => b.onclick = () => {
+  const inp = $(b.dataset.eye), show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  b.textContent = show ? '숨김' : '보기';
+  b.setAttribute('aria-pressed', String(show));
+});
+
+/* 전화번호: 숫자만 넣으면 - 자동 */
+function fmtPhone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length < 4) return d;
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+}
+$('suPhone').addEventListener('input', e => {
+  const el = e.target, before = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length;
+  el.value = fmtPhone(el.value);
+  let pos = 0, seen = 0; while (pos < el.value.length && seen < before) { if (/\d/.test(el.value[pos])) seen++; pos++; }
+  el.setSelectionRange(pos, pos);
+  const d = el.value.replace(/\D/g, ''), ok = /^01[016789]\d{7,8}$/.test(d);
+  setMsg('phoneMsg', el, d.length < 10 ? null : ok, ok ? '좋아요.' : '휴대폰 번호를 정확히 입력하세요.');
+});
+function setMsg(msgId, input, ok, text) {
+  const m = $(msgId);
+  input.classList.toggle('good', ok === true); input.classList.toggle('bad', ok === false);
+  m.classList.toggle('good', ok === true); m.classList.toggle('bad', ok === false);
+  if (text !== undefined && ok !== null) m.textContent = text;
+}
+
+/* 닉네임 중복 확인 (입력을 멈추면 바로 확인) */
+const NICK_RE = /^(?!\d+$)[0-9A-Za-z가-힣_]{2,10}$/;
+let nickOk = false, nickTimer = null, nickSeq = 0;
+$('suNick').addEventListener('input', () => {
+  nickOk = false; clearTimeout(nickTimer);
+  const n = $('suNick').value.trim();
+  if (!n) { setMsg('nickMsg', $('suNick'), null); $('nickMsg').textContent = '한글·영문·숫자·밑줄(_)로 2~10자. 다른 사람과 겹칠 수 없어요.'; $('nickMsg').className = 'msg'; return; }
+  if (!NICK_RE.test(n)) { setMsg('nickMsg', $('suNick'), false, '한글·영문·숫자·밑줄(_)로 2~10자만 쓸 수 있어요.'); return; }
+  $('nickMsg').textContent = '확인하는 중…'; $('nickMsg').className = 'msg';
+  const seq = ++nickSeq;
+  nickTimer = setTimeout(async () => {
+    try {
+      const r = await api('/api/auth/nickname?n=' + encodeURIComponent(n));
+      if (seq !== nickSeq) return;
+      nickOk = r.available;
+      setMsg('nickMsg', $('suNick'), r.available, r.available ? '사용할 수 있는 닉네임이에요.' : r.reason);
+    } catch { if (seq === nickSeq) $('nickMsg').textContent = '중복 확인을 못 했어요. 가입할 때 다시 확인해요.'; }
+  }, 350);
+});
+$('suName').addEventListener('input', e => { const ok = /^[A-Za-z가-힣 ]{2,20}$/.test(e.target.value.trim()); setMsg('nameMsg', e.target, e.target.value ? ok : null, ok ? '' : '이름을 2~20자의 한글이나 영문으로 입력하세요.'); });
+
+/* 비밀번호 규칙 표시 */
+const pwChecks = pw => ({ en: /[A-Za-z]/.test(pw), num: /\d/.test(pw), sp: /[^A-Za-z0-9]/.test(pw), len: pw.length >= 8 });
+function updatePw() {
+  const pw = $('suPw').value, c = pwChecks(pw);
+  document.querySelectorAll('#pwRules li').forEach(li => li.classList.toggle('ok', c[li.dataset.r]));
+  const all = Object.values(c).every(Boolean);
+  $('suPw').classList.toggle('good', !!pw && all); $('suPw').classList.toggle('bad', !!pw && !all);
+  const p2 = $('suPw2').value;
+  if (p2) setMsg('pw2Msg', $('suPw2'), p2 === pw, p2 === pw ? '비밀번호가 같아요.' : '비밀번호가 서로 달라요.');
+  else { $('suPw2').classList.remove('good', 'bad'); $('pw2Msg').textContent = ''; $('pw2Msg').className = 'msg'; }
+}
+$('suPw').addEventListener('input', updatePw);
+$('suPw2').addEventListener('input', updatePw);
+
+/* 제출 */
+$('signupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = { nickname: $('suNick').value.trim(), name: $('suName').value.trim(), phone: $('suPhone').value, password: $('suPw').value, password2: $('suPw2').value, agree: $('suAgree').checked };
+  const err = $('suErr'); err.textContent = '';
+  const c = pwChecks(body.password);
+  const local = !NICK_RE.test(body.nickname) ? ['닉네임은 한글·영문·숫자·밑줄(_)로 2~10자만 쓸 수 있어요.', 'suNick']
+    : !/^[A-Za-z가-힣 ]{2,20}$/.test(body.name) ? ['이름을 2~20자의 한글이나 영문으로 입력하세요.', 'suName']
+    : !/^01[016789]\d{7,8}$/.test(body.phone.replace(/\D/g, '')) ? ['휴대폰 번호를 정확히 입력하세요. 예: 010-1234-5678', 'suPhone']
+    : !Object.values(c).every(Boolean) ? ['비밀번호는 영문, 숫자, 특수문자를 하나 이상 넣어 8자 이상으로 만드세요.', 'suPw']
+    : body.password !== body.password2 ? ['비밀번호 확인이 일치하지 않아요.', 'suPw2']
+    : !body.agree ? ['개인정보 수집·이용에 동의해야 가입할 수 있어요.', 'suAgree'] : null;
+  if (local) { err.textContent = local[0]; $(local[1]).focus(); return; }
+  $('suBtn').disabled = true;
+  try { await api('/api/auth/signup', body); location.href = next; }
+  catch (ex) {
+    err.textContent = ex.message;
+    const map = { nickname: 'suNick', name: 'suName', phone: 'suPhone', password: 'suPw', password2: 'suPw2', agree: 'suAgree' };
+    if (map[ex.field]) $(map[ex.field]).focus();
+  } finally { $('suBtn').disabled = false; }
+});
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('lgErr').textContent = '';
+  try { await api('/api/auth/login', { id: $('lgId').value.trim(), password: $('lgPw').value }); location.href = next; }
+  catch (ex) { $('lgErr').textContent = ex.message; }
+});
+$('lgId').addEventListener('input', e => { if (/^\d[\d-]*$/.test(e.target.value)) e.target.value = fmtPhone(e.target.value); });
+
+/* 이미 로그인했으면 */
+$('logoutBtn').onclick = async () => { await api('/api/auth/logout', {}).catch(() => {}); location.reload(); };
+api('/api/auth/me').then(d => {
+  if (!d.user) return;
+  $('forms').hidden = true; $('meBox').hidden = false;
+  $('meName').textContent = d.user.nickname + '님';
+  $('title').textContent = '내 계정';
+}).catch(() => {});
+</script>
+</body>
+</html>

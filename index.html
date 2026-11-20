@@ -43,6 +43,11 @@ h1 span { color: var(--amber); }
 .histbtn { justify-self: start; margin-top: 6px; display: inline-flex; gap: 6px; align-items: center; text-decoration: none; color: var(--chalk); font-weight: 700; font-size: 15px; background: var(--slot); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; }
 .histbtn:hover { border-color: var(--amber); color: var(--amber); }
 .histbtn span { font-family: var(--f-mono); font-size: 13px; color: var(--amber); }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.acct { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.acct a, .acct button { color: var(--chalk); text-decoration: none; font-weight: 700; background: var(--slot); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+.acct a.join { background: var(--amber); color: #1a1405; border-color: var(--amber); }
+.acct-name { font-weight: 700; color: var(--amber); }
 .lede { margin: 0; font-size: 17px; color: var(--chalk-dim); max-width: 34em; }
 .games { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 640px) { .games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -78,10 +83,10 @@ footer { font-size: 13px; color: var(--chalk-dim); }
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">KBO 야구 두뇌 게임</div>
+    <div class="topline"><div class="eyebrow">KBO 야구 두뇌 게임</div><div class="acct" id="acct"><a href="account/">로그인</a><a href="account/?tab=signup" class="join">회원가입</a></div></div>
     <h1>1<span>x</span>1 MATCH</h1>
     <p class="lede">야구를 많이 아는 사람이 이기는 게임. 선수 연봉과 기록을 누가 더 정확히 아는지 겨뤄 보세요.</p>
-    <a class="histbtn" href="history/">내 경기 기록 보기 <span id="histCount"></span> →</a>
+    <a class="histbtn" href="history/">내 경기 기록 보기 →</a>
   </header>
 
   <main class="games">
@@ -122,7 +127,15 @@ footer { font-size: 13px; color: var(--chalk-dim); }
   <footer>Rallypick · 기록 출처: KBO 공식 기록실</footer>
 </div>
 <script>
-try { const n = JSON.parse(localStorage.getItem('1x1:history') || '[]').length; if (n) document.getElementById('histCount').textContent = n + '판'; } catch (e) {}
+// 로그인 상태에 따라 오른쪽 위 계정 버튼을 바꿈
+fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
+  const el = document.getElementById('acct');
+  if (d.user) {
+    el.innerHTML = '<span class="acct-name"></span><button type="button" id="logoutBtn">로그아웃</button>';
+    el.querySelector('.acct-name').textContent = d.user.nickname + '님';
+    document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
+  }
+}).catch(() => {});
 </script>
 </body>
 </html>
