@@ -78,6 +78,17 @@ export const CARDS = [
   { id: 'pyt', type: 'player', name: '박용택', team: 'LG', seasons: '2019–2020', term: '2년', hint: 'LG 원클럽맨의 마지막 FA', aav: 25 / 2 },
   { id: 'njh', type: 'player', name: '노진혁', team: '롯데', seasons: '2023–2026', term: '4년', hint: '20홈런 유격수의 부산행', aav: 50 / 4 },
   { id: 'kwj', type: 'player', name: '김원중', team: '롯데', seasons: '2025–2028', term: '4년', hint: '머리 자른 마무리의 FA 잔류', aav: 54 / 4 },
+  // 추가 선수 4 (외국인 포함). 달러 계약은 그해 평균 환율로 원화 환산(기사에 원화가 있으면 그 금액)
+  { id: 'ered', type: 'player', name: '에레디아', team: 'SSG', seasons: '2025', term: '1년', hint: '타격왕 외인 타자의 재계약', aav: 25.6, foreign: true },
+  { id: 'nail', type: 'player', name: '네일', team: 'KIA', seasons: '2026', term: '1년', hint: '우승 에이스, ML 러브콜 뿌리치고 잔류', aav: 29.3, foreign: true },
+  { id: 'lind', type: 'player', name: '린드블럼', team: '두산', seasons: '2019', term: '1년', hint: '20승 MVP 시즌의 연봉', aav: 20.6, foreign: true },
+  { id: 'reye', type: 'player', name: '레이예스', team: '롯데', seasons: '2026', term: '1년', hint: '안타왕의 3년째 동행', aav: 20.5, foreign: true },
+  { id: 'kell', type: 'player', name: '켈리', team: 'LG', seasons: '2024', term: '1년', hint: 'LG 최장수 외인의 6년째 계약', aav: 20.5, foreign: true },
+  { id: 'aust', type: 'player', name: '오스틴', team: 'LG', seasons: '2026', term: '1년', hint: '우승 4번 타자의 재계약', aav: 24.9, foreign: true },
+  { id: 'wti', type: 'player', name: '원태인', team: '삼성', seasons: '2026', term: '1년', hint: '8년 차 역대 최고 연봉', aav: 10 },
+  { id: 'diaz', type: 'player', name: '디아즈', team: '삼성', seasons: '2026', term: '1년', hint: '50홈런 158타점 뒤 연봉 2배', aav: 23.4, foreign: true },
+  { id: 'tham', type: 'player', name: '테임즈', team: 'NC', seasons: '2015', term: '1년', hint: '40-40 MVP 시즌의 연봉', aav: 11.3, foreign: true },
+  { id: 'fedd', type: 'player', name: '페디', team: 'NC', seasons: '2023', term: '1년', hint: '20승 200K MVP 시즌의 연봉', aav: 13.1, foreign: true },
   { id: 'trade', type: 'chance', kind: 'trade', name: '트레이드권', effect: '낙찰 즉시, 내 선수 1명과 상대 선수 1명을 직접 골라 교환해요. 교환할 선수가 없으면 그대로 사라져요.' },
   { id: 'release', type: 'chance', kind: 'release', name: '방출', effect: '가격이 1초마다 1개씩 올라가요. 가장 먼저 포기한 사람이 방출 카드를 받아 가장 최근에 영입한 자기 선수를 방출해요. 포기한 사람은 큐브를 내지 않고, 나머지 3명은 그 순간의 가격만큼 큐브를 내요.' },
   { id: 'double', type: 'chance', kind: 'double', name: '연봉 2배', effect: '결과를 합산할 때, 내 선수 중 연봉이 가장 낮은 선수의 연봉이 2배가 돼요.' }
