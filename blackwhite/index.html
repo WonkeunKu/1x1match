@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>9이닝 흑과 백</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: same 960×1060 scoreboard stage as the salary auction, scaled to fit. Line score on top, the "mound" (this inning's two cards) in the middle, both hands below. Single dark look on purpose. */
+:root {
+  --board: #10302a;
+  --board-2: #163d35;
+  --slot: #0b2420;
+  --chalk: #f1eee4;
+  --chalk-dim: #a7bcb2;
+  --line: rgba(241, 238, 228, 0.14);
+  --amber: #f3b641;
+  --red: #e8604a;
+  --ink: #0a0f0e;
+  --p1: #f3b641;
+  --p2: #6fc4ea;
+  --f-display: "Black Han Sans", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+html { background: #071815; }
+body { background: #071815; color: var(--chalk); font-family: var(--f-body); font-size: 15px; line-height: 1.5; overflow: hidden; position: relative; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.stage {
+  position: absolute; left: 0; top: 0; width: 960px; height: 1060px; transform-origin: 0 0; overflow: hidden;
+  background-color: var(--board);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 119px, rgba(0,0,0,0.12) 119px 120px),
+    repeating-linear-gradient(0deg, transparent 0 119px, rgba(0,0,0,0.10) 119px 120px);
+  display: flex; flex-direction: column;
+}
+
+.top { display: flex; align-items: center; gap: 18px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: rgba(0,0,0,0.18); flex: none; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--chalk-dim); text-transform: uppercase; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.05; margin: 2px 0 0; white-space: nowrap; }
+.key { display: grid; gap: 4px; padding: 6px 14px; border-left: 3px solid var(--amber); background: var(--slot); font-size: 13px; }
+.key div { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.key b { font-family: var(--f-mono); font-size: 16px; }
+.sw { display: inline-grid; place-items: center; width: 26px; height: 22px; border-radius: 4px; font-family: var(--f-display); font-size: 13px; }
+.sw.black { background: var(--ink); color: var(--chalk); border: 1px solid rgba(241,238,228,0.35); }
+.sw.white { background: var(--chalk); color: var(--ink); }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-left: auto; }
+.controls .primary, .controls .full { grid-column: 1 / -1; }
+.seg { display: flex; align-items: center; gap: 4px; background: var(--slot); border: 1px solid var(--line); border-radius: 6px; padding: 3px; }
+.seg span { font-size: 12px; color: var(--chalk-dim); padding: 0 6px; }
+.seg button { flex: 1; border: 0; background: transparent; border-radius: 4px; padding: 3px 0; font-size: 13px; font-weight: 700; color: var(--chalk-dim); }
+.seg button[aria-pressed="true"] { background: var(--amber); color: #1a1405; }
+.btn { border: 1px solid var(--line); background: var(--board-2); padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--chalk-dim); }
+.btn.primary { background: var(--chalk); color: var(--board); border-color: var(--chalk); font-weight: 700; }
+.btn.warn { background: var(--red); border-color: var(--red); color: #fff; }
+.btn.big { font-size: 18px; padding: 10px 22px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.layout { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 14px 20px 18px; }
+
+/* Line score */
+.ls { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.ls th { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--chalk-dim); padding: 2px 0; }
+.ls th.cur { color: var(--amber); }
+.ls td { background: var(--slot); border: 1px solid var(--line); border-radius: 6px; height: 62px; text-align: center; vertical-align: middle; padding: 4px 3px; font-size: 12px; line-height: 1.25; word-break: keep-all; }
+.ls td.cur { border-color: var(--amber); box-shadow: inset 0 0 0 2px rgba(243,182,65,0.25); }
+.ls td.win { background: color-mix(in srgb, var(--pc) 28%, var(--slot)); border-color: var(--pc); }
+.ls td.lose { opacity: 0.55; }
+.ls td .yr { display: block; font-family: var(--f-mono); color: var(--chalk-dim); font-size: 11px; }
+.ls td .mk { display: block; font-family: var(--f-display); font-size: 14px; margin-top: 2px; }
+.ls td.win .mk { color: var(--pc); }
+.ls td.nm { width: 150px; text-align: left; padding: 6px 10px; border-left: 4px solid var(--pc); }
+.ls td.tot { width: 64px; font-family: var(--f-mono); font-size: 30px; font-weight: 600; color: var(--pc); }
+.nmrow { display: flex; align-items: center; gap: 6px; }
+.lead { font-size: 11px; font-weight: 700; color: #10201b; background: var(--amber); border-radius: 3px; padding: 0 5px; flex: none; }
+input.pname { width: 100%; min-width: 0; background: transparent; border: 0; border-bottom: 1px dashed var(--line); color: var(--chalk); font-family: var(--f-display); font-size: 19px; padding: 0; }
+
+/* Mound */
+.mound { flex: none; background: rgba(0,0,0,0.2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; min-height: 290px; }
+.mhead { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
+.mhead strong { font-family: var(--f-display); font-weight: 400; font-size: 26px; }
+.mhead span { color: var(--chalk-dim); font-size: 14px; }
+.seat { display: grid; justify-items: center; gap: 10px; min-width: 0; }
+.seat .who { font-family: var(--f-display); font-size: 22px; color: var(--pc); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat .role { font-size: 12px; color: var(--chalk-dim); font-family: var(--f-mono); letter-spacing: 0.1em; }
+.tile { width: 150px; height: 170px; border-radius: 12px; display: grid; place-items: center; text-align: center; padding: 10px; }
+.tile.empty { border: 2px dashed var(--line); color: var(--chalk-dim); font-size: 14px; }
+.tile.black { background: var(--ink); color: var(--chalk); border: 2px solid rgba(241,238,228,0.4); }
+.tile.white { background: var(--chalk); color: var(--ink); }
+.tile .big { font-family: var(--f-display); font-size: 72px; line-height: 1; }
+.tile .rev { display: grid; gap: 2px; }
+.tile .rev .y { font-family: var(--f-mono); font-size: 14px; opacity: 0.75; }
+.tile .rev .n { font-family: var(--f-display); font-size: 26px; line-height: 1.1; word-break: keep-all; }
+.tile .rev .t { font-size: 12px; opacity: 0.75; }
+.tile.won { box-shadow: 0 0 0 4px var(--amber); }
+.tile.lost { opacity: 0.45; }
+.mid { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.vs { font-family: var(--f-display); font-size: 28px; color: var(--chalk-dim); }
+.verdict { font-family: var(--f-display); font-size: 30px; color: var(--amber); line-height: 1.1; max-width: 220px; word-break: keep-all; }
+.hint { font-size: 13px; color: var(--chalk-dim); max-width: 220px; word-break: keep-all; }
+.flip { animation: flip 0.45s cubic-bezier(.2,.8,.2,1); }
+@keyframes flip { from { transform: perspective(700px) rotateY(85deg); opacity: 0.3; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .flip { animation: none; } }
+
+/* Hands */
+.hands { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hand { background: var(--slot); border: 1px solid var(--line); border-top: 3px solid var(--pc); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.hand h3 { margin: 0; font-size: 14px; color: var(--chalk-dim); font-weight: 700; display: flex; justify-content: space-between; }
+.hand h3 b { color: var(--pc); font-family: var(--f-display); font-weight: 400; font-size: 18px; }
+.cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.c { background: var(--board-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; display: grid; gap: 1px; min-width: 0; }
+.c .y { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); }
+.c .n { font-weight: 700; font-size: 16px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c .t { font-size: 11px; color: var(--chalk-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c.black { background: var(--ink); border-color: rgba(241,238,228,0.35); color: var(--chalk); }
+.c.white { background: var(--chalk); border-color: var(--chalk); color: var(--ink); }
+.c.white .y, .c.white .t { color: #3d4d48; }
+.c .y b { font-family: var(--f-display); font-weight: 400; font-size: 12px; margin-right: 4px; }
+.c.used { opacity: 0.35; }
+button.c { text-align: left; font: inherit; }
+.c.pickable { cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+.c.pickable:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px var(--pc); }
+.hand.active { box-shadow: 0 0 0 2px var(--pc); }
+.hand.active h3 span { color: var(--pc); font-weight: 700; }
+.c.used .n { text-decoration: line-through; }
+
+/* Modal */
+.overlay { position: absolute; inset: 0; z-index: 50; background: rgba(4,14,12,0.86); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.dialog { width: 100%; max-width: 640px; background: var(--board-2); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; }
+.dialog h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 24px; }
+.dialog p { margin: 0; color: var(--chalk-dim); font-size: 14px; }
+.pick { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.pick button { background: var(--slot); border: 2px solid var(--line); border-radius: 8px; padding: 10px; text-align: left; display: grid; gap: 2px; }
+.pick button:hover { border-color: var(--pc); }
+.pick .y { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); }
+.pick .n { font-weight: 700; font-size: 17px; }
+.pick .t { font-size: 12px; color: var(--chalk-dim); }
+.actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Result */
+.result { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.rhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.rhead h2 { font-family: var(--f-display); font-weight: 400; font-size: 40px; margin: 0; line-height: 1.1; }
+.rhead .sc { font-family: var(--f-mono); font-size: 34px; font-weight: 600; }
+.rt { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+.rt th { font-size: 12px; color: var(--chalk-dim); font-weight: 500; text-align: left; padding: 0 10px; }
+.rt td { background: var(--slot); padding: 7px 10px; font-size: 15px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rt td:first-child { border-left: 1px solid var(--line); border-radius: 6px 0 0 6px; font-family: var(--f-mono); color: var(--chalk-dim); width: 60px; }
+.rt td:last-child { border-right: 1px solid var(--line); border-radius: 0 6px 6px 0; width: 120px; }
+.rt .hr { font-family: var(--f-mono); font-weight: 600; font-size: 17px; margin-left: 6px; }
+.rt .w { color: var(--pc); font-weight: 700; }
+.rt .yr { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); margin-right: 4px; }
+.leftover { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.leftover div { font-size: 13px; color: var(--chalk-dim); }
+.leftover b { color: var(--chalk); }
+</style>
+
+</head>
+<body>
+<div class="stage" id="stage">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Rallypick · 2026 KBO 홈런 카드 대결</div>
+      <h1>9이닝 흑과 백</h1>
+    </div>
+    <div class="key" id="key"></div>
+    <div class="controls">
+      <button class="btn" id="undoBtn" type="button">되돌리기</button>
+      <button class="btn" id="newBtn" type="button">새 경기</button>
+      <button class="btn full" id="modeBtn" type="button">AI와 대전하기</button>
+      <div class="seg full" id="levelSeg" role="group" aria-label="AI 난이도" hidden>
+        <span>난이도</span>
+        <button type="button" data-level="low">하</button>
+        <button type="button" data-level="mid">중</button>
+        <button type="button" data-level="high">상</button>
+      </div>
+      <button class="btn primary" id="resultBtn" type="button">결과 공개</button>
+    </div>
+  </header>
+
+  <main class="layout" id="mainView">
+    <table class="ls" id="ls" aria-label="이닝 스코어"></table>
+    <section class="mound" id="mound" aria-live="polite"></section>
+    <section class="hands" id="hands"></section>
+  </main>
+
+  <section class="result" id="resultView" hidden></section>
+
+  <div class="overlay" id="modal" hidden>
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-label="카드 제출"></div>
+  </div>
+</div>
+
+<script>
+// 2026 KBO 정규시즌 홈런 상위 60명 (출처: KBO 공식 기록실, 2026 정규시즌 타자 기록)
+const POOL = [
+  ['김도영','KIA',45],
+  ['힐리어드','KT',44],
+  ['오스틴','LG',41],
+  ['강백호','한화',34],
+  ['나성범','KIA',31],
+  ['노시환','한화',29],
+  ['데이비슨','키움',28],
+  ['디아즈','삼성',26],
+  ['한동희','롯데',25],
+  ['김재환','SSG',24],
+  ['양의지','두산',23],
+  ['카스트로','KIA',21],
+  ['페라자','한화',20],
+  ['허인서','한화',20],
+  ['최정','SSG',20],
+  ['박건우','NC',20],
+  ['문정빈','LG',19],
+  ['박재현','KIA',19],
+  ['에레디아','SSG',18],
+  ['최형우','삼성',18],
+  ['김주원','NC',18],
+  ['레이예스','롯데',18],
+  ['이재현','삼성',17],
+  ['김형준','NC',17],
+  ['송찬의','LG',16],
+  ['고승민','롯데',16],
+  ['박준순','두산',16],
+  ['문현빈','한화',15],
+  ['구자욱','삼성',15],
+  ['박동원','LG',14],
+  ['오지환','LG',14],
+  ['김휘집','NC',14],
+  ['김현수','KT',14],
+  ['안현민','KT',14],
+  ['김태연','한화',13],
+  ['전의산','SSG',13],
+  ['최지훈','SSG',13],
+  ['강민호','삼성',13],
+  ['박승규','삼성',13],
+  ['김호령','KIA',13],
+  ['히우라','키움',13],
+  ['고명준','SSG',12],
+  ['전병우','삼성',12],
+  ['장성우','KT',12],
+  ['박찬혁','키움',12],
+  ['박정현','한화',11],
+  ['안재석','두산',11],
+  ['임병욱','키움',11],
+  ['문보경','LG',10],
+  ['블레인','NC',10],
+  ['아데를린','KIA',10],
+  ['이재원','LG',9],
+  ['오태곤','SSG',9],
+  ['최원준','KT',9],
+  ['전민재','롯데',9],
+  ['강승호','두산',9],
+  ['카메론','두산',9],
+  ['김웅빈','키움',9],
+  ['안치홍','키움',9],
+  ['조형우','SSG',8]
+].map(([name, team, hr], id) => ({ id, year: team, name, team: '2026 시즌', hr }));
+
+const WIN_AT = 5;
+const PC = ['var(--p1)', 'var(--p2)'];
+const KEY = 'hb9-v4';
+const DEFAULT_NAMES = ['Player1', 'Player2'];
+
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const C = id => POOL[id];
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// 홈런 수가 모두 다른 9장을 뽑아 두 사람에게 똑같이 줌. 상위 5장이 흑, 하위 4장이 백
+function deal() {
+  const seen = new Set(), picked = [];
+  for (const id of shuffle(POOL.map(c => c.id))) {
+    if (seen.has(C(id).hr)) continue;
+    seen.add(C(id).hr); picked.push(id);
+    if (picked.length === 9) break;
+  }
+  const byHr = picked.slice().sort((a, b) => C(b).hr - C(a).hr);
+  const hand = picked.sort((a, b) => C(a).year.localeCompare(C(b).year) || C(a).name.localeCompare(C(b).name));
+  return { hands: [hand.slice(), hand.slice()], thr: C(byHr[4]).hr };
+}
+
+function fresh(names, mode, level) {
+  const d = deal();
+  mode = mode || 'duo';
+  level = level || 'mid';
+  names = (names || DEFAULT_NAMES).slice();
+  return {
+    mode, level, names,
+    hands: d.hands, thr: d.thr,
+    lead: Math.random() < 0.5 ? 0 : 1,
+    innings: [],           // { lead, cards: [id0, id1], res: 0 | 1 | 'D' }
+    pend: [null, null],    // 이번 이닝에 제출된 카드 (아직 판정 전)
+    showLast: false,
+    phase: 'play'
+  };
+}
+
+let S, history = [], picking = null, armTimer = null;
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.hands && s.innings) { s.mode = s.mode || 'duo'; return s; } } catch (e) {} return fresh(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function commit() { history.push(JSON.stringify(S)); if (history.length > 80) history.shift(); }
+function undo() { if (!history.length) return; S = JSON.parse(history.pop()); closeModal(); save(); render(); }
+
+const isBlack = id => C(id).hr >= S.thr;
+const colorOf = id => isBlack(id) ? 'black' : 'white';
+const wins = p => S.innings.filter(x => x.res === p).length;
+const used = p => new Set(S.innings.map(x => x.cards[p]).concat(S.pend[p] !== null ? [] : []));
+function over() { return wins(0) >= WIN_AT || wins(1) >= WIN_AT || S.innings.length >= 9; }
+function winner() { const a = wins(0), b = wins(1); return a === b ? 'D' : (a > b ? 0 : 1); }
+const curInning = () => Math.min(S.innings.length + 1, 9);
+
+/* ---------- Header ---------- */
+function renderHeader() {
+  document.getElementById('key').innerHTML =
+    `<div><span class="sw black">흑</span>홈런 <b>${S.thr}</b>개 이상</div>
+     <div><span class="sw white">백</span>홈런 <b>${S.thr}</b>개 미만</div>`;
+  document.getElementById('undoBtn').disabled = !history.length;
+  const rb = document.getElementById('resultBtn');
+  rb.textContent = S.phase === 'result' ? '보드로 돌아가기' : '결과 공개';
+  rb.disabled = S.phase === 'play' && !over();
+  rb.title = rb.disabled ? '경기가 끝나면 홈런 수를 공개할 수 있어요' : '';
+}
+
+/* ---------- Line score ---------- */
+function lsCell(p, i) {
+  const inn = S.innings[i];
+  const cur = !over() && i === S.innings.length;
+  if (!inn) return `<td class="${cur ? 'cur' : ''}"></td>`;
+  const c = C(inn.cards[p]);
+  const cls = inn.res === 'D' ? '' : (inn.res === p ? 'win' : 'lose');
+  const mk = inn.res === 'D' ? '무' : (inn.res === p ? '승' : '패');
+  return `<td class="${cls}" style="--pc:${PC[p]}"><span class="yr">${c.year}</span>${esc(c.name)}<span class="mk">${mk}</span></td>`;
+}
+function renderLineScore() {
+  const ci = over() ? -1 : S.innings.length;
+  let h = '<thead><tr><th style="width:150px"></th>';
+  for (let i = 0; i < 9; i++) h += `<th class="${i === ci ? 'cur' : ''}">${i + 1}</th>`;
+  h += '<th style="width:64px">승</th></tr></thead><tbody>';
+  [0, 1].forEach(p => {
+    const leadNow = !over() && S.lead === p;
+    h += `<tr><td class="nm" style="--pc:${PC[p]}"><div class="nmrow">${leadNow ? '<span class="lead">선공</span>' : ''}<input class="pname" id="pname-${p}" data-p="${p}" value="${esc(S.names[p])}" maxlength="10" ${S.mode === 'ai' && p === AI ? 'disabled' : ''} aria-label="${p + 1}번 참가자 이름"></div></td>`;
+    for (let i = 0; i < 9; i++) h += lsCell(p, i);
+    h += `<td class="tot" style="--pc:${PC[p]}">${wins(p)}</td></tr>`;
+  });
+  document.getElementById('ls').innerHTML = h + '</tbody>';
+}
+
+/* ---------- Mound ---------- */
+function tileRev(id, extra) {
+  const c = C(id);
+  return `<div class="tile ${colorOf(id)} flip ${extra || ''}"><div class="rev"><span class="y">${c.year}</span><span class="n">${esc(c.name)}</span><span class="t">${esc(c.team)}</span></div></div>`;
+}
+function renderMound() {
+  const el = document.getElementById('mound');
+  const last = S.innings[S.innings.length - 1];
+  if (S.showLast && last) {
+    const n = S.innings.length;
+    const seat = p => {
+      const role = last.lead === p ? '선공' : '후공';
+      const ex = last.res === 'D' ? '' : (last.res === p ? 'won' : 'lost');
+      return `<div class="seat" style="--pc:${PC[p]}"><span class="role">${role}</span><span class="who">${esc(S.names[p])}</span>${tileRev(last.cards[p], ex)}</div>`;
+    };
+    const verdict = last.res === 'D' ? '무승부' : `${esc(S.names[last.res])} 승`;
+    let tail;
+    if (over()) {
+      const w = winner();
+      tail = `<p class="hint">${w === 'D' ? '9이닝 종료 · 무승부' : `${esc(S.names[w])} 승리로 경기 종료`}</p><button class="btn primary big" type="button" data-act="reveal">홈런 수 공개</button>`;
+    } else {
+      tail = `<p class="hint">${last.res === 'D' ? '비기면 선공이 그대로 유지돼요' : '이긴 사람이 다음 이닝 선공이에요'}</p><button class="btn primary big" type="button" data-act="next">${n + 1}이닝 시작</button>`;
+    }
+    el.innerHTML = `<div class="mhead"><strong>${n}이닝 결과</strong><span>홈런 수는 경기가 끝난 뒤 공개해요</span></div>
+      ${seat(0)}<div class="mid"><div class="verdict">${verdict}</div>${tail}</div>${seat(1)}`;
+    return;
+  }
+  const lead = S.lead, fol = 1 - lead;
+  const seat = p => {
+    const isLead = p === lead;
+    const id = S.pend[p];
+    let tile;
+    if (id !== null) tile = `<div class="tile ${colorOf(id)} flip"><span class="big">${isBlack(id) ? '흑' : '백'}</span></div>`;
+    else {
+      const can = isLead || S.pend[lead] !== null;
+      const aiSeat = S.mode === 'ai' && p === AI;
+      tile = `<div class="tile empty">${can ? (aiSeat ? 'AI 생각 중…' : '아래 남은 카드에서 선택') : '선공 제출 후'}</div>`;
+    }
+    return `<div class="seat" style="--pc:${PC[p]}"><span class="role">${isLead ? '선공' : '후공'}</span><span class="who">${esc(S.names[p])}</span>${tile}</div>`;
+  };
+  const ready = S.pend[0] !== null && S.pend[1] !== null;
+  const mid = ready
+    ? `<div class="vs">VS</div><button class="btn primary big" type="button" data-act="judge">판정</button><p class="hint">홈런이 많은 쪽이 이닝을 가져가요</p>`
+    : `<div class="vs">VS</div><p class="hint">${S.pend[lead] === null ? '선공이 먼저 카드를 내요. 상대에게는 흑·백만 보여요.' : '후공은 흑·백을 보고 카드를 내요.'}</p>`;
+  el.innerHTML = `<div class="mhead"><strong>${curInning()}이닝</strong><span>${WIN_AT}승을 먼저 하면 승리</span></div>${seat(0)}<div class="mid">${mid}</div>${seat(1)}`;
+}
+
+/* ---------- Hands ---------- */
+function renderHands() {
+  const usedBy = p => { const m = {}; S.innings.forEach((x, i) => { m[x.cards[p]] = i + 1; }); return m; };
+  document.getElementById('hands').innerHTML = [0, 1].map(p => {
+    const u = usedBy(p);
+    const left = S.hands[p].filter(id => !u[id]).length;
+    const can = canPick(p);
+    const cards = S.hands[p].map(id => {
+      const c = C(id);
+      const inner = `<span class="y"><b>${isBlack(id) ? '흑' : '백'}</b>${c.year}${u[id] ? ` · ${u[id]}이닝` : ''}</span><span class="n">${esc(c.name)}</span><span class="t">${esc(c.team)}</span>`;
+      return can && !u[id]
+        ? `<button type="button" class="c pickable ${colorOf(id)}" data-p="${p}" data-id="${id}" aria-label="${esc(c.name)} 제출">${inner}</button>`
+        : `<div class="c ${colorOf(id)} ${u[id] ? 'used' : ''}">${inner}</div>`;
+    }).join('');
+    return `<div class="hand ${can ? 'active' : ''}" style="--pc:${PC[p]}"><h3><b>${esc(S.names[p])}</b><span>${can ? '카드를 눌러 제출 · ' : ''}남은 카드 ${left}장</span></h3><div class="cards">${cards}</div></div>`;
+  }).join('');
+}
+
+/* ---------- Picker ---------- */
+function openPick(p) {
+  picking = p;
+  const usedIds = new Set(S.innings.map(x => x.cards[p]));
+  const btns = S.hands[p].filter(id => !usedIds.has(id)).map(id => {
+    const c = C(id);
+    return `<button type="button" data-act="choose" data-id="${id}" style="--pc:${PC[p]}"><span class="y">${c.year}</span><span class="n">${esc(c.name)}</span><span class="t">${esc(c.team)}</span></button>`;
+  }).join('');
+  document.getElementById('dialog').innerHTML = `<h2>${esc(S.names[p])} · 카드 제출</h2>
+    <p>${S.mode === 'ai' ? '낼 카드를 고르세요. AI에게는 흑·백만 보여요.' : '참가자가 고른 카드를 누르세요. 보드에는 흑·백만 표시돼요.'}</p>
+    <div class="pick">${btns}</div>
+    <div class="actions"><button class="btn" type="button" data-act="cancel">취소</button></div>`;
+  document.getElementById('modal').hidden = false;
+}
+function closeModal() { document.getElementById('modal').hidden = true; picking = null; }
+
+/* ---------- Result ---------- */
+function renderResult() {
+  const el = document.getElementById('resultView');
+  const w = winner();
+  const rows = S.innings.map((x, i) => {
+    const cell = p => { const c = C(x.cards[p]); return `<span class="${x.res === p ? 'w' : ''}" style="--pc:${PC[p]}"><span class="yr">${c.year}</span>${esc(c.name)}<span class="hr">${c.hr}</span></span>`; };
+    const r = x.res === 'D' ? '무승부' : `<span class="w" style="--pc:${PC[x.res]}">${esc(S.names[x.res])}</span>`;
+    return `<tr><td>${i + 1}회</td><td>${cell(0)}</td><td>${cell(1)}</td><td>${r}</td></tr>`;
+  }).join('');
+  const usedIds = new Set(S.innings.flatMap(x => x.cards));
+  const leftover = [0, 1].map(p => {
+    const l = S.hands[p].filter(id => !usedIds.has(id)).map(id => `${C(id).year} ${esc(C(id).name)} <b>${C(id).hr}</b>`);
+    return `<div><b style="color:${PC[p]}">${esc(S.names[p])}</b> 못 낸 카드: ${l.length ? l.join(' · ') : '없음'}</div>`;
+  }).join('');
+  el.innerHTML = `<div class="rhead">
+      <h2>${w === 'D' ? '무승부' : `${esc(S.names[w])} 승리`}</h2>
+      <span class="sc"><span style="color:var(--p1)">${wins(0)}</span> : <span style="color:var(--p2)">${wins(1)}</span></span>
+    </div>
+    <table class="rt"><thead><tr><th>이닝</th><th>${esc(S.names[0])}</th><th>${esc(S.names[1])}</th><th>승자</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="leftover">${leftover}</div>`;
+}
+
+function render() {
+  renderHeader();
+  const res = S.phase === 'result';
+  document.getElementById('mainView').hidden = res;
+  document.getElementById('resultView').hidden = !res;
+  if (res) renderResult(); else { renderLineScore(); renderMound(); renderHands(); }
+  const mb = document.getElementById('modeBtn');
+  mb.textContent = S.mode === 'ai' ? 'AI 대전 중 · 2인 대전으로' : 'AI와 대전하기';
+  const seg = document.getElementById('levelSeg');
+  seg.hidden = S.mode !== 'ai';
+  seg.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === (S.level || 'mid'))));
+  aiStep();
+}
+
+/* ---------- Actions ---------- */
+function act(a, t) {
+  if (a === 'pick') { openPick(+t.dataset.p); return; }
+  if (a === 'cancel') { closeModal(); return; }
+  if (a === 'choose') {
+    commit(); S.pend[picking] = +t.dataset.id; closeModal(); save(); render(); return;
+  }
+  if (a === 'judge') {
+    commit();
+    const [a0, a1] = S.pend, h0 = C(a0).hr, h1 = C(a1).hr;
+    const res = h0 === h1 ? 'D' : (h0 > h1 ? 0 : 1);
+    S.innings.push({ lead: S.lead, cards: [a0, a1], res });
+    if (res !== 'D') S.lead = res;
+    S.pend = [null, null]; S.showLast = true;
+    save(); render(); return;
+  }
+  if (a === 'next') { commit(); S.showLast = false; save(); render(); return; }
+  if (a === 'reveal') { commit(); S.phase = 'result'; save(); render(); return; }
+}
+document.getElementById('mound').addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (t) act(t.dataset.act, t); });
+document.getElementById('dialog').addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (t) act(t.dataset.act, t); });
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('ls').addEventListener('input', e => {
+  const t = e.target.closest('.pname'); if (!t) return;
+  S.names[+t.dataset.p] = t.value.trim() || DEFAULT_NAMES[+t.dataset.p];
+  save(); renderMound(); renderHands();
+});
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('resultBtn').addEventListener('click', () => {
+  commit(); S.phase = S.phase === 'result' ? 'play' : 'result'; save(); render();
+});
+document.getElementById('newBtn').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!b.classList.contains('warn')) {
+    b.classList.add('warn'); b.textContent = '한 번 더 누르면 새로 섞기';
+    clearTimeout(armTimer);
+    armTimer = setTimeout(() => { b.classList.remove('warn'); b.textContent = '새 경기'; }, 3000);
+    return;
+  }
+  clearTimeout(armTimer); b.classList.remove('warn'); b.textContent = '새 경기';
+  commit(); S = fresh(S.names.slice(), S.mode, S.level); closeModal(); save(); render();
+});
+
+function canPick(p) {
+  if (S.phase !== 'play' || S.showLast || over() || S.pend[p] !== null) return false;
+  if (S.mode === 'ai' && p === AI) return false;
+  return p === S.lead || S.pend[S.lead] !== null;
+}
+document.getElementById('hands').addEventListener('click', e => {
+  const t = e.target.closest('.pickable'); if (!t) return;
+  const p = +t.dataset.p; if (!canPick(p)) return;
+  commit(); S.pend[p] = +t.dataset.id; save(); render();
+});
+
+/* ---------- AI (2번 자리) ---------- */
+// AI는 모든 카드의 홈런 수를 아는 '야구 박사'지만, 상대가 낸 카드는 흑·백만 보고 판단함
+const AI = 1;
+let aiTimer = null;
+function remaining(p) { const u = new Set(S.innings.map(x => x.cards[p])); return S.hands[p].filter(id => !u.has(id)); }
+const hrOf = id => C(id).hr;
+const pickRandom = a => a[Math.floor(Math.random() * a.length)];
+const asc = a => a.slice().sort((x, y) => hrOf(x) - hrOf(y));
+
+// 중: 선공이면 미끼·중간 카드를 섞어 내고, 후공이면 이번 이닝만 보고 가장 싼 카드로 이기려 함
+function midLead(mine, need) {
+  mine = asc(mine);
+  if (mine.length <= need) return mine[mine.length - 1];
+  if (Math.random() < 0.35) return mine[0];
+  return pickRandom(mine.slice(0, Math.max(1, mine.length - 1)));
+}
+function midFollow(mine, oppRem, shownBlack) {
+  mine = asc(mine);
+  const cand = oppRem.filter(id => isBlack(id) === shownBlack);
+  if (!cand.length) return mine[0];
+  const maxC = Math.max(...cand.map(hrOf));
+  const sure = mine.find(id => hrOf(id) > maxC);
+  if (sure !== undefined) return sure;
+  let best = mine[0], bestP = -1;
+  for (const m of mine) {
+    const p = cand.filter(c => hrOf(m) > hrOf(c)).length / cand.length;
+    if (p > bestP + 1e-9) { bestP = p; best = m; }
+  }
+  return bestP >= 0.5 ? best : mine[0];
+}
+
+// 상에서 쓰는 가상 대국: 남은 이닝을 양쪽 모두 '중' 수준으로 끝까지 둠 때 AI가 이기는지 (1 / 0.5 / 0)
+function playout(myRem, oppRem, myW, oppW, meLead) {
+  myRem = myRem.slice(); oppRem = oppRem.slice();
+  while (myW < WIN_AT && oppW < WIN_AT && myRem.length) {
+    let m, o;
+    if (meLead) { m = midLead(myRem, WIN_AT - myW); o = Math.random() < 0.25 ? pickRandom(oppRem) : midFollow(oppRem, myRem, isBlack(m)); }
+    else { o = Math.random() < 0.25 ? pickRandom(oppRem) : midLead(oppRem, WIN_AT - oppW); m = midFollow(myRem, oppRem, isBlack(o)); }
+    myRem.splice(myRem.indexOf(m), 1); oppRem.splice(oppRem.indexOf(o), 1);
+    if (hrOf(m) > hrOf(o)) { myW++; meLead = true; } else if (hrOf(o) > hrOf(m)) { oppW++; meLead = false; }
+  }
+  return myW > oppW ? 1 : myW < oppW ? 0 : 0.5;
+}
+function highChoose(mine, opp, myW, oppW, leading, shown) {
+  const N = 300;
+  let best = null, bestV = -1;
+  for (const m of asc(mine)) {
+    const myRest = mine.filter(x => x !== m);
+    let tot = 0;
+    for (let i = 0; i < N; i++) {
+      let o;
+      if (leading) o = Math.random() < 0.25 ? pickRandom(opp) : midFollow(opp, mine, isBlack(m));
+      else o = pickRandom(opp.filter(id => isBlack(id) === isBlack(shown)));
+      let mw = myW, ow = oppW, meLead = leading;
+      if (hrOf(m) > hrOf(o)) { mw++; meLead = true; } else if (hrOf(o) > hrOf(m)) { ow++; meLead = false; }
+      tot += mw >= WIN_AT ? 1 : ow >= WIN_AT ? 0 : playout(myRest, opp.filter(x => x !== o), mw, ow, meLead);
+    }
+    const v = tot / N;
+    if (v > bestV + 1e-9) { bestV = v; best = m; }
+  }
+  return best;
+}
+
+function aiChoose() {
+  const mine = remaining(AI), opp = remaining(1 - AI);
+  const leading = S.lead === AI;
+  const shown = leading ? null : S.pend[1 - AI];
+  const level = S.level || 'mid';
+  // 하: 70%는 아무 카드나 내고, 나머지만 중 수준으로 둠
+  if (level === 'low' && Math.random() < 0.7) return pickRandom(mine);
+  // 상: 낼 수 있는 카드마다 남은 경기를 300번씩 가상으로 두고, 최종 승률이 가장 높은 카드를 냄
+  if (level === 'high') return highChoose(mine, opp, wins(AI), wins(1 - AI), leading, shown);
+  return leading ? midLead(mine, WIN_AT - wins(AI)) : midFollow(mine, opp, isBlack(shown));
+}
+function aiStep() {
+  clearTimeout(aiTimer);
+  if (S.mode !== 'ai' || S.phase !== 'play' || S.showLast || over()) return;
+  if (S.pend[AI] !== null) return;
+  if (S.lead !== AI && S.pend[1 - AI] === null) return;
+  aiTimer = setTimeout(() => { S.pend[AI] = aiChoose(); save(); render(); }, 900);
+}
+document.getElementById('modeBtn').addEventListener('click', () => {
+  commit(); S = fresh(S.names.slice(), S.mode === 'ai' ? 'duo' : 'ai', S.level); closeModal(); save(); render();
+});
+document.getElementById('levelSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-level]'); if (!b || b.dataset.level === S.level) return;
+  commit(); S.level = b.dataset.level; save(); render();
+});
+
+S = load();
+render();
+
+function fitStage() {
+  const st = document.getElementById('stage');
+  const W = document.documentElement.clientWidth || window.innerWidth;
+  const H = document.documentElement.clientHeight || window.innerHeight;
+  const k = Math.min(W / 960, H / 1060);
+  st.style.transform = `scale(${k})`;
+  st.style.left = Math.max(0, (W - 960 * k) / 2) + 'px';
+  st.style.top = Math.max(0, (H - 1060 * k) / 2) + 'px';
+}
+window.addEventListener('resize', fitStage);
+fitStage();
+</script>
+
+</body>
+</html>
