@@ -151,13 +151,27 @@ function startGame(room) {
   room.log = [];
   stopTimer(room);
 }
-// 10개 구단에서 1명씩 먼저 뽑고(팀마다 한 명은 꼭 나옴), 남은 3명은 나머지 선수 중에서 무작위
-function pickPlayers() {
+// 연봉 구간: 게임마다 낮은 연봉부터 최고 연봉까지 고르게 섞이도록 구간별로 2~4명씩 뽑음
+const SALARY_TIERS = [10, 15, 20, 25]; // 억 기준 경계 → 10억 미만 / 10~15 / 15~20 / 20~25 / 25억 이상
+const tierOf = aav => SALARY_TIERS.filter(b => aav >= b).length;
+const TIER_MIN = 2, TIER_MAX = 4;
+// 한 번 뽑기: 10개 구단에서 1명씩 먼저(팀마다 한 명은 꼭 나옴), 남은 3명은 아직 부족한 연봉 구간에서 우선 채움
+function drawOnce() {
   const all = shuffle(CARDS.filter(c => c.type === 'player'));
-  const picked = [], teams = new Set();
-  for (const c of all) { const f = c.franchise || c.team; if (!teams.has(f)) { teams.add(f); picked.push(c.id); } }
-  for (const c of all) { if (picked.length >= PLAYERS_PER_GAME) break; if (!picked.includes(c.id)) picked.push(c.id); }
-  return shuffle(picked.slice(0, PLAYERS_PER_GAME));
+  const picked = [], teams = new Set(), tiers = [0, 0, 0, 0, 0];
+  for (const c of all) { const f = c.franchise || c.team; if (!teams.has(f)) { teams.add(f); picked.push(c); tiers[tierOf(c.aav)]++; } }
+  while (picked.length < PLAYERS_PER_GAME) {
+    const need = tiers.map((n, t) => n < TIER_MIN ? t : -1).filter(t => t >= 0);
+    const c = all.find(c => !picked.includes(c) && (need.length ? need.includes(tierOf(c.aav)) : tiers[tierOf(c.aav)] < TIER_MAX));
+    if (!c) break;
+    picked.push(c); tiers[tierOf(c.aav)]++;
+  }
+  return { picked, ok: picked.length === PLAYERS_PER_GAME && tiers.every(n => n >= TIER_MIN && n <= TIER_MAX) };
+}
+function pickPlayers() {
+  let last;
+  for (let i = 0; i < 500; i++) { last = drawOnce(); if (last.ok) break; }
+  return shuffle(last.picked.map(c => c.id));
 }
 function drawCard(room) {
   const used = new Set(room.deck.filter(Boolean));
