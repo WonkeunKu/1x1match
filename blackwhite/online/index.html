@@ -271,7 +271,7 @@ function renderEntry(msg) {
   app.classList.add('narrow');
   const lastName = store.get('online:name') || store.get('auction-online:name') || '';
   app.innerHTML = `${HDR}
-    <p class="muted">2명이 각자 기기로 들어와서 1:1로 겨뤄요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만날 수 있어요. 혼자 연습하려면 <a href="/blackwhite/" style="color:var(--amber)">AI 대전</a>으로 가세요.</p>
+    <p class="muted">2명이 각자 기기로 들어와서 1:1로 겨뤄요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만날 수 있어요. 혼자 연습하려면 <a href="/blackwhite/" style="color:var(--amber)">AI 대전</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -481,7 +481,7 @@ function renderLobby() {
       ${isHost ? `<button class="btn amber block" type="button" data-a="start" ${full ? '' : 'disabled'}>${full ? '경기 시작' : '상대가 들어오면 시작할 수 있어요'}</button>` : '<p class="muted">방장이 경기를 시작하면 바로 넘어가요.</p>'}
       <p class="err">${esc(errMsg)}</p>
       <button class="btn block" type="button" data-a="leave">방 나가기</button></div>
-    <div class="panel"><h2>규칙</h2><p class="muted">두 사람이 똑같은 2026 시즌 타자 카드 9장을 받아요. 선공이 카드를 내면 상대에게는 흑·백만 보이고, 후공이 카드를 내면 홈런이 많은 쪽이 이닝을 가져가요. 이긴 사람이 다음 이닝 선공이고, 5승을 먼저 하면 이겨요. 홈런 수는 경기가 끝나야 공개돼요.</p></div></div></div>`;
+    <div class="panel"><h2>규칙</h2><p class="muted">두 사람이 똑같은 2026 시즌 타자 카드 9장을 받아요. 선공이 카드를 내면 상대에게는 흑·백만 보이고, 후공이 카드를 내면 홈런이 많은 쪽이 이닝을 가져가요. 이긴 사람이 다음 이닝 선공이고, 5승을 먼저 하면 이겨요. 홈런 수는 경기가 끝나야 공개돼요. <button type="button" class="rb-inline" data-rules>규칙 자세히 보기</button></p></div></div></div>`;
   document.getElementById('copyBtn').onclick = async () => {
     try { await navigator.clipboard.writeText(link); document.getElementById('copyBtn').textContent = '복사됨'; }
     catch { document.getElementById('lnk').select(); }
@@ -512,5 +512,6 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
+<script src="/rules.js?v=1" defer></script>
 </body>
 </html>

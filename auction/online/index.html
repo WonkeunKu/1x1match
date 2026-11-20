@@ -259,7 +259,7 @@ function renderAiEntry(msg) {
   const lastName = store.get('auction-online:name') || '';
   let level = store.get('auction-ai:level') || 'mid';
   app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
-    <p class="muted">나와 AI 3명이 겨뤄요. AI도 선수 연봉을 '대충' 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요. 사람과 하려면 <a href="/auction/online/" style="color:var(--amber)">온라인 4인</a>으로 가세요.</p>
+    <p class="muted">나와 AI 3명이 겨뤄요. AI도 선수 연봉을 '대충' 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요. 사람과 하려면 <a href="/auction/online/" style="color:var(--amber)">온라인 4인</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL"><div class="panel">
       <label class="muted" for="nm">내 이름</label>
       <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
@@ -291,7 +291,7 @@ function renderEntry(msg) {
   const lastName = store.get('auction-online:name') || '';
   app.innerHTML = `
     <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
-    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요. 혼자 연습하려면 <a href="/auction/ai/" style="color:var(--amber)">AI 대전</a>으로 가세요.</p>
+    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요. 혼자 연습하려면 <a href="/auction/ai/" style="color:var(--amber)">AI 대전</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -503,7 +503,7 @@ function renderLobby() {
       ${isHost ? `<button class="btn amber block" type="button" data-a="start" ${full ? '' : 'disabled'}>${full ? '게임 시작' : '4명이 모이면 시작할 수 있어요'}</button>` : `<p class="muted">방장이 게임을 시작하면 바로 넘어가요.</p>`}
       <p class="err">${esc(errMsg)}</p>
       <button class="btn block" type="button" data-a="leave">방 나가기</button></div>
-    <div class="panel"><h2>규칙</h2><p class="muted">큐브 20개로 시작해요. 카드를 연 사람부터 순서대로 기존 최고가보다 1개 이상 올리거나 포기해요. 3명이 포기하면 남은 사람이 낙찰받아요. 선수 연봉은 낙찰받은 사람만 볼 수 있고, 16장을 다 열면 연평균 연봉 합계로 순위를 정해요.</p></div></div></div>`;
+    <div class="panel"><h2>규칙</h2><p class="muted">큐브 20개로 시작해요. 카드를 연 사람부터 순서대로 기존 최고가보다 1개 이상 올리거나 포기해요. 3명이 포기하면 남은 사람이 낙찰받아요. 선수 연봉은 낙찰받은 사람만 볼 수 있고, 16장을 다 열면 연평균 연봉 합계로 순위를 정해요. <button type="button" class="rb-inline" data-rules>규칙 자세히 보기</button></p></div></div></div>`;
   app.classList.add('narrow');
   document.getElementById('copyBtn').onclick = async () => {
     const inp = document.getElementById('lnk');
@@ -579,5 +579,6 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
+<script src="/rules.js?v=1" defer></script>
 </body>
 </html>
