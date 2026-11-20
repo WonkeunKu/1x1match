@@ -1,0 +1,16 @@
+# Render 무료 서버는 15분 동안 접속이 없으면 잠들어서 첫 접속이 50초쯤 걸림.
+# 10분마다 상태 확인 주소에 접속해서 서버를 깨워 둔다.
+name: Keep site awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping 1x1match.com
+        run: curl -fsS --max-time 90 https://www.1x1match.com/api/health || echo "ping failed (server may be deploying)"
