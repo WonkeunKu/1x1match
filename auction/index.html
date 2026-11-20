@@ -96,6 +96,19 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .tile.gone { opacity: 0.55; }
 .tile.gone .tname { text-decoration: line-through; }
 
+
+.logo { font-family: var(--f-display); font-size: 30px; line-height: 1; color: var(--chalk); text-decoration: none; padding: 6px 16px 6px 0; border-right: 1px solid var(--line); white-space: nowrap; flex: none; }
+.logo span { color: var(--amber); }
+.logo:hover { color: #fff; }
+
+.boardCol { display: contents; }
+/* 가로 화면: 왼쪽 판, 오른쪽 참가자 4명 */
+.stage.wide { width: 1600px; height: 900px; }
+.stage.wide .layout { flex-direction: row; gap: 18px; }
+.stage.wide .boardCol { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; }
+.stage.wide .board { flex: 1; grid-template-rows: repeat(4, minmax(0, 1fr)); }
+.stage.wide .players { flex: 0 0 560px; grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(0, 1fr)); }
+
 /* Players */
 .players { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pcard { background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; border-top: 3px solid var(--pc); min-width: 0; min-height: 0; overflow: hidden; }
@@ -211,6 +224,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 <body>
 <div class="stage" id="stage">
   <header class="top">
+    <a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a>
     <div>
       <div class="eyebrow">Rallypick · KBO 연봉 맞히기</div>
       <h1>연봉 블라인드 경매 <span class="practice">연습용</span></h1>
@@ -228,6 +242,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
   </header>
 
   <main class="layout" id="mainView">
+    <div class="boardCol">
     <div class="boardHead">
       <strong id="remain">남은 카드 16장</strong>
       <div class="legend">
@@ -237,6 +252,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
       </div>
     </div>
     <div class="board" id="board"></div>
+    </div>
     <section class="players" id="players" aria-label="참가자"></section>
   </main>
 
@@ -791,7 +807,12 @@ function fitStage() {
   const st = document.getElementById('stage');
   const W = document.documentElement.clientWidth || window.innerWidth;
   const H = document.documentElement.clientHeight || window.innerHeight;
-  const sw = 960, sh = 1060;
+  // 가로가 넓은 화면(노트북·데스크톱)은 1600×900 가로 배치, 폰·세로 화면은 960×1060 세로 배치
+  const wide = W / H >= 1.25 && W >= 900;
+  st.classList.toggle('wide', wide);
+  // 가로 배치는 높이 900 기준으로 화면 비율에 맞춰 폭을 늘려서 위아래 빈 띠가 생기지 않게 함
+  const sh = wide ? 900 : 1060, sw = wide ? Math.round(Math.min(2000, Math.max(1350, 900 * W / H))) : 960;
+  st.style.width = sw + 'px'; st.style.height = sh + 'px';
   const k = Math.min(W / sw, H / sh);
   st.style.transform = `scale(${k})`;
   st.style.left = Math.max(0, (W - sw * k) / 2) + 'px';

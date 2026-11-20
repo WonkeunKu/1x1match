@@ -49,6 +49,23 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .row { display: flex; gap: 8px; align-items: center; }
 .row > * { min-width: 0; }
 
+/* logo + desktop */
+.logo { font-family: var(--f-display); font-size: 26px; line-height: 1; color: var(--chalk); text-decoration: none; padding-right: 12px; border-right: 1px solid var(--line); white-space: nowrap; flex: none; }
+.logo span { color: var(--amber); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand > div { min-width: 0; }
+.cols, .entryGrid { display: grid; gap: 12px; align-items: start; }
+.colL, .colR { display: grid; gap: 12px; min-width: 0; }
+@media (min-width: 900px) {
+  .app { max-width: 1180px; padding-block: 22px 48px; }
+  .app.narrow { max-width: 860px; }
+  .cols { grid-template-columns: minmax(380px, 440px) minmax(0, 1fr); }
+  .colL { position: sticky; top: 16px; }
+  .entryGrid { grid-template-columns: 1fr 1fr; }
+  .players { grid-template-columns: 1fr 1fr; }
+  .bigcode { font-size: 56px; }
+}
+
 /* top bar */
 .bar { display: flex; align-items: center; gap: 10px; }
 .bar .title { font-family: var(--f-display); font-size: 20px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -180,8 +197,9 @@ async function act(body) {
 function renderEntry(msg) {
   const lastName = store.get('auction-online:name') || '';
   app.innerHTML = `
-    <header><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></header>
+    <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
     <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요.</p>
+    <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
       <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
@@ -191,6 +209,7 @@ function renderEntry(msg) {
       ${code ? '' : '<input type="text" id="cd" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters" style="text-transform:uppercase;font-family:var(--f-mono)">'}
       <button class="btn primary block" id="joinBtn" type="button">들어가기</button>
     </div>
+    </div><div class="colR">
     ${code ? '' : `<div class="panel"><h2>모르는 사람과 하기</h2>
       <button class="btn amber block" id="quickBtn" type="button">빠른 입장</button>
       <p class="muted">사람을 기다리는 공개 방에 바로 들어가요. 없으면 새 공개 방을 만들어요.</p>
@@ -202,8 +221,10 @@ function renderEntry(msg) {
       </div>
       <p class="muted" id="visNote">친구에게 방 코드나 링크를 보내서 같이 해요.</p>
       <button class="btn primary block" id="createBtn" type="button">방 만들기</button></div>`}
+    </div></div>
     <p class="err" id="err">${esc(msg || '')}</p>
     <p class="muted"><a href="/" style="color:var(--chalk-dim)">← 1x1 MATCH 첫 화면</a></p>`;
+  app.classList.add('narrow');
   const nameOf = () => { const n = document.getElementById('nm').value.trim(); if (!n) throw new Error('이름을 입력하세요.'); store.set('auction-online:name', n); return n; };
   const showErr = e => { document.getElementById('err').textContent = e.message; };
   document.getElementById('joinBtn').onclick = async () => {
@@ -368,7 +389,7 @@ function playersHtml() {
 }
 function topBar() {
   const me = V.players[V.me];
-  return `<div class="bar" style="--pc:${PC[V.me]}"><span class="title">연봉 블라인드 경매</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
+  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
     ${deadlineAt ? `<div class="timer"><span>${V.cur && V.cur.kind === 'auction' ? `${nameOf(V.cur.toAct)}님 차례` : V.cur && V.cur.kind === 'trade' ? `${nameOf(V.cur.by)}님 트레이드` : `${nameOf(V.opener)}님 카드 열기`}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
@@ -379,15 +400,16 @@ function renderLobby() {
     ? `<div class="seat" style="--pc:${PC[k]}">${esc(V.players[k].name)}${k === V.host ? ' · 방장' : ''}${k === V.me ? ' (나)' : ''}</div>`
     : `<div class="seat empty">빈 자리</div>`).join('');
   const isHost = V.me === V.host, full = V.players.length === 4;
-  app.innerHTML = `<header><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></header>
-    <div class="panel"><p class="muted" style="text-align:center">${V.public ? '공개 방 · 누구나 들어올 수 있어요' : '비공개 방 · 코드를 아는 사람만'} · 방 코드</p><div class="bigcode">${esc(V.code)}</div>
+  app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
+    <div class="entryGrid"><div class="colL"><div class="panel"><p class="muted" style="text-align:center">${V.public ? '공개 방 · 누구나 들어올 수 있어요' : '비공개 방 · 코드를 아는 사람만'} · 방 코드</p><div class="bigcode">${esc(V.code)}</div>
       <div class="row"><input type="text" id="lnk" readonly value="${esc(link)}"><button class="btn" type="button" id="copyBtn">링크 복사</button></div>
-      <p class="muted">이 링크를 보내거나, 방 코드를 알려주세요.</p></div>
+      <p class="muted">이 링크를 보내거나, 방 코드를 알려주세요.</p></div></div><div class="colR">
     <div class="panel"><h2>참가자 ${V.players.length}/4</h2><div class="seats">${seats}</div>
       ${isHost ? `<button class="btn amber block" type="button" data-a="start" ${full ? '' : 'disabled'}>${full ? '게임 시작' : '4명이 모이면 시작할 수 있어요'}</button>` : `<p class="muted">방장이 게임을 시작하면 바로 넘어가요.</p>`}
       <p class="err">${esc(errMsg)}</p>
       <button class="btn block" type="button" data-a="leave">방 나가기</button></div>
-    <div class="panel"><h2>규칙</h2><p class="muted">큐브 20개로 시작해요. 카드를 연 사람부터 순서대로 기존 최고가보다 1개 이상 올리거나 포기해요. 3명이 포기하면 남은 사람이 낙찰받아요. 선수 연봉은 낙찰받은 사람만 볼 수 있고, 16장을 다 열면 연평균 연봉 합계로 순위를 정해요.</p></div>`;
+    <div class="panel"><h2>규칙</h2><p class="muted">큐브 20개로 시작해요. 카드를 연 사람부터 순서대로 기존 최고가보다 1개 이상 올리거나 포기해요. 3명이 포기하면 남은 사람이 낙찰받아요. 선수 연봉은 낙찰받은 사람만 볼 수 있고, 16장을 다 열면 연평균 연봉 합계로 순위를 정해요.</p></div></div></div>`;
+  app.classList.add('narrow');
   document.getElementById('copyBtn').onclick = async () => {
     const inp = document.getElementById('lnk');
     try { await navigator.clipboard.writeText(link); document.getElementById('copyBtn').textContent = '복사됨'; }
@@ -410,9 +432,11 @@ function renderResult() {
 function render() {
   if (!V) return;
   const focusId = document.activeElement && document.activeElement.id;
+  app.classList.remove('narrow');
   if (V.phase === 'lobby') renderLobby();
   else if (V.phase === 'result') renderResult();
-  else app.innerHTML = topBar() + curPanel() + boardHtml() + playersHtml();
+  else app.innerHTML = topBar() + `<div class="cols"><div class="colL">${curPanel()}</div><div class="colR">${boardHtml()}${playersHtml()}</div></div>`;
+  app.classList.toggle('narrow', V.phase !== 'play');
   if (focusId === 'bidIn' && document.getElementById('bidIn')) document.getElementById('bidIn').focus();
   ['trMine', 'trTheirs'].forEach(id => { const el = document.getElementById(id); if (el && trDraft[id] && [...el.options].some(o => o.value === trDraft[id])) el.value = trDraft[id]; });
 }

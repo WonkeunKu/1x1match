@@ -69,6 +69,19 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 
 .layout { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 14px 20px 18px; }
 
+
+.logo { font-family: var(--f-display); font-size: 30px; line-height: 1; color: var(--chalk); text-decoration: none; padding: 6px 16px 6px 0; border-right: 1px solid var(--line); white-space: nowrap; flex: none; }
+.logo span { color: var(--amber); }
+.logo:hover { color: #fff; }
+
+/* 가로 화면: 왼쪽 스코어·마운드, 오른쪽 두 손패 */
+.stage.wide { width: 1600px; height: 900px; }
+.stage.wide .layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 14px 18px; }
+.stage.wide .ls { grid-column: 1; grid-row: 1; }
+.stage.wide .mound { grid-column: 1; grid-row: 2; align-content: center; }
+.stage.wide .hands { grid-column: 2; grid-row: 1 / span 2; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+.stage.wide .tile { width: 180px; height: 210px; }
+
 /* Line score */
 .ls { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
 .ls th { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--chalk-dim); padding: 2px 0; }
@@ -170,6 +183,7 @@ button.c { text-align: left; font: inherit; }
 <body>
 <div class="stage" id="stage">
   <header class="top">
+    <a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a>
     <div>
       <div class="eyebrow">Rallypick · 2026 KBO 홈런 카드 대결</div>
       <h1>9이닝 흑과 백</h1>
@@ -623,10 +637,16 @@ function fitStage() {
   const st = document.getElementById('stage');
   const W = document.documentElement.clientWidth || window.innerWidth;
   const H = document.documentElement.clientHeight || window.innerHeight;
-  const k = Math.min(W / 960, H / 1060);
+  // 가로가 넓은 화면(노트북·데스크톱)은 1600×900 가로 배치, 폰·세로 화면은 960×1060 세로 배치
+  const wide = W / H >= 1.25 && W >= 900;
+  st.classList.toggle('wide', wide);
+  // 가로 배치는 높이 900 기준으로 화면 비율에 맞춰 폭을 늘려서 위아래 빈 띠가 생기지 않게 함
+  const sh = wide ? 900 : 1060, sw = wide ? Math.round(Math.min(2000, Math.max(1350, 900 * W / H))) : 960;
+  st.style.width = sw + 'px'; st.style.height = sh + 'px';
+  const k = Math.min(W / sw, H / sh);
   st.style.transform = `scale(${k})`;
-  st.style.left = Math.max(0, (W - 960 * k) / 2) + 'px';
-  st.style.top = Math.max(0, (H - 1060 * k) / 2) + 'px';
+  st.style.left = Math.max(0, (W - sw * k) / 2) + 'px';
+  st.style.top = Math.max(0, (H - sh * k) / 2) + 'px';
 }
 window.addEventListener('resize', fitStage);
 fitStage();
