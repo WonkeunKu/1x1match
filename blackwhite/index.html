@@ -84,6 +84,50 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 
 .aitag { font-family: var(--f-body); font-weight: 700; font-size: 15px; vertical-align: middle; background: var(--p2); color: #0a1a22; padding: 3px 10px; border-radius: 999px; margin-left: 6px; }
 
+/* 세로 폰 화면: 폭 440 기준으로 화면 비율에 맞춘 세로 배치 */
+.stage.tall .top { flex-wrap: wrap; gap: 10px 12px; padding: 12px 14px; }
+.stage.tall .logo { font-size: 24px; padding-right: 10px; }
+.stage.tall h1 { font-size: 24px; }
+.stage.tall .aitag { font-size: 12px; padding: 2px 8px; }
+.stage.tall .key { flex-direction: row; display: flex; gap: 12px; width: 100%; padding: 6px 10px; }
+.stage.tall .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; margin-left: 0; }
+.stage.tall .controls .primary, .stage.tall .controls .full { grid-column: auto; }
+.stage.tall .controls .seg { grid-column: span 2; }
+.stage.tall .btn { padding: 7px 8px; font-size: 13px; }
+.stage.tall .layout { padding: 10px 12px 14px; gap: 10px; overflow-y: auto; }
+.stage.tall .ls { border-spacing: 3px; }
+.stage.tall .ls th { font-size: 11px; }
+.stage.tall .ls td { height: 38px; padding: 2px; font-size: 0; }
+.stage.tall .ls td .mk { font-size: 13px; margin: 0; }
+.stage.tall .ls td .yr { display: none; }
+.stage.tall .ls td.nm { width: 76px; padding: 4px 6px; font-size: 14px; }
+.stage.tall .ls td.tot { width: 34px; font-size: 20px; }
+.stage.tall input.pname { font-size: 15px; }
+.stage.tall .lead { font-size: 10px; padding: 0 3px; }
+.stage.tall .nmrow { flex-direction: column; align-items: flex-start; gap: 1px; }
+.stage.tall .mound { padding: 10px 12px; gap: 8px; min-height: 0; }
+.stage.tall .mhead strong { font-size: 20px; }
+.stage.tall .mhead span { font-size: 12px; }
+.stage.tall .seat .who { font-size: 17px; }
+.stage.tall .tile { width: 112px; height: 132px; padding: 6px; }
+.stage.tall .tile .big { font-size: 52px; }
+.stage.tall .tile .rev .n { font-size: 20px; }
+.stage.tall .vs { font-size: 20px; }
+.stage.tall .verdict { font-size: 20px; max-width: 120px; }
+.stage.tall .hint { font-size: 12px; max-width: 120px; }
+.stage.tall .btn.big { font-size: 15px; padding: 8px 12px; }
+.stage.tall .hands { grid-template-columns: 1fr; flex: none; gap: 10px; }
+.stage.tall .hand { padding: 8px 10px; gap: 6px; }
+.stage.tall .c { padding: 5px 7px; }
+.stage.tall .c .n { font-size: 15px; }
+.stage.tall .c .t { display: none; }
+.stage.tall .result { padding: 12px; gap: 10px; overflow-y: auto; }
+.stage.tall .rhead h2 { font-size: 28px; }
+.stage.tall .rhead .sc { font-size: 24px; }
+.stage.tall .rt td { font-size: 13px; padding: 5px 6px; }
+.stage.tall .rt td:last-child { width: 70px; }
+.stage.tall .leftover { grid-template-columns: 1fr; }
+
 /* Line score */
 .ls { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
 .ls th { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--chalk-dim); padding: 2px 0; }
@@ -642,9 +686,13 @@ function fitStage() {
   const H = document.documentElement.clientHeight || window.innerHeight;
   // 가로가 넓은 화면(노트북·데스크톱)은 1600×900 가로 배치, 폰·세로 화면은 960×1060 세로 배치
   const wide = W / H >= 1.25 && W >= 900;
+  const tall = !wide && W / H < 0.8;
   st.classList.toggle('wide', wide);
+  st.classList.toggle('tall', tall);
   // 가로 배치는 높이 900 기준으로 화면 비율에 맞춰 폭을 늘려서 위아래 빈 띠가 생기지 않게 함
-  const sh = wide ? 900 : 1060, sw = wide ? Math.round(Math.min(2000, Math.max(1350, 900 * W / H))) : 960;
+  let sw = 960, sh = 1060;
+  if (wide) { sh = 900; sw = Math.round(Math.min(2000, Math.max(1350, 900 * W / H))); }
+  if (tall) { sw = 440; sh = Math.max(760, Math.round(440 * H / W)); }
   st.style.width = sw + 'px'; st.style.height = sh + 'px';
   const k = Math.min(W / sw, H / sh);
   st.style.transform = `scale(${k})`;
