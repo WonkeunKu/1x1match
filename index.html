@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <title>1x1 MATCH</title>
-<meta name="description" content="야구 지식으로 겨루는 두뇌 게임 — 연봉 블라인드 경매, 9이닝 흑과 백">
+<meta name="description" content="야구 지식으로 겨루는 두뇌 게임 — 연봉 블라인드 경매, 9이닝 홈런 흑과 백">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -69,7 +69,7 @@ a.game.online .go { color: var(--amber); }
 a.game:hover { transform: translateY(-3px); border-color: var(--chalk-dim); }
 a.game:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
 .tag { padding-right: 76px; font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); letter-spacing: 0.08em; }
-.game h2 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; }
+.game h2 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; word-break: keep-all; }
 .game p { margin: 0; color: var(--chalk-dim); font-size: 15px; word-break: keep-all; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--board-2); border: 1px solid var(--line); }
@@ -119,7 +119,7 @@ footer { font-size: 13px; color: var(--chalk-dim); }
     </a><a class="rl" href="auction/ai/#rules" aria-label="규칙 보기">? 규칙</a></div>
     <div class="gw"><a class="game bw" href="blackwhite/online/">
       <span class="tag">GAME 02 · 온라인 1:1 · 사람 대전</span>
-      <h2>9이닝 흑과 백</h2>
+      <h2>9이닝 홈런 흑과 백</h2>
       <div class="demo" aria-hidden="true"><i class="b">흑</i><i class="w">백</i><i class="b">흑</i><i class="w">백</i><i class="b">흑</i></div>
       <p>친구나 모르는 사람과 각자 기기로 1:1 대결해요. 똑같은 2026 시즌 타자 카드 9장으로 이닝마다 한 장씩 내고, 홈런이 많은 쪽이 이닝을 가져가요. 5승을 먼저 하면 이겨요.</p>
       <div class="chips"><span class="chip">방 코드로 입장</span><span class="chip">빠른 입장</span><span class="chip">2026 홈런 기록</span></div>
@@ -127,7 +127,7 @@ footer { font-size: 13px; color: var(--chalk-dim); }
     </a><a class="rl" href="blackwhite/online/#rules" aria-label="규칙 보기">? 규칙</a></div>
     <div class="gw"><a class="game bwai" href="blackwhite/">
       <span class="tag">GAME 02 · 혼자 · AI 대전</span>
-      <h2>9이닝 흑과 백 AI 대전</h2>
+      <h2>9이닝 홈런 흑과 백 AI 대전</h2>
       <div class="demo" aria-hidden="true"><i class="w">하</i><i class="b">중</i><i class="w">상</i></div>
       <p>혼자서 AI와 붙어요. 난이도 하·중·상 중에 고를 수 있고, '상'은 남은 경기를 수백 번 가상으로 둬보고 카드를 내요.</p>
       <div class="chips"><span class="chip">AI 하·중·상</span><span class="chip">연습용</span></div>

@@ -1,4 +1,4 @@
-// 9이닝 흑과 백 온라인 1:1 방. 홈런 수는 서버에만 있고, 경기 중에는 카드의 흑·백과 이닝 승패만 내려보낸다.
+// 9이닝 홈런 흑과 백 온라인 1:1 방. 홈런 수는 서버에만 있고, 경기 중에는 카드의 흑·백과 이닝 승패만 내려보낸다.
 import { randomBytes, randomInt } from 'node:crypto';
 import { POOL } from './bw-cards.mjs';
 

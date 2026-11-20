@@ -76,7 +76,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
   <div class="filters" id="filters" role="group" aria-label="기록 거르기">
     <button type="button" data-f="all" aria-pressed="true">전체</button>
     <button type="button" data-f="auction" aria-pressed="false">연봉 블라인드 경매</button>
-    <button type="button" data-f="bw" aria-pressed="false">9이닝 흑과 백</button>
+    <button type="button" data-f="bw" aria-pressed="false">9이닝 홈런 흑과 백</button>
     <button type="button" data-f="online" aria-pressed="false">사람과 한 경기</button>
     <button type="button" data-f="ai" aria-pressed="false">AI와 한 경기</button>
   </div>
@@ -100,7 +100,7 @@ function summary(list) {
   const bw = { w: b.filter(x => x.result === 'win').length, l: b.filter(x => x.result === 'lose').length, d: b.filter(x => x.result === 'draw').length };
   document.getElementById('sum').innerHTML = `
     <div class="stat" style="--c:var(--amber)"><span class="t">연봉 블라인드 경매</span><span class="v">${a.length ? `우승 ${a.filter(isWin).length}회` : '기록 없음'}</span><span class="s">${a.length}판 · 평균 ${avgRank}위 · 최고 ${best}</span></div>
-    <div class="stat" style="--c:var(--blue)"><span class="t">9이닝 흑과 백</span><span class="v">${b.length ? `${bw.w}승 ${bw.l}패${bw.d ? ` ${bw.d}무` : ''}` : '기록 없음'}</span><span class="s">${b.length}판 · 승률 ${b.length ? Math.round(bw.w / b.length * 100) + '%' : '–'}</span></div>
+    <div class="stat" style="--c:var(--blue)"><span class="t">9이닝 홈런 흑과 백</span><span class="v">${b.length ? `${bw.w}승 ${bw.l}패${bw.d ? ` ${bw.d}무` : ''}` : '기록 없음'}</span><span class="s">${b.length}판 · 승률 ${b.length ? Math.round(bw.w / b.length * 100) + '%' : '–'}</span></div>
     <div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${list.length}판</span><span class="s">사람과 ${list.filter(x => x.mode === 'online').length}판 · AI와 ${list.filter(x => x.mode === 'ai').length}판</span></div>`;
 }
 function itemHtml(x) {
@@ -114,7 +114,7 @@ function itemHtml(x) {
   }
   const label = x.result === 'win' ? '승' : x.result === 'lose' ? '패' : '무';
   return `<div class="item" style="--c:var(--blue)"><span class="badge ${x.result}">${label}</span>
-    <div><div class="g">9이닝 흑과 백 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
+    <div><div class="g">9이닝 홈런 흑과 백 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
     <div class="r">${x.myWins} : ${x.oppWins}<small>나 : 상대</small></div></div>`;
 }
 function render() {
