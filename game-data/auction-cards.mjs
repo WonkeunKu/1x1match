@@ -89,6 +89,8 @@ export const CARDS = [
   { id: 'diaz', type: 'player', name: '디아즈', team: '삼성', seasons: '2026', term: '1년', hint: '50홈런 158타점 뒤 연봉 2배', aav: 23.4, foreign: true },
   { id: 'tham', type: 'player', name: '테임즈', team: 'NC', seasons: '2015', term: '1년', hint: '40-40 MVP 시즌의 연봉', aav: 11.3, foreign: true },
   { id: 'fedd', type: 'player', name: '페디', team: 'NC', seasons: '2023', term: '1년', hint: '20승 200K MVP 시즌의 연봉', aav: 13.1, foreign: true },
+  { id: 'kjwn', type: 'player', name: '김주원', team: 'NC', seasons: '2026', term: '1년', hint: '골든글러브 유격수, 75% 인상', aav: 3.5 },
+  { id: 'davi', type: 'player', name: '데이비슨', team: 'NC', seasons: '2025', term: '1+1년 중 첫해', hint: '홈런왕, KBO 첫 외인 다년계약', aav: 21.3, foreign: true },
   { id: 'trade', type: 'chance', kind: 'trade', name: '트레이드권', effect: '낙찰 즉시, 내 선수 1명과 상대 선수 1명을 직접 골라 교환해요. 교환할 선수가 없으면 그대로 사라져요.' },
   { id: 'release', type: 'chance', kind: 'release', name: '방출', effect: '가격이 1초마다 1개씩 올라가요. 가장 먼저 포기한 사람이 방출 카드를 받아 가장 최근에 영입한 자기 선수를 방출해요. 포기한 사람은 큐브를 내지 않고, 나머지 3명은 그 순간의 가격만큼 큐브를 내요.' },
   { id: 'double', type: 'chance', kind: 'double', name: '연봉 2배', effect: '결과를 합산할 때, 내 선수 중 연봉이 가장 낮은 선수의 연봉이 2배가 돼요.' }
