@@ -49,8 +49,8 @@ a.game {
   transition: transform 0.15s, border-color 0.15s;
 }
 a.game.bw { border-top-color: #6fc4ea; }
-a.game.online { border-top-color: #a9d774; }
-a.game.online .go { color: #a9d774; }
+a.game.online { border-top-color: var(--amber); }
+a.game.online .go { color: var(--amber); }
 a.game:hover { transform: translateY(-3px); border-color: var(--chalk-dim); }
 a.game:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
 .tag { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); letter-spacing: 0.08em; }
@@ -78,17 +78,9 @@ footer { font-size: 13px; color: var(--chalk-dim); }
   </header>
 
   <main class="games">
-    <a class="game" href="auction/">
-      <span class="tag">GAME 01 · 4인 · 진행자용</span>
-      <h2>연봉 블라인드 경매</h2>
-      <div class="demo" aria-hidden="true"><i class="q">?</i><i class="q">?</i><i class="q">?</i><i class="q">?</i></div>
-      <p>선수와 계약 기간만 보고 연봉을 짐작해 큐브를 몰래 걸어요. 연평균 연봉 합계가 가장 큰 사람이 이겨요.</p>
-      <div class="chips"><span class="chip">4×4 판</span><span class="chip">선수 13명</span><span class="chip">찬스 카드 3장</span></div>
-      <span class="go">게임 열기 →</span>
-    </a>
     <a class="game online" href="auction/online/">
       <span class="tag">GAME 01 · 온라인 4인 · 각자 폰</span>
-      <h2>연봉 블라인드 경매 온라인</h2>
+      <h2>연봉 블라인드 경매</h2>
       <div class="demo" aria-hidden="true"><i class="q">1</i><i class="q">2</i><i class="q">3</i><i class="q">4</i></div>
       <p>진행자 없이 4명이 각자 폰으로 들어와요. 카드를 연 사람부터 돌아가며 큐브를 올리거나 포기하고, 3명이 포기하면 남은 사람이 낙찰받아요.</p>
       <div class="chips"><span class="chip">방 코드로 입장</span><span class="chip">내 연봉만 몰래 확인</span><span class="chip">실시간 방출 경매</span></div>

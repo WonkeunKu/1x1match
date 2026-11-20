@@ -83,7 +83,13 @@ createServer(async (req, res) => {
     return;
   }
   // /auction → /auction/ so relative photo paths resolve
-  if (['/auction', '/blackwhite', '/auction/online'].includes(path)) {
+  // 진행자용 경매판은 없앴으므로 /auction 은 온라인 경매로 보냄
+  if (path === '/auction' || path === '/auction/' || path === '/auction/index.html') {
+    res.writeHead(302, { location: '/auction/online/' });
+    res.end();
+    return;
+  }
+  if (['/blackwhite', '/auction/online'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;
