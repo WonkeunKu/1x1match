@@ -82,11 +82,11 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .seat.empty { border-left-color: var(--line); color: var(--chalk-dim); font-weight: 400; }
 
 /* current card */
-.cardbox { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: start; }
-.photo { width: 112px; height: 140px; border-radius: 8px; overflow: hidden; background: var(--board-2); }
+.cardbox { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 12px; align-items: start; }
+.photo { width: 136px; height: 170px; border-radius: 8px; overflow: hidden; background: var(--board-2); }
 .photo img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
 .cinfo { display: grid; gap: 4px; }
-.cinfo .nm { font-family: var(--f-display); font-size: 30px; line-height: 1.05; }
+.cinfo .nm { font-family: var(--f-display); font-size: 34px; line-height: 1.05; }
 .cinfo .tm { font-size: 13px; color: var(--chalk-dim); }
 .facts { display: flex; gap: 6px; flex-wrap: wrap; }
 .facts span { font-size: 13px; background: var(--board-2); border-radius: 4px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
@@ -115,7 +115,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 
 /* board */
 .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.tile { aspect-ratio: 1 / 0.82; border-radius: 8px; border: 1px solid var(--line); background: var(--slot); box-shadow: inset 0 0 0 3px rgba(0,0,0,0.25); display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px; text-align: center; min-width: 0; }
+.tile { aspect-ratio: 1 / 0.62; border-radius: 8px; border: 1px solid var(--line); background: var(--slot); box-shadow: inset 0 0 0 3px rgba(0,0,0,0.25); display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px; text-align: center; min-width: 0; }
 .tile .n { font-family: var(--f-display); font-size: 26px; line-height: 1; }
 .tile .t { font-size: 12px; font-weight: 700; line-height: 1.15; word-break: keep-all; overflow: hidden; max-width: 100%; }
 .tile .o { font-size: 10px; font-weight: 700; color: #10201b; background: var(--pc); border-radius: 999px; padding: 0 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -144,19 +144,33 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 button.chip.peek { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; border-color: var(--pc); }
 button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 700; }
 
-/* 노트북·데스크톱: 경기 화면을 한 화면에 (왼쪽 경매 카드 · 가운데 판 · 오른쪽 참가자) */
+/* 노트북·데스크톱: 경기 화면을 한 화면에 (왼쪽 크게 경매 카드 · 오른쪽 위 작은 판 · 오른쪽 아래 참가자) */
 @media (min-width: 900px) and (min-height: 520px) {
   .app.playing { max-width: 1480px; height: 100vh; display: flex; flex-direction: column; padding-block: 14px; gap: 10px; }
-  .app.playing .cols { flex: 1; min-height: 0; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); align-items: stretch; }
+  .app.playing .cols { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 1fr); align-items: stretch; }
   .app.playing .colL { position: static; min-height: 0; overflow-y: auto; align-content: start; }
-  .app.playing .colR { min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); align-items: stretch; }
-  .app.playing .board { height: 100%; grid-template-rows: repeat(4, minmax(0, 1fr)); }
+  .app.playing .colR { min-height: 0; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); align-items: stretch; }
+  .app.playing .board { height: min(40vh, 360px); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 5px; }
   .app.playing .tile { aspect-ratio: auto; min-height: 0; }
-  .app.playing .tile .n { font-size: clamp(20px, 4vh, 34px); }
+  .app.playing .tile .n { font-size: clamp(16px, 3vh, 26px); }
   .app.playing .pcol { min-height: 0; overflow-y: auto; display: grid; gap: 8px; align-content: start; }
-  .app.playing .players { grid-template-columns: 1fr; }
-  .app.playing .photo { width: 96px; height: 120px; }
-  .app.playing .cardbox { grid-template-columns: 96px minmax(0, 1fr); }
+  .app.playing .players { grid-template-columns: 1fr 1fr; }
+  /* 공개된 선수 카드를 크게 */
+  .app.playing .cardbox { grid-template-columns: clamp(140px, 23vh, 280px) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .app.playing .photo { width: 100%; height: auto; aspect-ratio: 4 / 5; border-radius: 12px; }
+  .app.playing .cinfo { gap: 10px; }
+  .app.playing .cinfo .nm { font-size: clamp(38px, 7vh, 64px); }
+  .app.playing .cinfo .tm { font-size: 18px; }
+  .app.playing .facts span { font-size: 18px; padding: 4px 12px; border-radius: 6px; }
+  .app.playing .hint { font-size: 18px; }
+  .app.playing .chance .nm { font-size: clamp(38px, 7vh, 64px); }
+  .app.playing .chance p { font-size: 17px; }
+  .app.playing .panel { gap: 8px; }
+  .app.playing .highbid { padding-top: 6px; }
+  .app.playing .highbid .v { font-size: 28px; }
+  .app.playing .myturn { padding: 10px 12px; gap: 6px; }
+  .app.playing .stepper input, .app.playing .stepper button { height: 44px; padding-block: 0; }
+  .app.playing .myturn .btn { padding-block: 9px; }
 }
 .pcol { display: grid; gap: 8px; }
 
