@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>9이닝 흑과 백 온라인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one phone column on the scoreboard green; from 900px two columns (score + mound left, hands right). Same palette and parts as the online auction. */
+:root {
+  --board: #10302a; --board-2: #163d35; --slot: #0b2420;
+  --chalk: #f1eee4; --chalk-dim: #a7bcb2; --line: rgba(241, 238, 228, 0.14);
+  --amber: #f3b641; --red: #e8604a;
+  --p0: #f3b641; --p1: #6fc4ea; --p2: #f28f74; --p3: #a9d774;
+  --f-display: "Black Han Sans", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: #071815; }
+body {
+  margin: 0; min-height: 100vh; color: var(--chalk); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  background-color: var(--board);
+  background-image: repeating-linear-gradient(90deg, transparent 0 79px, rgba(0,0,0,0.1) 79px 80px), repeating-linear-gradient(0deg, transparent 0 79px, rgba(0,0,0,0.08) 79px 80px);
+  padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 520px; margin: 0 auto; padding-block: 14px 40px; display: grid; gap: 12px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--board-2); padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 15px; }
+.btn.primary { background: var(--chalk); color: var(--board); border-color: var(--chalk); }
+.btn.amber { background: var(--amber); color: #1a1405; border-color: var(--amber); }
+.btn.warn { background: var(--red); color: #fff; border-color: var(--red); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.block { width: 100%; }
+input[type=text], input[type=number], select {
+  width: 100%; background: var(--slot); border: 1px solid var(--line); color: var(--chalk); border-radius: 8px; padding: 11px 12px; font: inherit; font-size: 16px;
+}
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--chalk-dim); text-transform: uppercase; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.05; margin: 2px 0 0; }
+.panel { background: var(--slot); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.panel h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 22px; }
+.muted { color: var(--chalk-dim); font-size: 13px; margin: 0; }
+.err { color: var(--red); font-size: 13px; min-height: 18px; margin: 0; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { min-width: 0; }
+
+/* logo + desktop */
+.logo { font-family: var(--f-display); font-size: 26px; line-height: 1; color: var(--chalk); text-decoration: none; padding-right: 12px; border-right: 1px solid var(--line); white-space: nowrap; flex: none; }
+.logo span { color: var(--amber); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand > div { min-width: 0; }
+.cols, .entryGrid { display: grid; gap: 12px; align-items: start; }
+.colL, .colR { display: grid; gap: 12px; min-width: 0; }
+@media (min-width: 900px) {
+  .app { max-width: 1180px; padding-block: 22px 48px; }
+  .app.narrow { max-width: 860px; }
+  .cols { grid-template-columns: minmax(380px, 440px) minmax(0, 1fr); }
+  .colL { position: sticky; top: 16px; }
+  .entryGrid { grid-template-columns: 1fr 1fr; }
+  .players { grid-template-columns: 1fr 1fr; }
+  .bigcode { font-size: 56px; }
+}
+
+/* top bar */
+.bar { display: flex; align-items: center; gap: 10px; }
+.bar .title { font-family: var(--f-display); font-size: 20px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.code { font-family: var(--f-mono); font-weight: 600; background: var(--slot); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 13px; }
+.mycubes { font-family: var(--f-mono); font-size: 13px; }
+.mycubes b { font-size: 22px; color: var(--pc); }
+.event { font-size: 14px; background: rgba(243,182,65,0.12); border: 1px solid rgba(243,182,65,0.35); border-radius: 8px; padding: 8px 10px; }
+.conn { font-size: 12px; color: var(--red); }
+
+/* lobby */
+.bigcode { font-family: var(--f-mono); font-size: 44px; font-weight: 600; letter-spacing: 0.12em; color: var(--amber); text-align: center; }
+.seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seat { border: 1px solid var(--line); border-left: 4px solid var(--pc); border-radius: 8px; padding: 10px; background: var(--board-2); font-weight: 700; }
+.seat.empty { border-left-color: var(--line); color: var(--chalk-dim); font-weight: 400; }
+
+/* current card */
+.cardbox { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: start; }
+.photo { width: 112px; height: 140px; border-radius: 8px; overflow: hidden; background: var(--board-2); }
+.photo img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+.cinfo { display: grid; gap: 4px; }
+.cinfo .nm { font-family: var(--f-display); font-size: 30px; line-height: 1.05; }
+.cinfo .tm { font-size: 13px; color: var(--chalk-dim); }
+.facts { display: flex; gap: 6px; flex-wrap: wrap; }
+.facts span { font-size: 13px; background: var(--board-2); border-radius: 4px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+.hint { font-size: 14px; border-left: 3px solid var(--chalk-dim); padding-left: 8px; color: var(--chalk-dim); word-break: keep-all; }
+.chance { background: var(--amber); color: #1a1405; border-radius: 10px; padding: 14px; display: grid; gap: 6px; }
+.chance.rel { background: var(--red); color: #fff; }
+.chance .nm { font-family: var(--f-display); font-size: 30px; line-height: 1.05; }
+.chance p { margin: 0; font-size: 14px; word-break: keep-all; }
+.highbid { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.highbid .v { font-family: var(--f-mono); font-size: 34px; font-weight: 600; color: var(--amber); font-variant-numeric: tabular-nums; }
+.order { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.order div { border: 1px solid var(--line); border-top: 3px solid var(--pc); border-radius: 6px; padding: 6px; font-size: 12px; text-align: center; background: var(--board-2); overflow: hidden; }
+.order div b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order div.out { opacity: 0.4; }
+.order div.turn { box-shadow: 0 0 0 2px var(--pc); }
+.order div.high { background: color-mix(in srgb, var(--pc) 25%, var(--board-2)); }
+.myturn { display: grid; gap: 8px; background: rgba(243,182,65,0.1); border: 1px solid var(--amber); border-radius: 10px; padding: 12px; }
+.myturn h3 { margin: 0; font-size: 15px; color: var(--amber); }
+.stepper { display: grid; grid-template-columns: 52px 1fr 52px; gap: 6px; }
+.stepper button { background: var(--board-2); border: 1px solid var(--line); border-radius: 8px; font-size: 22px; }
+.stepper input { text-align: center; font-family: var(--f-mono); font-size: 24px; font-weight: 600; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+.quick button { border: 1px solid var(--line); background: var(--board-2); border-radius: 6px; padding: 5px 10px; font-family: var(--f-mono); font-size: 13px; }
+.price { text-align: center; font-family: var(--f-mono); font-size: 64px; font-weight: 600; line-height: 1; color: var(--red); }
+.giveup { font-size: 22px; padding: 18px; }
+
+/* board */
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tile { aspect-ratio: 1 / 0.82; border-radius: 8px; border: 1px solid var(--line); background: var(--slot); box-shadow: inset 0 0 0 3px rgba(0,0,0,0.25); display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px; text-align: center; min-width: 0; }
+.tile .n { font-family: var(--f-display); font-size: 26px; line-height: 1; }
+.tile .t { font-size: 12px; font-weight: 700; line-height: 1.15; word-break: keep-all; overflow: hidden; max-width: 100%; }
+.tile .o { font-size: 10px; font-weight: 700; color: #10201b; background: var(--pc); border-radius: 999px; padding: 0 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .s { font-size: 10px; color: var(--chalk-dim); }
+.tile.pickable { border-color: var(--amber); cursor: pointer; }
+.tile.pickable .n { color: var(--amber); }
+.tile.live { border-color: var(--amber); box-shadow: inset 0 0 0 3px rgba(243,182,65,0.3); }
+.tile.done { background: var(--board-2); box-shadow: none; }
+.tile.gone { opacity: 0.5; }
+.tile.gone .t { text-decoration: line-through; }
+
+/* players */
+.players { display: grid; gap: 8px; }
+.pl { background: var(--slot); border: 1px solid var(--line); border-left: 4px solid var(--pc); border-radius: 8px; padding: 9px 10px; display: grid; gap: 6px; }
+.pl.me { box-shadow: 0 0 0 1px var(--pc); }
+.pl .hd { display: flex; align-items: center; gap: 8px; }
+.pl .hd b { font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl .hd .cb { font-family: var(--f-mono); font-size: 13px; color: var(--chalk-dim); }
+.pl .hd .cb strong { color: var(--pc); font-size: 18px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #4a5a55; flex: none; }
+.dot.on { background: #7bd88f; }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: var(--board-2); border: 1px solid var(--line); white-space: nowrap; }
+.chip.ch { border-color: rgba(243,182,65,0.6); color: var(--amber); }
+.chip.rel { border-color: rgba(232,96,74,0.7); color: var(--red); }
+button.chip.peek { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; border-color: var(--pc); }
+button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 700; }
+
+/* public rooms */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--board-2); border-radius: 8px; padding: 4px; }
+.seg button { border: 0; background: transparent; border-radius: 6px; padding: 9px 4px; font-weight: 700; font-size: 14px; color: var(--chalk-dim); }
+.seg button[aria-checked="true"] { background: var(--chalk); color: var(--board); }
+.rlist { display: grid; gap: 6px; }
+.ritem { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; background: var(--board-2); border-radius: 8px; padding: 8px 10px; }
+.ritem b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.ritem .btn { padding: 6px 10px; font-size: 13px; }
+.timer { position: relative; display: flex; align-items: baseline; gap: 4px; background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 9px; font-size: 13px; overflow: hidden; }
+.timer span:first-child { flex: 1; color: var(--chalk-dim); }
+.timer b { font-family: var(--f-mono); font-size: 20px; color: var(--amber); }
+.timer i { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--w); background: var(--amber); transition: width 0.25s linear; }
+
+/* results */
+.res { display: grid; gap: 8px; }
+.res .pl .hd strong.sum { font-family: var(--f-mono); font-size: 22px; color: var(--pc); }
+.rank { font-family: var(--f-mono); color: var(--amber); }
+.x2 { font-size: 10px; background: var(--amber); color: #1a1405; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+
+/* black & white */
+:root { --ink: #0a0f0e; }
+.score { display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--f-mono); font-weight: 600; }
+.score .w { font-size: 46px; line-height: 1; }
+.score .vs { color: var(--chalk-dim); font-size: 20px; }
+.score .nm { font-family: var(--f-body); font-size: 14px; font-weight: 700; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px; }
+.line div { display: grid; gap: 2px; }
+.line span { height: 24px; border-radius: 4px; background: var(--board-2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.line span.win { background: var(--pc); color: #10201b; border-color: var(--pc); }
+.line span.cur { border-color: var(--amber); }
+.line i { font-style: normal; text-align: center; font-family: var(--f-mono); font-size: 10px; color: var(--chalk-dim); }
+.mound { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.seat2 { display: grid; justify-items: center; gap: 6px; min-width: 0; text-align: center; }
+.seat2 .who { font-weight: 700; color: var(--pc); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat2 .role { font-family: var(--f-mono); font-size: 11px; color: var(--chalk-dim); letter-spacing: 0.1em; }
+.bt { width: 108px; height: 128px; border-radius: 10px; display: grid; place-items: center; text-align: center; padding: 6px; }
+.bt.empty { border: 2px dashed var(--line); color: var(--chalk-dim); font-size: 12px; }
+.bt.black { background: var(--ink); color: var(--chalk); border: 2px solid rgba(241,238,228,0.4); }
+.bt.white { background: var(--chalk); color: var(--ink); }
+.bt .big { font-family: var(--f-display); font-size: 52px; line-height: 1; }
+.bt .n { font-family: var(--f-display); font-size: 20px; line-height: 1.1; word-break: keep-all; }
+.bt .t { font-size: 11px; opacity: 0.75; }
+.bt.won { box-shadow: 0 0 0 3px var(--amber); }
+.bt.lost { opacity: 0.45; }
+.verdict { font-family: var(--f-display); font-size: 22px; color: var(--amber); text-align: center; word-break: keep-all; max-width: 7em; }
+.hand2 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.hc { border-radius: 7px; padding: 7px 8px; display: grid; gap: 1px; text-align: left; min-width: 0; border: 1px solid var(--line); font: inherit; }
+.hc.black { background: var(--ink); color: var(--chalk); border-color: rgba(241,238,228,0.35); }
+.hc.white { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+.hc .y { font-size: 11px; opacity: 0.75; font-family: var(--f-mono); }
+.hc .n { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hc.used { opacity: 0.3; }
+.hc.used .n { text-decoration: line-through; }
+button.hc { cursor: pointer; }
+button.hc:hover { box-shadow: 0 0 0 3px var(--amber); }
+.handhead { display: flex; justify-content: space-between; align-items: baseline; }
+.handhead b { color: var(--pc); }
+.handhead span { font-size: 12px; color: var(--chalk-dim); }
+.panel.active { box-shadow: 0 0 0 2px var(--amber); }
+.panel.active .handhead span { color: var(--amber); font-weight: 700; }
+.key { display: flex; gap: 12px; font-size: 13px; flex-wrap: wrap; }
+.key i { display: inline-grid; place-items: center; width: 22px; height: 18px; border-radius: 3px; font-style: normal; font-family: var(--f-display); font-size: 11px; margin-right: 4px; vertical-align: -3px; }
+.key .kb { background: var(--ink); color: var(--chalk); border: 1px solid rgba(241,238,228,0.35); }
+.key .kw { background: var(--chalk); color: var(--ink); }
+.hist { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 14px; }
+.hist td { background: var(--board-2); padding: 6px 8px; }
+.hist td:first-child { border-radius: 6px 0 0 6px; font-family: var(--f-mono); color: var(--chalk-dim); width: 40px; }
+.hist td:last-child { border-radius: 0 6px 6px 0; }
+.hist .w { color: var(--pc); font-weight: 700; }
+.hist .hr { font-family: var(--f-mono); font-weight: 600; margin-left: 4px; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const PC = ['var(--p0)', 'var(--p1)'];
+const API = '/api/bw';
+const KEY = 'bw-online:';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+};
+const app = document.getElementById('app');
+const params = new URLSearchParams(location.search);
+let code = (params.get('room') || '').toUpperCase();
+let token = code ? store.get(KEY + code) : null;
+let deadlineAt = null;
+let V = null, es = null, connected = false, errMsg = '', listTimer = null;
+const HDR = '<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1</div><h1>9이닝 흑과 백</h1></div></header>';
+
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const j = await r.json().catch(() => ({ error: '서버 응답을 읽지 못했어요.' }));
+  if (!r.ok) throw new Error(j.error || '요청이 실패했어요.');
+  return j;
+}
+async function act(body) {
+  try { errMsg = ''; await post(`${API}/rooms/${code}/act`, Object.assign({ token }, body)); }
+  catch (e) { errMsg = e.message; render(); }
+}
+
+/* ---------- entry ---------- */
+function renderEntry(msg) {
+  app.classList.add('narrow');
+  const lastName = store.get('online:name') || store.get('auction-online:name') || '';
+  app.innerHTML = `${HDR}
+    <p class="muted">2명이 각자 기기로 들어와서 1:1로 겨뤄요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만날 수 있어요. 혼자 연습하려면 <a href="/blackwhite/" style="color:var(--amber)">AI 대전</a>으로 가세요.</p>
+    <div class="entryGrid"><div class="colL">
+    <div class="panel">
+      <label class="muted" for="nm">내 이름</label>
+      <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
+    </div>
+    <div class="panel">
+      <h2>${code ? `방 ${esc(code)} 들어가기` : '방 들어가기'}</h2>
+      ${code ? '' : '<input type="text" id="cd" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters" style="text-transform:uppercase;font-family:var(--f-mono)">'}
+      <button class="btn primary block" id="joinBtn" type="button">들어가기</button>
+    </div>
+    </div><div class="colR">
+    ${code ? '' : `<div class="panel"><h2>모르는 사람과 하기</h2>
+      <button class="btn amber block" id="quickBtn" type="button">빠른 입장</button>
+      <p class="muted">상대를 기다리는 공개 방에 바로 들어가요. 없으면 새 공개 방을 만들어요.</p>
+      <div id="roomList" class="rlist"><p class="muted">공개 방을 불러오는 중…</p></div></div>
+    <div class="panel"><h2>새 방 만들기</h2>
+      <div class="seg" role="radiogroup" aria-label="방 공개 설정">
+        <button type="button" role="radio" data-vis="private" aria-checked="true">비공개 · 코드로만</button>
+        <button type="button" role="radio" data-vis="public" aria-checked="false">공개 · 누구나</button>
+      </div>
+      <p class="muted" id="visNote">친구에게 방 코드나 링크를 보내서 같이 해요.</p>
+      <button class="btn primary block" id="createBtn" type="button">방 만들기</button></div>`}
+    </div></div>
+    <p class="err" id="err">${esc(msg || '')}</p>`;
+  const nameOf = () => { const n = document.getElementById('nm').value.trim(); if (!n) throw new Error('이름을 입력하세요.'); store.set('online:name', n); return n; };
+  const showErr = e => { document.getElementById('err').textContent = e.message; };
+  document.getElementById('joinBtn').onclick = async () => {
+    try {
+      const n = nameOf();
+      const c = code || document.getElementById('cd').value.trim().toUpperCase();
+      if (c.length !== 4) throw new Error('방 코드 4자리를 입력하세요.');
+      const r = await post(`${API}/rooms/${c}/join`, { name: n });
+      enter(r.code, r.token);
+    } catch (e) { showErr(e); }
+  };
+  const cb = document.getElementById('createBtn');
+  if (!cb) return;
+  let vis = 'private';
+  app.querySelectorAll('[data-vis]').forEach(b => b.onclick = () => {
+    vis = b.dataset.vis;
+    app.querySelectorAll('[data-vis]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+    document.getElementById('visNote').textContent = vis === 'public'
+      ? '공개 방 목록에 올라가서 모르는 사람도 들어올 수 있어요. 카드를 낼 때 30초 제한이 있어요.'
+      : '친구에게 방 코드나 링크를 보내서 같이 해요.';
+  });
+  cb.onclick = async () => {
+    try { const r = await post(`${API}/rooms`, { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
+    catch (e) { showErr(e); }
+  };
+  document.getElementById('quickBtn').onclick = async () => {
+    try { const r = await post(`${API}/quick`, { name: nameOf() }); enter(r.code, r.token); }
+    catch (e) { showErr(e); }
+  };
+  const list = document.getElementById('roomList');
+  list.onclick = async e => {
+    const b = e.target.closest('[data-join]'); if (!b) return;
+    try { const r = await post(`${API}/rooms/${b.dataset.join}/join`, { name: nameOf() }); enter(r.code, r.token); }
+    catch (err) { showErr(err); }
+  };
+  const load = async () => {
+    if (!document.body.contains(list)) { clearInterval(listTimer); return; }
+    try {
+      const r = await (await fetch(`${API}/rooms`)).json();
+      list.innerHTML = r.rooms.length
+        ? r.rooms.map(x => `<div class="ritem"><span class="code">${esc(x.code)}</span><b>${esc(x.host)}님이 기다리는 중</b><span class="muted">1/2</span><button class="btn" type="button" data-join="${esc(x.code)}">도전하기</button></div>`).join('')
+        : '<p class="muted">지금 기다리는 공개 방이 없어요. 빠른 입장을 누르면 새 공개 방이 만들어져요.</p>';
+    } catch { list.innerHTML = '<p class="muted">방 목록을 불러오지 못했어요.</p>'; }
+  };
+  clearInterval(listTimer); load(); listTimer = setInterval(load, 3000);
+}
+function enter(c, t) {
+  clearInterval(listTimer);
+  code = c; token = t;
+  store.set(KEY + c, t);
+  history.replaceState(null, '', '?room=' + c);
+  connect();
+}
+function leaveToEntry(msg) {
+  if (es) es.close(); es = null; V = null;
+  history.replaceState(null, '', location.pathname); code = ''; token = null;
+  renderEntry(msg);
+}
+
+/* ---------- live connection ---------- */
+function connect() {
+  if (es) es.close();
+  es = new EventSource(`${API}/rooms/${code}/events?token=${encodeURIComponent(token)}`);
+  es.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.kicked) { leaveToEntry('연결이 오래 끊겨서 방에서 빠졌어요. 다시 들어가 주세요.'); return; }
+    V = d; connected = true;
+    deadlineAt = V.turnLeftMs === null ? null : Date.now() + V.turnLeftMs;
+    render();
+  };
+  es.onerror = async () => {
+    connected = false; if (V) render();
+    try { await post(`${API}/rooms/${code}/join`, { token }); }
+    catch (err) { leaveToEntry(err.message); }
+  };
+}
+
+/* ---------- game ---------- */
+const nameOf = k => esc(V.players[k] ? V.players[k].name : '');
+const myTurn = () => V.phase === 'play' && V.pend[V.me] === null && (V.lead === V.me || V.pend[V.lead] !== null);
+const usedSet = k => new Set(V.innings.map(x => x.cards[k].id));
+function cardFace(c, cls) {
+  return `<div class="bt ${c.black ? 'black' : 'white'} ${cls || ''}"><div><div class="n">${esc(c.name)}</div><div class="t">${esc(c.team)}${'hr' in c ? ` · ${c.hr}홈런` : ''}</div></div></div>`;
+}
+function topBar() {
+  let who = '';
+  if (V.phase === 'play') who = V.pend[V.lead] === null ? `${nameOf(V.lead)}님 선공` : `${nameOf(1 - V.lead)}님 후공`;
+  return `<div class="bar"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">9이닝 흑과 백</span><span class="code">방 ${esc(V.code)}</span></div>
+    ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
+    ${deadlineAt && V.phase === 'play' ? `<div class="timer"><span>${who}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
+    ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
+}
+function scorePanel() {
+  const n = V.innings.length;
+  const cells = k => Array.from({ length: 9 }, (_, i) => {
+    const x = V.innings[i];
+    if (!x) return `<span class="${i === n && V.phase === 'play' ? 'cur' : ''}"></span>`;
+    return x.res === 'D' ? '<span>무</span>' : x.res === k ? '<span class="win">승</span>' : '<span>패</span>';
+  }).join('');
+  return `<div class="panel">
+    <div class="score"><span class="nm" style="color:${PC[0]}">${nameOf(0)}</span><span class="w" style="color:${PC[0]}">${V.wins[0]}</span><span class="vs">:</span><span class="w" style="color:${PC[1]}">${V.wins[1]}</span><span class="nm" style="color:${PC[1]}">${nameOf(1)}</span></div>
+    <div class="line" aria-label="이닝별 승패">${Array.from({ length: 9 }, (_, i) => `<i>${i + 1}</i>`).join('')}</div>
+    <div class="line" style="--pc:${PC[0]}">${cells(0)}</div>
+    <div class="line" style="--pc:${PC[1]}">${cells(1)}</div>
+    <div class="key"><span><i class="kb">흑</i>홈런 ${V.thr}개 이상</span><span><i class="kw">백</i>${V.thr}개 미만</span><span class="muted">${V.winAt}승 먼저 하면 승리</span></div>
+  </div>`;
+}
+function moundPanel() {
+  const me = V.me, op = 1 - me;
+  const last = V.innings[V.innings.length - 1];
+  const fresh = V.pend[0] === null && V.pend[1] === null;
+  const seat = k => {
+    let tile;
+    if (fresh && last) {
+      const ex = last.res === 'D' ? '' : last.res === k ? 'won' : 'lost';
+      tile = cardFace(last.cards[k], ex);
+    } else if (V.pend[k]) {
+      const c = V.pend[k];
+      tile = c.name ? cardFace(c) : `<div class="bt ${c.black ? 'black' : 'white'}"><span class="big">${c.black ? '흑' : '백'}</span></div>`;
+    } else tile = `<div class="bt empty">${k === me ? (myTurn() ? '아래 내 카드에서 선택' : '선공 제출 후') : '상대 카드 대기'}</div>`;
+    const role = (fresh && last ? last.lead : V.lead) === k ? '선공' : '후공';
+    return `<div class="seat2" style="--pc:${PC[k]}"><span class="role">${role}</span><span class="who">${nameOf(k)}${k === me ? ' (나)' : ''}</span>${tile}</div>`;
+  };
+  let mid;
+  if (fresh && last) mid = `<div class="verdict">${V.innings.length}이닝<br>${last.res === 'D' ? '무승부' : `${nameOf(last.res)} 승`}</div>`;
+  else mid = '<div class="verdict" style="color:var(--chalk-dim)">VS</div>';
+  const head = fresh && last && V.phase === 'play'
+    ? `<h2>${V.innings.length + 1}이닝 · ${V.lead === me ? '내가 선공이에요' : `${nameOf(V.lead)}님 선공`}</h2>`
+    : `<h2>${Math.min(V.innings.length + 1, 9)}이닝</h2>`;
+  let hint = '';
+  if (V.phase === 'play') {
+    if (myTurn()) hint = V.lead === me ? '내 카드를 고르세요. 상대에게는 흑·백만 보여요.' : `상대가 ${V.pend[op].black ? '흑' : '백'}을 냈어요. 내 카드를 고르세요.`;
+    else if (V.pend[me]) hint = '상대가 카드를 내면 바로 판정해요.';
+    else hint = `${nameOf(V.lead)}님이 먼저 카드를 내는 중이에요.`;
+  }
+  return `<div class="panel ${myTurn() ? 'active' : ''}">${head}<div class="mound">${seat(me)}${mid}${seat(op)}</div>
+    ${hint ? `<p class="muted" style="text-align:center">${hint}</p>` : ''}<p class="err">${esc(errMsg)}</p></div>`;
+}
+function handPanel(k) {
+  const used = usedSet(k), mine = k === V.me, can = mine && myTurn();
+  const order = {}; V.innings.forEach((x, i) => { order[x.cards[k].id] = i + 1; });
+  const cards = V.hand.map(c => {
+    const u = used.has(c.id) || (V.pend[k] && V.pend[k].id === c.id);
+    const inner = `<span class="y">${c.black ? '흑' : '백'} · ${esc(c.team)}${order[c.id] ? ` · ${order[c.id]}이닝` : ''}</span><span class="n">${esc(c.name)}</span>`;
+    return can && !u ? `<button type="button" class="hc ${c.black ? 'black' : 'white'}" data-a="play" data-id="${c.id}" aria-label="${esc(c.name)} 내기">${inner}</button>`
+      : `<div class="hc ${c.black ? 'black' : 'white'} ${u ? 'used' : ''}">${inner}</div>`;
+  }).join('');
+  const left = V.hand.filter(c => !used.has(c.id)).length;
+  return `<div class="panel ${can ? 'active' : ''}" style="--pc:${PC[k]}"><div class="handhead"><b>${mine ? '내 카드' : `${nameOf(k)}님 카드`}</b><span>${can ? '카드를 눌러 내기 · ' : ''}남은 ${left}장</span></div><div class="hand2">${cards}</div></div>`;
+}
+function renderGame() {
+  app.innerHTML = topBar() + `<div class="cols"><div class="colL">${scorePanel()}${moundPanel()}</div><div class="colR">${handPanel(V.me)}${handPanel(1 - V.me)}<p class="muted">두 사람은 똑같은 9장을 받아요. 카드 색(흑·백)은 서로 보이지만 홈런 수는 경기가 끝나야 공개돼요. 이미 낸 카드 이름은 판정 후 공개돼요.</p></div></div>`;
+}
+function renderResult() {
+  const w = V.wins[0] === V.wins[1] ? -1 : V.wins[0] > V.wins[1] ? 0 : 1;
+  const rows = V.innings.map((x, i) => {
+    const cell = k => `<span class="${x.res === k ? 'w' : ''}" style="--pc:${PC[k]}">${esc(x.cards[k].name)}<span class="hr">${x.cards[k].hr}</span></span>`;
+    return `<tr><td>${i + 1}회</td><td>${cell(0)}</td><td>${cell(1)}</td><td>${x.res === 'D' ? '무' : `<span class="w" style="--pc:${PC[x.res]}">${nameOf(x.res)}</span>`}</td></tr>`;
+  }).join('');
+  const allHr = V.hand.slice().sort((a, b) => b.hr - a.hr).map(c => `<span class="chip">${c.black ? '흑' : '백'} ${esc(c.name)} ${c.hr}</span>`).join('');
+  app.innerHTML = topBar() + `<div class="cols"><div class="colL"><div class="panel">
+      <h2>${w < 0 ? '무승부' : w === V.me ? '승리!' : `${nameOf(w)}님 승리`}</h2>
+      <div class="score"><span class="nm" style="color:${PC[0]}">${nameOf(0)}</span><span class="w" style="color:${PC[0]}">${V.wins[0]}</span><span class="vs">:</span><span class="w" style="color:${PC[1]}">${V.wins[1]}</span><span class="nm" style="color:${PC[1]}">${nameOf(1)}</span></div>
+      ${V.me === V.host ? '<button class="btn amber block" type="button" data-a="restart">같은 상대와 재경기</button>' : '<p class="muted">방장이 재경기를 시작할 수 있어요.</p>'}
+      <button class="btn block" type="button" data-a="leave">방 나가기</button>
+      <p class="err">${esc(errMsg)}</p></div>
+      <div class="panel"><h2>이번 판 카드 홈런 수</h2><div class="chips">${allHr}</div></div></div>
+    <div class="colR"><div class="panel"><h2>이닝 기록</h2><table class="hist"><tbody>${rows}</tbody></table></div></div></div>`;
+}
+function renderLobby() {
+  app.classList.add('narrow');
+  const link = location.origin + location.pathname + '?room=' + V.code;
+  const seats = [0, 1].map(k => V.players[k]
+    ? `<div class="seat" style="--pc:${PC[k]}">${esc(V.players[k].name)}${k === V.host ? ' · 방장' : ''}${k === V.me ? ' (나)' : ''}</div>`
+    : '<div class="seat empty">상대 기다리는 중</div>').join('');
+  const isHost = V.me === V.host, full = V.players.length === 2;
+  app.innerHTML = `${HDR}<div class="entryGrid"><div class="colL"><div class="panel"><p class="muted" style="text-align:center">${V.public ? '공개 방 · 누구나 들어올 수 있어요' : '비공개 방 · 코드를 아는 사람만'} · 방 코드</p><div class="bigcode">${esc(V.code)}</div>
+      <div class="row"><input type="text" id="lnk" readonly value="${esc(link)}"><button class="btn" type="button" id="copyBtn">링크 복사</button></div>
+      <p class="muted">이 링크를 보내거나, 방 코드를 알려주세요.</p></div></div><div class="colR">
+    <div class="panel"><h2>참가자 ${V.players.length}/2</h2><div class="seats">${seats}</div>
+      ${isHost ? `<button class="btn amber block" type="button" data-a="start" ${full ? '' : 'disabled'}>${full ? '경기 시작' : '상대가 들어오면 시작할 수 있어요'}</button>` : '<p class="muted">방장이 경기를 시작하면 바로 넘어가요.</p>'}
+      <p class="err">${esc(errMsg)}</p>
+      <button class="btn block" type="button" data-a="leave">방 나가기</button></div>
+    <div class="panel"><h2>규칙</h2><p class="muted">두 사람이 똑같은 2026 시즌 타자 카드 9장을 받아요. 선공이 카드를 내면 상대에게는 흑·백만 보이고, 후공이 카드를 내면 홈런이 많은 쪽이 이닝을 가져가요. 이긴 사람이 다음 이닝 선공이고, 5승을 먼저 하면 이겨요. 홈런 수는 경기가 끝나야 공개돼요.</p></div></div></div>`;
+  document.getElementById('copyBtn').onclick = async () => {
+    try { await navigator.clipboard.writeText(link); document.getElementById('copyBtn').textContent = '복사됨'; }
+    catch { document.getElementById('lnk').select(); }
+  };
+}
+function render() {
+  if (!V) return;
+  app.classList.remove('narrow');
+  if (V.phase === 'lobby') renderLobby();
+  else if (V.phase === 'result') renderResult();
+  else renderGame();
+}
+
+/* ---------- input ---------- */
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b || !V) return;
+  const a = b.dataset.a;
+  if (a === 'play') act({ type: 'play', card: +b.dataset.id });
+  else if (a === 'start') act({ type: 'start' });
+  else if (a === 'restart') post(`${API}/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); });
+  else if (a === 'leave') { post(`${API}/rooms/${code}/leave`, { token }).catch(() => {}); leaveToEntry(); }
+});
+setInterval(() => {
+  if (!deadlineAt) return;
+  const left = Math.max(0, deadlineAt - Date.now());
+  app.querySelectorAll('[data-countdown]').forEach(el => { el.textContent = Math.ceil(left / 1000); });
+  const bar = app.querySelector('.timer i'); if (bar && V) bar.style.setProperty('--w', (left / V.turnMs * 100) + '%');
+}, 250);
+if (code && token) connect(); else renderEntry();
+</script>
+</body>
+</html>

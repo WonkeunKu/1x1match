@@ -82,6 +82,8 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .stage.wide .hands { grid-column: 2; grid-row: 1 / span 2; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 .stage.wide .tile { width: 180px; height: 210px; }
 
+.aitag { font-family: var(--f-body); font-weight: 700; font-size: 15px; vertical-align: middle; background: var(--p2); color: #0a1a22; padding: 3px 10px; border-radius: 999px; margin-left: 6px; }
+
 /* Line score */
 .ls { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
 .ls th { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--chalk-dim); padding: 2px 0; }
@@ -186,13 +188,14 @@ button.c { text-align: left; font: inherit; }
     <a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a>
     <div>
       <div class="eyebrow">Rallypick · 2026 KBO 홈런 카드 대결</div>
-      <h1>9이닝 흑과 백</h1>
+      <h1>9이닝 흑과 백 <span class="aitag">AI 대전</span></h1>
     </div>
     <div class="key" id="key"></div>
     <div class="controls">
       <button class="btn" id="undoBtn" type="button">되돌리기</button>
       <button class="btn" id="newBtn" type="button">새 경기</button>
-      <button class="btn full" id="modeBtn" type="button">AI와 대전하기</button>
+      <button class="btn full" id="modeBtn" type="button" hidden>AI와 대전하기</button>
+      <a class="btn full" href="/blackwhite/online/" style="text-align:center;text-decoration:none">사람과 대전하기 →</a>
       <div class="seg full" id="levelSeg" role="group" aria-label="AI 난이도" hidden>
         <span>난이도</span>
         <button type="button" data-level="low">하</button>
@@ -305,7 +308,7 @@ function deal() {
 
 function fresh(names, mode, level) {
   const d = deal();
-  mode = mode || 'duo';
+  mode = 'ai'; // 이 화면은 AI 대전 전용 (사람 대전은 /blackwhite/online/)
   level = level || 'mid';
   names = (names || DEFAULT_NAMES).slice();
   return {
@@ -320,7 +323,7 @@ function fresh(names, mode, level) {
 }
 
 let S, history = [], picking = null, armTimer = null;
-function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.hands && s.innings) { s.mode = s.mode || 'duo'; return s; } } catch (e) {} return fresh(); }
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.hands && s.innings) { s.mode = 'ai'; return s; } } catch (e) {} return fresh(); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function commit() { history.push(JSON.stringify(S)); if (history.length > 80) history.shift(); }
 function undo() { if (!history.length) return; S = JSON.parse(history.pop()); closeModal(); save(); render(); }
