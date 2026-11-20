@@ -81,6 +81,10 @@ const bwApi = roomApi(BwRooms, '/api/bw');
 createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   const path = url.pathname;
+  if (path === '/api/auction/ai' && req.method === 'POST') {
+    try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level)); }
+    catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
+  }
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path === '/api/health') {
@@ -95,12 +99,13 @@ createServer(async (req, res) => {
     res.end();
     return;
   }
-  if (['/blackwhite', '/auction/online', '/blackwhite/online'].includes(path)) {
+  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;
   }
-  const file = await resolveFile(path);
+  // 연봉 경매 AI 대전은 온라인 화면과 같은 파일을 쓰고, 화면이 주소를 보고 AI 모드로 바뀜
+  const file = path === '/auction/ai/' ? join(ROOT, 'auction/online/index.html') : await resolveFile(path);
   if (!file) {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
     res.end('페이지를 찾을 수 없어요.');

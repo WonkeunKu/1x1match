@@ -4,6 +4,7 @@
 
 - `/` 첫 화면
 - `/auction/online/` 연봉 블라인드 경매 (온라인 4인, 각자 폰)
+- `/auction/ai/` 연봉 블라인드 경매 (AI 대전, 나 + AI 3명)
 - `/blackwhite/online/` 9이닝 흑과 백 (온라인 1:1, 사람 대전)
 - `/blackwhite/` 9이닝 흑과 백 (AI 대전)
 

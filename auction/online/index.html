@@ -144,6 +144,10 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 button.chip.peek { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; border-color: var(--pc); }
 button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 700; }
 
+/* AI */
+.aichip { font-family: var(--f-body); font-size: 11px; font-weight: 700; background: var(--p1); color: #0a1a22; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+
 /* public rooms */
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--board-2); border-radius: 8px; padding: 4px; }
 .seg button { border: 0; background: transparent; border-radius: 6px; padding: 9px 4px; font-weight: 700; font-size: 14px; color: var(--chalk-dim); }
@@ -176,6 +180,8 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} }
 };
 const app = document.getElementById('app');
+const AI_MODE = location.pathname.startsWith('/auction/ai');
+const LEVEL_KO = { low: '하', mid: '중', high: '상' };
 const params = new URLSearchParams(location.search);
 let code = (params.get('room') || '').toUpperCase();
 let token = code ? store.get('auction-online:' + code) : null;
@@ -194,11 +200,42 @@ async function act(body) {
 }
 
 /* ---------- entry ---------- */
+function renderAiEntry(msg) {
+  app.classList.add('narrow');
+  const lastName = store.get('auction-online:name') || '';
+  let level = store.get('auction-ai:level') || 'mid';
+  app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
+    <p class="muted">나와 AI 3명이 겨뤄요. AI도 선수 연봉을 '대충' 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요. 사람과 하려면 <a href="/auction/online/" style="color:var(--amber)">온라인 4인</a>으로 가세요.</p>
+    <div class="entryGrid"><div class="colL"><div class="panel">
+      <label class="muted" for="nm">내 이름</label>
+      <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
+    </div></div><div class="colR"><div class="panel"><h2>AI 난이도</h2>
+      <div class="seg three" role="radiogroup" aria-label="AI 난이도">
+        ${['low', 'mid', 'high'].map(l => `<button type="button" role="radio" data-level="${l}" aria-checked="${l === level}">${LEVEL_KO[l]}</button>`).join('')}
+      </div>
+      <p class="muted" id="lvNote"></p>
+      <button class="btn amber block" id="aiStart" type="button">AI와 시작하기</button></div></div></div>
+    <p class="err" id="err">${esc(msg || '')}</p>`;
+  const notes = { low: '하: AI가 연봉을 ±50%까지 잘못 알고, 기분 따라 오버하거나 일찍 포기해요.', mid: '중: AI가 연봉을 ±25% 오차로 알고, 대체로 가치만큼만 입찰해요.', high: '상: AI가 연봉을 ±10% 오차로 알고, 남은 큐브와 카드를 계산해서 아껴 써요.' };
+  const setLv = l => { level = l; app.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.level === l))); document.getElementById('lvNote').textContent = notes[l]; };
+  app.querySelectorAll('[data-level]').forEach(b => b.onclick = () => setLv(b.dataset.level));
+  setLv(level);
+  document.getElementById('aiStart').onclick = async () => {
+    try {
+      const n = document.getElementById('nm').value.trim();
+      if (!n) throw new Error('이름을 입력하세요.');
+      store.set('auction-online:name', n); store.set('auction-ai:level', level);
+      const r = await post('/api/auction/ai', { name: n, level });
+      enter(r.code, r.token);
+    } catch (e) { document.getElementById('err').textContent = e.message; }
+  };
+}
 function renderEntry(msg) {
+  if (AI_MODE) return renderAiEntry(msg);
   const lastName = store.get('auction-online:name') || '';
   app.innerHTML = `
     <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
-    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요.</p>
+    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요. 혼자 연습하려면 <a href="/auction/ai/" style="color:var(--amber)">AI 대전</a>으로 가세요.</p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -382,14 +419,14 @@ function playersHtml() {
       return isMe ? `<button type="button" class="chip peek" data-peek="${esc(id)}" data-label="${nm}">${nm} · 꾹</button>` : `<span class="chip">${nm}</span>`;
     }).join('');
     const ch = (p.pendingRelease ? '<span class="chip rel">방출 대기</span>' : '') + p.chances.map(id => `<span class="chip ch">${id === 'double' ? '연봉 2배' : esc(id)}</span>`).join('');
-    return `<div class="pl ${isMe ? 'me' : ''}" style="--pc:${PC[k]}"><div class="hd"><span class="dot ${p.online ? 'on' : ''}" title="${p.online ? '접속 중' : '연결 끊김'}"></span><b>${esc(p.name)}${isMe ? ' (나)' : ''}</b><span class="cb">큐브 <strong>${p.cubes}</strong></span></div>
+    return `<div class="pl ${isMe ? 'me' : ''}" style="--pc:${PC[k]}"><div class="hd"><span class="dot ${p.online ? 'on' : ''}" title="${p.online ? '접속 중' : '연결 끊김'}"></span><b>${esc(p.name)}${isMe ? ' (나)' : ''}</b>${p.bot ? '<span class="aichip">AI</span>' : ''}<span class="cb">큐브 <strong>${p.cubes}</strong></span></div>
       <div class="chips">${cards + ch || '<span class="muted">아직 영입한 선수가 없어요</span>'}</div></div>`;
   }).join('')}</div>
   ${V.players[V.me].cards.length ? '<p class="muted">내 선수 칩을 꾹 누르고 있으면 연봉이 보여요. 다른 사람에게는 안 보여요.</p>' : ''}`;
 }
 function topBar() {
   const me = V.players[V.me];
-  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
+  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매${V.ai ? ` <span class="aichip">AI ${LEVEL_KO[V.ai]}</span>` : ''}</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
     ${deadlineAt ? `<div class="timer"><span>${V.cur && V.cur.kind === 'auction' ? `${nameOf(V.cur.toAct)}님 차례` : V.cur && V.cur.kind === 'trade' ? `${nameOf(V.cur.by)}님 트레이드` : `${nameOf(V.opener)}님 카드 열기`}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
@@ -427,7 +464,8 @@ function renderResult() {
   app.innerHTML = `${topBar()}<div class="panel"><h2>${esc(V.players[order[0]].name)} 우승!</h2><p class="muted">연평균 연봉 합계 순위예요. 연봉 2배 카드는 가장 싼 선수에 적용했어요.</p></div>
     <div class="res">${rows}</div>
     ${unsold ? `<p class="muted">아무도 못 가진 선수: ${unsold}</p>` : ''}
-    ${V.me === V.host ? '<button class="btn amber block" type="button" data-a="restart">같은 멤버로 새 게임</button>' : '<p class="muted">방장이 새 게임을 시작할 수 있어요.</p>'}`;
+    ${V.me === V.host ? `<button class="btn amber block" type="button" data-a="restart">${V.ai ? '같은 AI와 다시 하기' : '같은 멤버로 새 게임'}</button>` : '<p class="muted">방장이 새 게임을 시작할 수 있어요.</p>'}
+    ${V.ai ? '<button class="btn block" type="button" data-a="leave">난이도 바꿔서 새로 하기</button>' : ''}`;
 }
 function render() {
   if (!V) return;

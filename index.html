@@ -41,7 +41,8 @@ header { display: grid; gap: 8px; }
 h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(48px, 9vw, 88px); line-height: 1; margin: 0; letter-spacing: 0.01em; }
 h1 span { color: var(--amber); }
 .lede { margin: 0; font-size: 17px; color: var(--chalk-dim); max-width: 34em; }
-.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.games { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 640px) { .games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 a.game {
   display: grid; gap: 14px; align-content: start; text-decoration: none; color: inherit;
   background: var(--slot); border: 1px solid var(--line); border-top: 4px solid var(--amber);
@@ -87,6 +88,14 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <p>진행자 없이 4명이 각자 폰으로 들어와요. 카드를 연 사람부터 돌아가며 큐브를 올리거나 포기하고, 3명이 포기하면 남은 사람이 낙찰받아요.</p>
       <div class="chips"><span class="chip">방 코드로 입장</span><span class="chip">내 연봉만 몰래 확인</span><span class="chip">실시간 방출 경매</span></div>
       <span class="go">방 만들기 · 들어가기 →</span>
+    </a>
+    <a class="game ai" href="auction/ai/">
+      <span class="tag">GAME 01 · 혼자 · AI 대전</span>
+      <h2>연봉 블라인드 경매 AI 대전</h2>
+      <div class="demo" aria-hidden="true"><i class="q">나</i><i class="q">AI</i><i class="q">AI</i><i class="q">AI</i></div>
+      <p>나와 AI 3명이 겨뤄요. AI도 연봉을 대충 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요.</p>
+      <div class="chips"><span class="chip">AI 하·중·상</span><span class="chip">연습용</span></div>
+      <span class="go">AI와 대전하기 →</span>
     </a>
     <a class="game bw" href="blackwhite/online/">
       <span class="tag">GAME 02 · 온라인 1:1 · 사람 대전</span>

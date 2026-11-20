@@ -96,7 +96,7 @@ function getRoom(code) {
 setInterval(() => {
   for (const [code, r] of rooms) if (now() - r.touched > ROOM_TTL_MS && !r.clients.size) { stopTimer(r); rooms.delete(code); }
 }, 10 * 60 * 1000).unref();
-const isOnline = (room, k) => [...room.clients].some(c => c.seat === k);
+const isOnline = (room, k) => !!(room.players[k] && room.players[k].bot) || [...room.clients].some(c => c.seat === k);
 setInterval(() => {
   const t = now();
   for (const room of [...rooms.values()]) {
@@ -173,6 +173,7 @@ function openTile(room, seat, i) {
   if (c.kind === 'release') {
     room.opened[i] = { status: 'release' };
     room.cur = { tile: i, kind: 'release', price: 0, startedAt: now() };
+    room.cur.botLimits = room.players.map((p, k) => p.bot ? { seat: k, limit: botReleaseLimit(room, k) } : null).filter(Boolean);
     startTimer(room);
     return `${room.players[seat].name}님이 ${i + 1}번을 열었어요: 방출 카드!`;
   }
@@ -301,6 +302,9 @@ function startTimer(room) {
     // 가격을 낼 수 없는 사람이 생기면 그 사람이 자동으로 포기한 것으로 처리
     const broke = room.players.map((p, k) => p.cubes < cur.price ? k : -1).filter(k => k >= 0);
     if (broke.length) { giveUp(room, broke[randomInt(broke.length)], true); return; }
+    // AI: 마음속 한계 가격을 넘으면 포기 버튼을 누름
+    const quit = (cur.botLimits || []).filter(x => cur.price > x.limit).sort((a, b) => a.limit - b.limit)[0];
+    if (quit) { giveUp(room, quit.seat, false); return; }
     bump(room);
   }, RELEASE_TICK_MS);
   room.timer.unref?.();
@@ -371,6 +375,7 @@ export function act(code, tok, body) {
 
 /* ---------- views & SSE ---------- */
 function bump(room, msg) {
+  scheduleBots(room);
   room.ver++;
   room.touched = now();
   if (msg) room.lastEvent = msg;
@@ -385,11 +390,11 @@ function bump(room, msg) {
 function viewFor(room, seat) {
   const result = room.phase === 'result';
   const v = {
-    code: room.code, phase: room.phase, ver: room.ver, me: seat, host: room.host, public: room.public,
+    code: room.code, phase: room.phase, ver: room.ver, me: seat, host: room.host, public: room.public, ai: room.ai || null,
     turnLeftMs: room.deadline ? Math.max(0, room.deadline - now()) : null, turnMs: TURN_MS,
     players: room.players.map((p, k) => ({
       name: p.name, cubes: p.cubes, cards: p.cards, chances: p.chances,
-      pendingRelease: p.pendingRelease !== null, online: isOnline(room, k)
+      pendingRelease: p.pendingRelease !== null, online: isOnline(room, k), bot: !!p.bot
     })),
     lastEvent: room.lastEvent || null
   };
@@ -435,4 +440,104 @@ export function restart(code, tok) {
   startGame(room);
   bump(room, `새 게임 시작! 첫 카드는 ${room.players[room.opener].name}님이 열어요.`);
 }
+
+/* ---------- AI 대전 (나 + AI 3명) ---------- */
+// AI는 연봉을 '대충' 알아요: 난이도별 오차 안에서 착각한 값(est)으로 판단하고, 남의 연봉을 엿보지 않음
+const BOT_DELAY = Number(process.env.AUCTION_BOT_DELAY_MS) || 900; // AI가 생각하는 척 기다리는 시간 (900~1800ms)
+const BOT_NAMES = ['AI 김박사', 'AI 이코치', 'AI 박스카우트', 'AI 최분석', 'AI 정단장'];
+// noise: 연봉을 잘못 아는 폭, jitter: 그때그때 기분, push: 입찰 적극성, endgame: 끝으로 갈수록 남은 큐브를 쓰는 정도
+const LEVELS = {
+  low: { noise: 0.6, jitter: 0.4, push: 1.25, endgame: 0 },
+  mid: { noise: 0.25, jitter: 0.15, push: 0.9, endgame: 0.5 },
+  high: { noise: 0.08, jitter: 0.04, push: 0.7, endgame: 1.0 }
+};
+export function createAiRoom(name, level) {
+  if (!LEVELS[level]) level = 'mid';
+  const { code, token: t } = createRoom(cleanName(name) || 'Player1', false);
+  const room = rooms.get(code);
+  room.ai = level;
+  const names = shuffle(BOT_NAMES).slice(0, 3);
+  const styles = shuffle([0.85, 1.0, 1.2]); // 신중형 · 보통 · 공격형
+  for (let k = 0; k < 3; k++) {
+    const est = {};
+    for (const c of CARDS) if (c.type === 'player') est[c.id] = c.aav * (1 + (Math.random() * 2 - 1) * LEVELS[level].noise);
+    room.players.push({ token: token(), name: names[k], cubes: START_CUBES, cards: [], chances: [], pendingRelease: null, seenAt: now(), bot: { est, style: styles[k] } });
+  }
+  startGame(room);
+  room.lastEvent = `AI 대전 시작 (난이도 ${({ low: '하', mid: '중', high: '상' })[level]}). 첫 카드는 ${room.players[room.opener].name}님이 열어요.`;
+  return { code, token: t };
+}
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = randomInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const estOf = (room, k, id) => room.players[k].bot.est[id];
+function cubesPerEok(room, k) {
+  // 남은(아직 안 열린) 선수들의 내 추정 연봉 합 중 내가 가져갈 몫(약 1/4)에 내 큐브를 나눠 씀
+  const opened = new Set(room.deck.filter(Boolean));
+  const cur = room.cur && room.deck[room.cur.tile];
+  let rest = 0;
+  for (const c of CARDS) if (c.type === 'player' && (!opened.has(c.id) || c.id === cur)) rest += estOf(room, k, c.id);
+  return room.players[k].cubes / Math.max(20, rest * 0.3);
+}
+function botWorth(room, k, id) {
+  const c = BY_ID[id], p = room.players[k];
+  const mine = p.cards.map(x => estOf(room, k, x));
+  if (c.type === 'player') return p.pendingRelease !== null ? 0 : estOf(room, k, id);
+  if (c.kind === 'double') return mine.length ? Math.min(...mine) * 0.8 : 8;
+  if (c.kind === 'trade') {
+    const theirs = room.players.flatMap((q, j) => j === k ? [] : q.cards.map(x => estOf(room, k, x)));
+    if (!mine.length || !theirs.length) return 0;
+    return Math.max(0, Math.max(...theirs) - Math.min(...mine)) * 0.7;
+  }
+  return 0;
+}
+function botReleaseLimit(room, k) {
+  const p = room.players[k];
+  const lose = p.cards.length ? estOf(room, k, p.cards[p.cards.length - 1]) : 6; // 선수가 없으면 다음 영입 선수를 잃을 위험만
+  const lv = LEVELS[room.ai] || LEVELS.mid;
+  const limit = lose * cubesPerEok(room, k) * p.bot.style * (1 + (Math.random() * 2 - 1) * lv.jitter) * 0.6;
+  return Math.max(0, Math.floor(limit));
+}
+function botAct(room) {
+  const cur = room.cur;
+  if (room.phase !== 'play') return null;
+  if (!cur) {
+    const k = room.opener; if (!room.players[k].bot) return null;
+    const free = room.deck.map((_, i) => i).filter(i => !room.opened[i]);
+    return openTile(room, k, free[randomInt(free.length)]);
+  }
+  if (cur.kind === 'auction') {
+    const k = cur.toAct, p = room.players[k]; if (!p.bot) return null;
+    const lv = LEVELS[room.ai] || LEVELS.mid;
+    const id = room.deck[cur.tile];
+    const progress = room.deck.filter(Boolean).length / 16; // 큐브는 남겨봐야 점수가 안 되므로 후반일수록 더 씀
+    const willing = Math.floor(botWorth(room, k, id) * cubesPerEok(room, k) * p.bot.style * lv.push * (1 + lv.endgame * progress) * (1 + (Math.random() * 2 - 1) * lv.jitter));
+    const cap = Math.min(p.cubes, willing);
+    if (cur.high + 1 <= cap) {
+      const step = room.ai === 'high' ? 1 : 1 + (Math.random() < 0.3 ? 1 : 0);
+      placeBid(room, k, Math.min(cap, cur.high + step));
+      return room.cur === cur ? `${p.name}님 ${cur.high}개 입찰` : null;
+    }
+    fold(room, k);
+    return room.cur === cur ? `${p.name}님 포기` : null;
+  }
+  if (cur.kind === 'trade') {
+    const k = cur.by, p = room.players[k]; if (!p.bot) return null;
+    const mine = p.cards.slice().sort((a, b) => estOf(room, k, a) - estOf(room, k, b))[0];
+    const theirs = room.players.flatMap((q, j) => j === k ? [] : q.cards).sort((a, b) => estOf(room, k, b) - estOf(room, k, a))[0];
+    doTrade(room, k, mine, theirs);
+    return null;
+  }
+  return null;
+}
+function scheduleBots(room) {
+  if (!room.ai || room.botTimer || room.phase !== 'play') return;
+  const cur = room.cur;
+  const k = !cur ? room.opener : cur.kind === 'auction' ? cur.toAct : cur.kind === 'trade' ? cur.by : -1;
+  if (k < 0 || !room.players[k] || !room.players[k].bot) return;
+  room.botTimer = setTimeout(() => {
+    room.botTimer = null;
+    try { const msg = botAct(room); bump(room, msg); } catch (e) { console.error(e); }
+  }, BOT_DELAY + randomInt(BOT_DELAY + 1));
+  room.botTimer.unref?.();
+}
+
 export { GameError };
