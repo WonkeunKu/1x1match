@@ -144,6 +144,22 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 button.chip.peek { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; border-color: var(--pc); }
 button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 700; }
 
+/* 노트북·데스크톱: 경기 화면을 한 화면에 (왼쪽 경매 카드 · 가운데 판 · 오른쪽 참가자) */
+@media (min-width: 900px) and (min-height: 520px) {
+  .app.playing { max-width: 1480px; height: 100vh; display: flex; flex-direction: column; padding-block: 14px; gap: 10px; }
+  .app.playing .cols { flex: 1; min-height: 0; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); align-items: stretch; }
+  .app.playing .colL { position: static; min-height: 0; overflow-y: auto; align-content: start; }
+  .app.playing .colR { min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(240px, 300px); align-items: stretch; }
+  .app.playing .board { height: 100%; grid-template-rows: repeat(4, minmax(0, 1fr)); }
+  .app.playing .tile { aspect-ratio: auto; min-height: 0; }
+  .app.playing .tile .n { font-size: clamp(20px, 4vh, 34px); }
+  .app.playing .pcol { min-height: 0; overflow-y: auto; display: grid; gap: 8px; align-content: start; }
+  .app.playing .players { grid-template-columns: 1fr; }
+  .app.playing .photo { width: 96px; height: 120px; }
+  .app.playing .cardbox { grid-template-columns: 96px minmax(0, 1fr); }
+}
+.pcol { display: grid; gap: 8px; }
+
 /* AI */
 .aichip { font-family: var(--f-body); font-size: 11px; font-weight: 700; background: var(--p1); color: #0a1a22; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
 .seg.three { grid-template-columns: repeat(3, 1fr); }
@@ -412,7 +428,7 @@ function boardHtml() {
   }).join('')}</div>`;
 }
 function playersHtml() {
-  return `<div class="players">${V.players.map((p, k) => {
+  return `<div class="pcol"><div class="players">${V.players.map((p, k) => {
     const isMe = k === V.me;
     const cards = p.cards.map(id => {
       const nm = esc(playerCard(id).name);
@@ -422,7 +438,7 @@ function playersHtml() {
     return `<div class="pl ${isMe ? 'me' : ''}" style="--pc:${PC[k]}"><div class="hd"><span class="dot ${p.online ? 'on' : ''}" title="${p.online ? '접속 중' : '연결 끊김'}"></span><b>${esc(p.name)}${isMe ? ' (나)' : ''}</b>${p.bot ? '<span class="aichip">AI</span>' : ''}<span class="cb">큐브 <strong>${p.cubes}</strong></span></div>
       <div class="chips">${cards + ch || '<span class="muted">아직 영입한 선수가 없어요</span>'}</div></div>`;
   }).join('')}</div>
-  ${V.players[V.me].cards.length ? '<p class="muted">내 선수 칩을 꾹 누르고 있으면 연봉이 보여요. 다른 사람에게는 안 보여요.</p>' : ''}`;
+  ${V.players[V.me].cards.length ? '<p class="muted">내 선수 칩을 꾹 누르고 있으면 연봉이 보여요. 다른 사람에게는 안 보여요.</p>' : ''}</div>`;
 }
 function topBar() {
   const me = V.players[V.me];
@@ -475,6 +491,7 @@ function render() {
   else if (V.phase === 'result') renderResult();
   else app.innerHTML = topBar() + `<div class="cols"><div class="colL">${curPanel()}</div><div class="colR">${boardHtml()}${playersHtml()}</div></div>`;
   app.classList.toggle('narrow', V.phase !== 'play');
+  app.classList.toggle('playing', V.phase === 'play');
   if (focusId === 'bidIn' && document.getElementById('bidIn')) document.getElementById('bidIn').focus();
   ['trMine', 'trTheirs'].forEach(id => { const el = document.getElementById(id); if (el && trDraft[id] && [...el.options].some(o => o.value === trDraft[id])) el.value = trDraft[id]; });
 }
