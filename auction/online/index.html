@@ -127,6 +127,19 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 button.chip.peek { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; border-color: var(--pc); }
 button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 700; }
 
+/* public rooms */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--board-2); border-radius: 8px; padding: 4px; }
+.seg button { border: 0; background: transparent; border-radius: 6px; padding: 9px 4px; font-weight: 700; font-size: 14px; color: var(--chalk-dim); }
+.seg button[aria-checked="true"] { background: var(--chalk); color: var(--board); }
+.rlist { display: grid; gap: 6px; }
+.ritem { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; background: var(--board-2); border-radius: 8px; padding: 8px 10px; }
+.ritem b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.ritem .btn { padding: 6px 10px; font-size: 13px; }
+.timer { position: relative; display: flex; align-items: baseline; gap: 4px; background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 9px; font-size: 13px; overflow: hidden; }
+.timer span:first-child { flex: 1; color: var(--chalk-dim); }
+.timer b { font-family: var(--f-mono); font-size: 20px; color: var(--amber); }
+.timer i { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--w); background: var(--amber); transition: width 0.25s linear; }
+
 /* results */
 .res { display: grid; gap: 8px; }
 .res .pl .hd strong.sum { font-family: var(--f-mono); font-size: 22px; color: var(--pc); }
@@ -149,6 +162,7 @@ const app = document.getElementById('app');
 const params = new URLSearchParams(location.search);
 let code = (params.get('room') || '').toUpperCase();
 let token = code ? store.get('auction-online:' + code) : null;
+let deadlineAt = null;
 let V = null, es = null, connected = false, bidDraft = null, errMsg = '', trDraft = {};
 
 async function post(path, body) {
@@ -177,7 +191,17 @@ function renderEntry(msg) {
       ${code ? '' : '<input type="text" id="cd" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters" style="text-transform:uppercase;font-family:var(--f-mono)">'}
       <button class="btn primary block" id="joinBtn" type="button">들어가기</button>
     </div>
-    ${code ? '' : `<div class="panel"><h2>새 방 만들기</h2><p class="muted">방을 만든 사람이 방장이 되고, 4명이 모이면 게임을 시작해요.</p><button class="btn amber block" id="createBtn" type="button">방 만들기</button></div>`}
+    ${code ? '' : `<div class="panel"><h2>모르는 사람과 하기</h2>
+      <button class="btn amber block" id="quickBtn" type="button">빠른 입장</button>
+      <p class="muted">사람을 기다리는 공개 방에 바로 들어가요. 없으면 새 공개 방을 만들어요.</p>
+      <div id="roomList" class="rlist"><p class="muted">공개 방을 불러오는 중…</p></div></div>
+    <div class="panel"><h2>새 방 만들기</h2>
+      <div class="seg" role="radiogroup" aria-label="방 공개 설정">
+        <button type="button" role="radio" data-vis="private" aria-checked="true">비공개 · 코드로만</button>
+        <button type="button" role="radio" data-vis="public" aria-checked="false">공개 · 누구나</button>
+      </div>
+      <p class="muted" id="visNote">친구에게 방 코드나 링크를 보내서 같이 해요.</p>
+      <button class="btn primary block" id="createBtn" type="button">방 만들기</button></div>`}
     <p class="err" id="err">${esc(msg || '')}</p>
     <p class="muted"><a href="/" style="color:var(--chalk-dim)">← 1x1 MATCH 첫 화면</a></p>`;
   const nameOf = () => { const n = document.getElementById('nm').value.trim(); if (!n) throw new Error('이름을 입력하세요.'); store.set('auction-online:name', n); return n; };
@@ -192,12 +216,44 @@ function renderEntry(msg) {
     } catch (e) { showErr(e); }
   };
   const cb = document.getElementById('createBtn');
-  if (cb) cb.onclick = async () => {
-    try { const r = await post('/api/auction/rooms', { name: nameOf() }); enter(r.code, r.token); }
-    catch (e) { showErr(e); }
-  };
+  let vis = 'private';
+  if (cb) {
+    app.querySelectorAll('[data-vis]').forEach(b => b.onclick = () => {
+      vis = b.dataset.vis;
+      app.querySelectorAll('[data-vis]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+      document.getElementById('visNote').textContent = vis === 'public'
+        ? '공개 방 목록에 올라가서 모르는 사람도 들어올 수 있어요. 차례마다 30초 제한이 있어요.'
+        : '친구에게 방 코드나 링크를 보내서 같이 해요.';
+    });
+    cb.onclick = async () => {
+      try { const r = await post('/api/auction/rooms', { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
+      catch (e) { showErr(e); }
+    };
+    document.getElementById('quickBtn').onclick = async () => {
+      try { const r = await post('/api/auction/quick', { name: nameOf() }); enter(r.code, r.token); }
+      catch (e) { showErr(e); }
+    };
+    const list = document.getElementById('roomList');
+    list.onclick = async e => {
+      const b = e.target.closest('[data-join]'); if (!b) return;
+      try { const r = await post(`/api/auction/rooms/${b.dataset.join}/join`, { name: nameOf() }); enter(r.code, r.token); }
+      catch (err) { showErr(err); }
+    };
+    const load = async () => {
+      if (!document.body.contains(list)) { clearInterval(listTimer); return; }
+      try {
+        const r = await (await fetch('/api/auction/rooms')).json();
+        list.innerHTML = r.rooms.length
+          ? r.rooms.map(x => `<div class="ritem"><span class="code">${esc(x.code)}</span><b>${esc(x.host)}님의 방</b><span class="muted">${x.count}/4</span><button class="btn" type="button" data-join="${esc(x.code)}">들어가기</button></div>`).join('')
+          : '<p class="muted">지금 기다리는 공개 방이 없어요. 빠른 입장을 누르면 새 공개 방이 만들어져요.</p>';
+      } catch { list.innerHTML = '<p class="muted">방 목록을 불러오지 못했어요.</p>'; }
+    };
+    clearInterval(listTimer); load(); listTimer = setInterval(load, 3000);
+  }
 }
+let listTimer = null;
 function enter(c, t) {
+  clearInterval(listTimer);
   code = c; token = t;
   store.set('auction-online:' + c, t);
   history.replaceState(null, '', '?room=' + c);
@@ -208,7 +264,13 @@ function enter(c, t) {
 function connect() {
   if (es) es.close();
   es = new EventSource(`/api/auction/rooms/${code}/events?token=${encodeURIComponent(token)}`);
-  es.onmessage = e => { V = JSON.parse(e.data); connected = true; render(); };
+  es.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.kicked) { es.close(); es = null; V = null; history.replaceState(null, '', location.pathname); code = ''; renderEntry('연결이 오래 끊겨서 방에서 빠졌어요. 다시 들어가 주세요.'); return; }
+    V = d; connected = true;
+    deadlineAt = V.turnLeftMs === null ? null : Date.now() + V.turnLeftMs;
+    render();
+  };
   es.onerror = async () => {
     connected = false; if (V) render();
     // 방이 사라졌는지(서버 재시작 등) 확인
@@ -308,6 +370,7 @@ function topBar() {
   const me = V.players[V.me];
   return `<div class="bar" style="--pc:${PC[V.me]}"><span class="title">연봉 블라인드 경매</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
+    ${deadlineAt ? `<div class="timer"><span>${V.cur && V.cur.kind === 'auction' ? `${nameOf(V.cur.toAct)}님 차례` : V.cur && V.cur.kind === 'trade' ? `${nameOf(V.cur.by)}님 트레이드` : `${nameOf(V.opener)}님 카드 열기`}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
 }
 function renderLobby() {
@@ -317,12 +380,13 @@ function renderLobby() {
     : `<div class="seat empty">빈 자리</div>`).join('');
   const isHost = V.me === V.host, full = V.players.length === 4;
   app.innerHTML = `<header><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></header>
-    <div class="panel"><p class="muted" style="text-align:center">방 코드</p><div class="bigcode">${esc(V.code)}</div>
+    <div class="panel"><p class="muted" style="text-align:center">${V.public ? '공개 방 · 누구나 들어올 수 있어요' : '비공개 방 · 코드를 아는 사람만'} · 방 코드</p><div class="bigcode">${esc(V.code)}</div>
       <div class="row"><input type="text" id="lnk" readonly value="${esc(link)}"><button class="btn" type="button" id="copyBtn">링크 복사</button></div>
       <p class="muted">이 링크를 보내거나, 방 코드를 알려주세요.</p></div>
     <div class="panel"><h2>참가자 ${V.players.length}/4</h2><div class="seats">${seats}</div>
       ${isHost ? `<button class="btn amber block" type="button" data-a="start" ${full ? '' : 'disabled'}>${full ? '게임 시작' : '4명이 모이면 시작할 수 있어요'}</button>` : `<p class="muted">방장이 게임을 시작하면 바로 넘어가요.</p>`}
-      <p class="err">${esc(errMsg)}</p></div>
+      <p class="err">${esc(errMsg)}</p>
+      <button class="btn block" type="button" data-a="leave">방 나가기</button></div>
     <div class="panel"><h2>규칙</h2><p class="muted">큐브 20개로 시작해요. 카드를 연 사람부터 순서대로 기존 최고가보다 1개 이상 올리거나 포기해요. 3명이 포기하면 남은 사람이 낙찰받아요. 선수 연봉은 낙찰받은 사람만 볼 수 있고, 16장을 다 열면 연평균 연봉 합계로 순위를 정해요.</p></div>`;
   document.getElementById('copyBtn').onclick = async () => {
     const inp = document.getElementById('lnk');
@@ -366,6 +430,12 @@ app.addEventListener('click', e => {
   if (a === 'giveup') { act({ type: 'giveup' }); return; }
   if (a === 'trade') { act({ type: 'trade', mine: document.getElementById('trMine').value, theirs: document.getElementById('trTheirs').value }); return; }
   if (a === 'start') { act({ type: 'start' }); return; }
+  if (a === 'leave') {
+    post(`/api/auction/rooms/${code}/leave`, { token }).catch(() => {});
+    if (es) es.close(); es = null; V = null;
+    history.replaceState(null, '', location.pathname); code = ''; token = null;
+    renderEntry(); return;
+  }
   if (a === 'restart') { post(`/api/auction/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); }); return; }
 });
 app.addEventListener('input', e => { if (e.target.id === 'bidIn') bidDraft = parseInt(e.target.value, 10) || null; });
@@ -380,6 +450,12 @@ app.addEventListener('pointerdown', e => { const b = e.target.closest('[data-pee
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => app.addEventListener(ev, e => { const b = e.target.closest('[data-peek]'); if (b) showPeek(b, false); }, true));
 app.addEventListener('contextmenu', e => { if (e.target.closest('[data-peek]')) e.preventDefault(); });
 
+setInterval(() => {
+  if (!deadlineAt) return;
+  const left = Math.max(0, deadlineAt - Date.now());
+  app.querySelectorAll('[data-countdown]').forEach(el => { el.textContent = Math.ceil(left / 1000); });
+  const bar = app.querySelector('.timer i'); if (bar && V) bar.style.setProperty('--w', (left / V.turnMs * 100) + '%');
+}, 250);
 if (code && token) connect(); else renderEntry();
 </script>
 </body>

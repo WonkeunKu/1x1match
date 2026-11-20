@@ -51,14 +51,17 @@ function json(res, code, obj) {
 
 // 연봉 블라인드 경매 온라인 방 API
 async function auctionApi(req, res, path, url) {
-  const m = path.match(/^\/api\/auction\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|restart|events))?$/);
+  const m = path.match(/^\/api\/auction\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|restart|events|leave))?$/);
+  if (path === '/api/auction/quick' && req.method === 'POST') { try { return json(res, 200, Rooms.quickJoin((await readJson(req)).name)); } catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); } }
   if (!m) return json(res, 404, { error: '없는 주소예요.' });
   const [, code, op] = m;
   try {
     if (req.method === 'GET' && code && op === 'events') return Rooms.subscribe(code, url.searchParams.get('token'), res);
+    if (req.method === 'GET' && !code && !op) return json(res, 200, { rooms: Rooms.listRooms() });
     if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
-    if (!code && !op) return json(res, 200, Rooms.createRoom(body.name));
+    if (!code && !op) return json(res, 200, Rooms.createRoom(body.name, body.public));
+    if (op === 'leave') { Rooms.leaveRoom(code, body.token); return json(res, 200, { ok: true }); }
     if (op === 'join') return json(res, 200, Rooms.joinRoom(code, body.name, body.token));
     if (op === 'act') { Rooms.act(code, body.token, body); return json(res, 200, { ok: true }); }
     if (op === 'restart') { Rooms.restart(code, body.token); return json(res, 200, { ok: true }); }

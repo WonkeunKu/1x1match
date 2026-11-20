@@ -6,6 +6,8 @@ const BY_ID = Object.fromEntries(CARDS.map(c => [c.id, c]));
 const SEATS = 4;
 const RELEASE_TICK_MS = 1000;
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+const TURN_MS = Number(process.env.AUCTION_TURN_MS) || 30000;          // 공개 방: 차례마다 30초, 넘기면 자동 처리
+const LOBBY_GONE_MS = Number(process.env.AUCTION_LOBBY_GONE_MS) || 45000;    // 공개 방 대기실: 45초 넘게 연결이 끊긴 사람은 자리에서 빠짐
 const rooms = new Map();
 
 /* ---------- helpers ---------- */
@@ -30,11 +32,11 @@ function publicCard(id) {
 function seatOf(room, tok) { return room.players.findIndex(p => p.token === tok); }
 
 /* ---------- room lifecycle ---------- */
-export function createRoom(name) {
+export function createRoom(name, isPublic) {
   name = cleanName(name) || 'Player1';
   const room = {
     code: newCode(), phase: 'lobby', players: [], host: 0, ver: 0, touched: now(),
-    clients: new Set(), log: []
+    clients: new Set(), log: [], public: !!isPublic, created: now(), deadline: null, actorKey: ''
   };
   rooms.set(room.code, room);
   const t = addPlayer(room, name);
@@ -45,8 +47,37 @@ function addPlayer(room, name) {
   if (room.phase !== 'lobby') fail('이미 게임이 시작된 방이에요.');
   if (room.players.some(p => p.name === name)) name = name + (room.players.length + 1);
   const t = token();
-  room.players.push({ token: t, name, cubes: START_CUBES, cards: [], chances: [], pendingRelease: null });
+  room.players.push({ token: t, name, cubes: START_CUBES, cards: [], chances: [], pendingRelease: null, seenAt: now() });
   return t;
+}
+export function listRooms() {
+  return [...rooms.values()]
+    .filter(r => r.public && r.phase === 'lobby' && r.players.length > 0 && r.players.length < SEATS)
+    .sort((a, b) => b.players.length - a.players.length || a.created - b.created)
+    .slice(0, 30)
+    .map(r => ({ code: r.code, host: r.players[r.host] ? r.players[r.host].name : '', count: r.players.length }));
+}
+export function quickJoin(name) {
+  name = cleanName(name);
+  if (!name) fail('이름을 입력하세요.');
+  const open = listRooms()[0];
+  if (open) return joinRoom(open.code, name);
+  return createRoom(name, true);
+}
+function removeSeat(room, k, why) {
+  const [gone] = room.players.splice(k, 1);
+  if (room.host === k) room.host = 0;
+  else if (room.host > k) room.host--;
+  for (const c of room.clients) { if (c.seat === k) c.seat = -1; else if (c.seat > k) c.seat--; }
+  if (!room.players.length) { stopTimer(room); rooms.delete(room.code); return; }
+  bump(room, `${gone.name}님이 ${why}`);
+}
+export function leaveRoom(code, tok) {
+  const room = getRoom(code);
+  const k = seatOf(room, tok);
+  if (k < 0) return;
+  if (room.phase !== 'lobby') fail('게임 중에는 나갈 수 없어요. 차례가 오면 자동으로 포기 처리돼요.');
+  removeSeat(room, k, '나갔어요.');
 }
 export function joinRoom(code, name, tok) {
   const room = getRoom(code);
@@ -65,6 +96,44 @@ function getRoom(code) {
 setInterval(() => {
   for (const [code, r] of rooms) if (now() - r.touched > ROOM_TTL_MS && !r.clients.size) { stopTimer(r); rooms.delete(code); }
 }, 10 * 60 * 1000).unref();
+const isOnline = (room, k) => [...room.clients].some(c => c.seat === k);
+setInterval(() => {
+  const t = now();
+  for (const room of [...rooms.values()]) {
+    if (!room.public) continue;
+    if (room.phase === 'lobby') {
+      room.players.forEach((p, k) => { if (isOnline(room, k)) p.seenAt = t; });
+      const k = room.players.findIndex(p => t - p.seenAt > LOBBY_GONE_MS);
+      if (k >= 0) removeSeat(room, k, '연결이 끊겨 자리에서 빠졌어요.');
+      continue;
+    }
+    if (room.phase === 'play' && room.deadline && t > room.deadline) {
+      try { timeoutAction(room); } catch (e) { console.error(e); }
+    }
+  }
+}, 1000).unref();
+function timeoutAction(room) {
+  const cur = room.cur;
+  let msg;
+  if (!cur) {
+    const free = room.deck.map((_, i) => i).filter(i => !room.opened[i]);
+    const who = room.players[room.opener].name;
+    msg = openTile(room, room.opener, free[randomInt(free.length)]);
+    msg = `시간 초과 · ${who}님 대신 자동으로 열었어요. ` + msg.replace(/^.*?열었어요: /, '');
+  } else if (cur.kind === 'auction') {
+    const who = room.players[cur.toAct].name;
+    fold(room, cur.toAct);
+    msg = `시간 초과 · ${who}님 자동 포기`;
+  } else if (cur.kind === 'trade') {
+    const pl = room.players[cur.by];
+    room.tradeUsed = true;
+    const prev = room.opened[cur.tile] || {};
+    room.opened[cur.tile] = { status: 'applied', p: cur.by, bid: prev.bid, note: `${pl.name} 시간 초과로 트레이드 소멸` };
+    msg = `시간 초과 · ${pl.name}님의 트레이드권이 사라졌어요`;
+    nextOpener(room);
+  } else return;
+  bump(room, msg);
+}
 
 /* ---------- game setup ---------- */
 function startGame(room) {
@@ -305,15 +374,22 @@ function bump(room, msg) {
   room.ver++;
   room.touched = now();
   if (msg) room.lastEvent = msg;
+  if (room.public && room.phase === 'play') {
+    const c = room.cur;
+    const key = c ? `${c.tile}|${c.kind}|${c.toAct ?? c.by ?? ''}|${c.high ?? ''}` : `open|${room.opener}|${room.deck.filter(Boolean).length}`;
+    if (c && c.kind === 'release') room.deadline = null;
+    else if (key !== room.actorKey) { room.actorKey = key; room.deadline = now() + TURN_MS; }
+  } else room.deadline = null;
   for (const c of room.clients) send(c, room);
 }
 function viewFor(room, seat) {
   const result = room.phase === 'result';
   const v = {
-    code: room.code, phase: room.phase, ver: room.ver, me: seat, host: room.host,
+    code: room.code, phase: room.phase, ver: room.ver, me: seat, host: room.host, public: room.public,
+    turnLeftMs: room.deadline ? Math.max(0, room.deadline - now()) : null, turnMs: TURN_MS,
     players: room.players.map((p, k) => ({
       name: p.name, cubes: p.cubes, cards: p.cards, chances: p.chances,
-      pendingRelease: p.pendingRelease !== null, online: [...room.clients].some(c => c.seat === k)
+      pendingRelease: p.pendingRelease !== null, online: isOnline(room, k)
     })),
     lastEvent: room.lastEvent || null
   };
@@ -338,6 +414,7 @@ function viewFor(room, seat) {
   return v;
 }
 function send(client, room) {
+  if (client.seat < 0) { try { client.res.write(`data: ${JSON.stringify({ kicked: true })}\n\n`); } catch {} return; }
   try { client.res.write(`data: ${JSON.stringify(viewFor(room, client.seat))}\n\n`); } catch {}
 }
 export function subscribe(code, tok, res) {
