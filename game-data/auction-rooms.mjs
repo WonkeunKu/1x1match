@@ -155,7 +155,7 @@ function startGame(room) {
 function pickPlayers() {
   const all = shuffle(CARDS.filter(c => c.type === 'player'));
   const picked = [], teams = new Set();
-  for (const c of all) if (!teams.has(c.team)) { teams.add(c.team); picked.push(c.id); }
+  for (const c of all) { const f = c.franchise || c.team; if (!teams.has(f)) { teams.add(f); picked.push(c.id); } }
   for (const c of all) { if (picked.length >= PLAYERS_PER_GAME) break; if (!picked.includes(c.id)) picked.push(c.id); }
   return shuffle(picked.slice(0, PLAYERS_PER_GAME));
 }
