@@ -141,7 +141,7 @@ function startGame(room) {
   room.phase = 'play';
   room.deck = Array(16).fill(null);
   // 이번 게임에 쓸 카드: 선수 풀에서 무작위 13명 + 찬스 카드 3장
-  const players = shuffle(CARDS.filter(c => c.type === 'player').map(c => c.id)).slice(0, PLAYERS_PER_GAME);
+  const players = pickPlayers();
   room.pool = players.concat(CARDS.filter(c => c.type === 'chance').map(c => c.id));
   room.opened = {};
   room.players.forEach(p => Object.assign(p, { cubes: START_CUBES, cards: [], chances: [], pendingRelease: null }));
@@ -150,6 +150,14 @@ function startGame(room) {
   room.tradeUsed = false;
   room.log = [];
   stopTimer(room);
+}
+// 10개 구단에서 1명씩 먼저 뽑고(팀마다 한 명은 꼭 나옴), 남은 3명은 나머지 선수 중에서 무작위
+function pickPlayers() {
+  const all = shuffle(CARDS.filter(c => c.type === 'player'));
+  const picked = [], teams = new Set();
+  for (const c of all) if (!teams.has(c.team)) { teams.add(c.team); picked.push(c.id); }
+  for (const c of all) { if (picked.length >= PLAYERS_PER_GAME) break; if (!picked.includes(c.id)) picked.push(c.id); }
+  return shuffle(picked.slice(0, PLAYERS_PER_GAME));
 }
 function drawCard(room) {
   const used = new Set(room.deck.filter(Boolean));
