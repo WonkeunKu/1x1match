@@ -487,7 +487,30 @@ function renderLobby() {
     catch { inp.select(); }
   };
 }
+
+/* 내 경기 기록: 이 브라우저에만 저장 (첫 화면 '내 경기 기록'에서 봄) */
+function saveHistory(entry) {
+  try {
+    const KEY = '1x1:history';
+    const list = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (list.some(x => x.id === entry.id)) return;
+    list.unshift(Object.assign({ at: Date.now() }, entry));
+    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 200)));
+  } catch (e) {}
+}
+function recordAuction() {
+  const sums = V.totals.map(t => Math.round(t.sum * 100) / 100);
+  const rank = 1 + sums.filter(x => x > sums[V.me]).length;
+  saveHistory({
+    id: `auction:${V.code}:${V.gameNo}`, game: 'auction',
+    mode: V.ai ? 'ai' : 'online', level: V.ai || null,
+    rank, total: V.players.length, score: sums[V.me],
+    players: V.players.map((p, k) => ({ name: p.name, score: sums[k], me: k === V.me, bot: !!p.bot })),
+    mine: V.players[V.me].cards.map(id => ({ name: playerCard(id).name, aav: V.salaries[id] }))
+  });
+}
 function renderResult() {
+  recordAuction();
   const order = V.players.map((p, k) => k).sort((a, b) => V.totals[b].sum - V.totals[a].sum);
   const rows = order.map((k, r) => {
     const p = V.players[k], t = V.totals[k];

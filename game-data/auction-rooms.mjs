@@ -137,6 +137,7 @@ function timeoutAction(room) {
 
 /* ---------- game setup ---------- */
 function startGame(room) {
+  room.gameNo = (room.gameNo || 0) + 1;
   room.phase = 'play';
   room.deck = Array(16).fill(null);
   room.opened = {};
@@ -390,7 +391,7 @@ function bump(room, msg) {
 function viewFor(room, seat) {
   const result = room.phase === 'result';
   const v = {
-    code: room.code, phase: room.phase, ver: room.ver, me: seat, host: room.host, public: room.public, ai: room.ai || null,
+    code: room.code, gameNo: room.gameNo || 0, phase: room.phase, ver: room.ver, me: seat, host: room.host, public: room.public, ai: room.ai || null,
     turnLeftMs: room.deadline ? Math.max(0, room.deadline - now()) : null, turnMs: TURN_MS,
     players: room.players.map((p, k) => ({
       name: p.name, cubes: p.cubes, cards: p.cards, chances: p.chances,

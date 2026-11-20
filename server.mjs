@@ -20,7 +20,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'robots.txt', 'favicon.ico'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'robots.txt', 'favicon.ico'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -99,7 +99,7 @@ createServer(async (req, res) => {
     res.end();
     return;
   }
-  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai'].includes(path)) {
+  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;

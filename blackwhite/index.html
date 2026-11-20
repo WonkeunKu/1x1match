@@ -547,6 +547,7 @@ function act(a, t) {
     S.innings.push({ lead: S.lead, cards: [a0, a1], res });
     if (res !== 'D') S.lead = res;
     S.pend = [null, null]; S.showLast = true;
+    if (over()) recordAiGame();
     save(); render(); return;
   }
   if (a === 'next') { commit(); S.showLast = false; save(); render(); return; }
@@ -587,6 +588,27 @@ document.getElementById('hands').addEventListener('click', e => {
   const p = +t.dataset.p; if (!canPick(p)) return;
   commit(); S.pend[p] = +t.dataset.id; save(); render();
 });
+
+
+/* 내 경기 기록: 이 브라우저에만 저장 (첫 화면 '내 경기 기록'에서 봄) */
+function saveHistory(entry) {
+  try {
+    const KEY = '1x1:history';
+    const list = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (list.some(x => x.id === entry.id)) return;
+    list.unshift(Object.assign({ at: Date.now() }, entry));
+    localStorage.setItem(KEY, JSON.stringify(list.slice(0, 200)));
+  } catch (e) {}
+}
+function recordAiGame() {
+  if (!S.gid) S.gid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const w0 = wins(0), w1 = wins(1);
+  saveHistory({
+    id: 'bw-ai:' + S.gid, game: 'bw', mode: 'ai', level: S.level || 'mid',
+    result: w0 === w1 ? 'draw' : w0 > w1 ? 'win' : 'lose', myWins: w0, oppWins: w1,
+    me: S.names[0], opponent: 'AI', innings: S.innings.length
+  });
+}
 
 /* ---------- AI (2번 자리) ---------- */
 // AI는 모든 카드의 홈런 수를 아는 '야구 박사'지만, 상대가 낸 카드는 흑·백만 보고 판단함

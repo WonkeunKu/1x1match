@@ -40,6 +40,9 @@ header { display: grid; gap: 8px; }
 .eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.16em; color: var(--chalk-dim); text-transform: uppercase; }
 h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(48px, 9vw, 88px); line-height: 1; margin: 0; letter-spacing: 0.01em; }
 h1 span { color: var(--amber); }
+.histbtn { justify-self: start; margin-top: 6px; display: inline-flex; gap: 6px; align-items: center; text-decoration: none; color: var(--chalk); font-weight: 700; font-size: 15px; background: var(--slot); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; }
+.histbtn:hover { border-color: var(--amber); color: var(--amber); }
+.histbtn span { font-family: var(--f-mono); font-size: 13px; color: var(--amber); }
 .lede { margin: 0; font-size: 17px; color: var(--chalk-dim); max-width: 34em; }
 .games { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 640px) { .games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -78,6 +81,7 @@ footer { font-size: 13px; color: var(--chalk-dim); }
     <div class="eyebrow">KBO 야구 두뇌 게임</div>
     <h1>1<span>x</span>1 MATCH</h1>
     <p class="lede">야구를 많이 아는 사람이 이기는 게임. 선수 연봉과 기록을 누가 더 정확히 아는지 겨뤄 보세요.</p>
+    <a class="histbtn" href="history/">내 경기 기록 보기 <span id="histCount"></span> →</a>
   </header>
 
   <main class="games">
@@ -117,5 +121,8 @@ footer { font-size: 13px; color: var(--chalk-dim); }
 
   <footer>Rallypick · 기록 출처: KBO 공식 기록실</footer>
 </div>
+<script>
+try { const n = JSON.parse(localStorage.getItem('1x1:history') || '[]').length; if (n) document.getElementById('histCount').textContent = n + '판'; } catch (e) {}
+</script>
 </body>
 </html>

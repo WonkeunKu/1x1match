@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>내 경기 기록 · 1x1 MATCH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one column (max 860px) on the scoreboard green — summary tiles per game, a filter row, then a dated list of games. Same palette as the game pages. */
+:root {
+  --board: #10302a; --board-2: #163d35; --slot: #0b2420;
+  --chalk: #f1eee4; --chalk-dim: #a7bcb2; --line: rgba(241, 238, 228, 0.14);
+  --amber: #f3b641; --red: #e8604a; --blue: #6fc4ea; --green: #a9d774;
+  --f-display: "Black Han Sans", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: #071815; }
+body {
+  margin: 0; min-height: 100vh; color: var(--chalk); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  background-color: var(--board);
+  background-image: repeating-linear-gradient(90deg, transparent 0 79px, rgba(0,0,0,0.1) 79px 80px), repeating-linear-gradient(0deg, transparent 0 79px, rgba(0,0,0,0.08) 79px 80px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 24px 48px; display: grid; gap: 16px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo { font-family: var(--f-display); font-size: 28px; line-height: 1; color: var(--chalk); text-decoration: none; padding-right: 12px; border-right: 1px solid var(--line); }
+.logo span { color: var(--amber); }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--chalk-dim); text-transform: uppercase; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.05; margin: 2px 0 0; }
+.muted { color: var(--chalk-dim); font-size: 13px; margin: 0; }
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.stat { background: var(--slot); border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.stat .t { font-size: 13px; color: var(--chalk-dim); }
+.stat .v { font-family: var(--f-mono); font-size: 26px; font-weight: 600; color: var(--c); font-variant-numeric: tabular-nums; }
+.stat .s { font-size: 12px; color: var(--chalk-dim); }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { border: 1px solid var(--line); background: var(--slot); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--chalk-dim); }
+.filters button[aria-pressed="true"] { background: var(--chalk); color: var(--board); border-color: var(--chalk); }
+.list { display: grid; gap: 8px; }
+.day { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); margin: 8px 0 0; }
+.item { background: var(--slot); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.badge { font-family: var(--f-display); font-size: 18px; min-width: 52px; text-align: center; padding: 6px 8px; border-radius: 8px; background: var(--board-2); }
+.badge.win { background: var(--amber); color: #1a1405; }
+.badge.lose { color: var(--chalk-dim); }
+.item .g { font-weight: 700; }
+.item .d { font-size: 13px; color: var(--chalk-dim); overflow: hidden; text-overflow: ellipsis; }
+.item .r { font-family: var(--f-mono); font-size: 18px; font-weight: 600; text-align: right; white-space: nowrap; }
+.item .r small { display: block; font-family: var(--f-body); font-size: 11px; color: var(--chalk-dim); font-weight: 400; }
+.empty { background: var(--slot); border: 1px dashed var(--line); border-radius: 10px; padding: 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty a, .go { color: var(--amber); font-weight: 700; text-decoration: none; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--board-2); padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+.btn.warn { background: var(--red); border-color: var(--red); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH</div><h1>내 경기 기록</h1></div></header>
+  <p class="muted">이 기기 브라우저에 저장된 기록이에요. 다른 기기나 다른 브라우저에서 한 경기는 여기에 나오지 않아요.</p>
+  <section class="sum" id="sum" aria-label="게임별 요약"></section>
+  <div class="filters" id="filters" role="group" aria-label="기록 거르기">
+    <button type="button" data-f="all" aria-pressed="true">전체</button>
+    <button type="button" data-f="auction" aria-pressed="false">연봉 블라인드 경매</button>
+    <button type="button" data-f="bw" aria-pressed="false">9이닝 흑과 백</button>
+    <button type="button" data-f="online" aria-pressed="false">사람과 한 경기</button>
+    <button type="button" data-f="ai" aria-pressed="false">AI와 한 경기</button>
+  </div>
+  <section class="list" id="list" aria-live="polite"></section>
+  <div class="foot"><a class="go" href="/">← 게임 하러 가기</a><button class="btn" type="button" id="clearBtn">기록 모두 지우기</button></div>
+</div>
+<script>
+const KEY = '1x1:history';
+const LV = { low: '하', mid: '중', high: '상' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const fmt = v => { const r = Math.round(v * 100) / 100; return (Number.isInteger(r) ? String(r) : r.toFixed(2).replace(/0$/, '')) + '억'; };
+let filter = 'all';
+function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
+const modeText = x => x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : x.game === 'auction' ? '온라인 4인' : '온라인 1:1';
+function isWin(x) { return x.game === 'auction' ? x.rank === 1 : x.result === 'win'; }
+function summary(list) {
+  const a = list.filter(x => x.game === 'auction'), b = list.filter(x => x.game === 'bw');
+  const avgRank = a.length ? (a.reduce((s, x) => s + x.rank, 0) / a.length).toFixed(1) : '–';
+  const best = a.length ? fmt(Math.max(...a.map(x => x.score))) : '–';
+  const bw = { w: b.filter(x => x.result === 'win').length, l: b.filter(x => x.result === 'lose').length, d: b.filter(x => x.result === 'draw').length };
+  document.getElementById('sum').innerHTML = `
+    <div class="stat" style="--c:var(--amber)"><span class="t">연봉 블라인드 경매</span><span class="v">${a.length ? `우승 ${a.filter(isWin).length}회` : '기록 없음'}</span><span class="s">${a.length}판 · 평균 ${avgRank}위 · 최고 ${best}</span></div>
+    <div class="stat" style="--c:var(--blue)"><span class="t">9이닝 흑과 백</span><span class="v">${b.length ? `${bw.w}승 ${bw.l}패${bw.d ? ` ${bw.d}무` : ''}` : '기록 없음'}</span><span class="s">${b.length}판 · 승률 ${b.length ? Math.round(bw.w / b.length * 100) + '%' : '–'}</span></div>
+    <div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${list.length}판</span><span class="s">사람과 ${list.filter(x => x.mode === 'online').length}판 · AI와 ${list.filter(x => x.mode === 'ai').length}판</span></div>`;
+}
+function itemHtml(x) {
+  const t = new Date(x.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  if (x.game === 'auction') {
+    const others = (x.players || []).filter(p => !p.me).sort((a, b) => b.score - a.score).map(p => `${esc(p.name)} ${fmt(p.score)}`).join(' · ');
+    const mine = (x.mine || []).map(p => esc(p.name)).join(', ') || '선수 없음';
+    return `<div class="item" style="--c:var(--amber)"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
+      <div><div class="g">연봉 블라인드 경매 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">내 선수: ${mine}</div><div class="d">${others}</div></div>
+      <div class="r">${fmt(x.score)}<small>${x.total}명 중</small></div></div>`;
+  }
+  const label = x.result === 'win' ? '승' : x.result === 'lose' ? '패' : '무';
+  return `<div class="item" style="--c:var(--blue)"><span class="badge ${x.result}">${label}</span>
+    <div><div class="g">9이닝 흑과 백 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
+    <div class="r">${x.myWins} : ${x.oppWins}<small>나 : 상대</small></div></div>`;
+}
+function render() {
+  const all = load();
+  summary(all);
+  const list = all.filter(x => filter === 'all' || x.game === filter || x.mode === filter);
+  const el = document.getElementById('list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><b>${all.length ? '이 조건의 기록이 없어요' : '아직 기록이 없어요'}</b><span class="muted">경기를 끝까지 하면 결과가 여기에 자동으로 쌓여요.</span><a href="/">게임 고르러 가기 →</a></div>`;
+  } else {
+    let html = '', day = '';
+    for (const x of list) {
+      const d = new Date(x.at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+      if (d !== day) { html += `<p class="day">${d}</p>`; day = d; }
+      html += itemHtml(x);
+    }
+    el.innerHTML = html;
+  }
+  document.getElementById('clearBtn').hidden = !all.length;
+}
+document.getElementById('filters').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  render();
+});
+let armT = null;
+document.getElementById('clearBtn').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!b.classList.contains('warn')) {
+    b.classList.add('warn'); b.textContent = '한 번 더 누르면 모두 지워져요';
+    clearTimeout(armT); armT = setTimeout(() => { b.classList.remove('warn'); b.textContent = '기록 모두 지우기'; }, 3000);
+    return;
+  }
+  try { localStorage.removeItem(KEY); } catch {}
+  b.classList.remove('warn'); b.textContent = '기록 모두 지우기';
+  render();
+});
+render();
+</script>
+</body>
+</html>

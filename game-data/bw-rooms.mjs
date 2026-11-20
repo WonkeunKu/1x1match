@@ -95,6 +95,7 @@ function deal() {
   return { hand, thr: C(byHr[4]).hr };
 }
 function startGame(room) {
+  room.gameNo = (room.gameNo || 0) + 1;
   const d = deal();
   room.phase = 'play';
   room.game = { hand: d.hand, thr: d.thr, lead: randomInt(SEATS), innings: [], pend: [null, null] };
@@ -187,7 +188,7 @@ function bump(room, msg) {
 function viewFor(room, seat) {
   const g = room.game;
   const v = {
-    code: room.code, phase: room.phase, me: seat, host: room.host, public: room.public,
+    code: room.code, gameNo: room.gameNo || 0, phase: room.phase, me: seat, host: room.host, public: room.public,
     players: room.players.map((p, k) => ({ name: p.name, online: isOnline(room, k) })),
     lastEvent: room.lastEvent || null,
     turnLeftMs: room.deadline ? Math.max(0, room.deadline - now()) : null, turnMs: TURN_MS, winAt: WIN_AT
