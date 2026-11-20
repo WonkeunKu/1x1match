@@ -77,6 +77,9 @@ a.game:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
 a.game.bw .go { color: #6fc4ea; }
 a.game.ai { border-top-color: #f28f74; }
 a.game.ai .go { color: #f28f74; }
+a.game.admin { border-top-color: #b8a6f2; border-style: dashed; border-top-style: solid; }
+a.game.admin .go { color: #b8a6f2; }
+.lockchip { font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
 .demo { display: flex; gap: 6px; }
 .demo i { display: grid; place-items: center; width: 34px; height: 40px; border-radius: 6px; font-style: normal; font-family: var(--f-display); font-size: 15px; }
 .demo .b { background: var(--ink); color: var(--chalk); border: 1px solid rgba(241,238,228,0.35); }
@@ -139,6 +142,12 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
   if (d.user) {
     el.innerHTML = '<span class="acct-name"></span><button type="button" id="logoutBtn">로그아웃</button>';
     el.querySelector('.acct-name').textContent = d.user.nickname + '님';
+    if (d.user.admin && !document.getElementById('adminGame')) {
+      // 관리자 계정에만 보이는 게임
+      const w = document.createElement('div'); w.className = 'gw'; w.id = 'adminGame';
+      w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 혼자 · 퍼즐<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 5×5, 7×7, 10×10 중에 골라 혼자 풀어요.</p><div class="chips"><span class="chip">기록 타이머</span><span class="chip">정답 보기</span></div><span class="go">퍼즐 풀기 →</span></a>';
+      document.querySelector('main.games').appendChild(w);
+    }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
   }
 }).catch(() => {});

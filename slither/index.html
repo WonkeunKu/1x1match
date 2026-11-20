@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>슬리더링크 · 1x1 MATCH</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico?v=3" sizes="any">
+<link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f1ea; --paper:#fffdf8; --ink:#1b1f2a; --muted:#7a7468; --line:#1b1f2a;
+  --dot:#1b1f2a; --x:#c8372d; --accent:#2747d8; --accent-soft:#e3e8fb; --ok:#1f8a4c; --warn:#c8372d;
+  --border:#e2ddd2; --chip:#ece7dc;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans KR',system-ui,sans-serif}
+body{min-height:100vh;display:flex;justify-content:center}
+.app{width:100%;max-width:520px;padding:18px 16px 40px}
+h1{font-size:26px;margin:6px 0 2px;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+.card{background:var(--paper);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
+.label{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}
+.seg{display:flex;gap:6px}
+.seg button{flex:1}
+button{font:inherit;border:0;border-radius:12px;padding:12px 14px;background:var(--chip);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);color:#fff}
+button.sel{background:var(--ink);color:#fff}
+button:disabled{opacity:.4}
+input{font:inherit;font-size:16px;border:1px solid var(--border);border-radius:12px;padding:12px;width:100%;background:#fff}
+input.code{text-transform:uppercase;letter-spacing:4px;font-family:'JetBrains Mono',monospace;text-align:center}
+.full{width:100%}
+.mt{margin-top:10px}
+.hidden{display:none!important}
+.hint{font-size:13px;color:var(--muted);line-height:1.5}
+.err{color:var(--warn);font-size:13px;margin-top:8px;min-height:1em}
+
+/* room */
+.bigcode{font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;letter-spacing:8px;text-align:center;margin:6px 0}
+.players{display:flex;flex-direction:column;gap:6px}
+.pl{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
+.pl .tag{font-size:12px;color:var(--muted)}
+.pl.me{outline:2px solid var(--accent-soft)}
+.pl .st{font-family:'JetBrains Mono',monospace;font-size:14px}
+.st.done{color:var(--ok);font-weight:700}
+
+/* game */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.timer{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:var(--accent)}
+.iconbtn{padding:10px 12px;font-size:14px}
+.tools{display:flex;gap:6px;margin-bottom:12px}
+.tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.sw{display:inline-block;width:18px;height:4px;background:currentColor;border-radius:2px}
+.board-wrap{background:var(--paper);border:1px solid var(--border);border-radius:16px;padding:10px;position:relative}
+svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.clue{font-family:'IBM Plex Sans KR',sans-serif;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.clue.okc{fill:#b9b3a6}
+.clue.bad{fill:var(--warn)}
+.info{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:8px}
+.strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:13px;display:flex;gap:6px;align-items:center}
+.chip .d{width:8px;height:8px;border-radius:50%;background:#e2a400}
+.chip.fin .d{background:var(--ok)}
+.chip.me{border-color:var(--accent)}
+
+/* overlays */
+.overlay{position:fixed;inset:0;background:rgba(20,22,30,.55);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+.modal{background:var(--paper);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;text-align:center}
+.correct.gave{color:var(--muted);font-size:34px}
+.correct{font-size:44px;font-weight:700;color:var(--ok);margin:0;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.rtime{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;margin:8px 0 4px}
+.rank{color:var(--muted);font-size:14px;margin-bottom:14px}
+.count{font-family:'JetBrains Mono',monospace;font-size:96px;font-weight:700;color:#fff;animation:pop .4s}
+.board-cover{position:absolute;inset:0;background:var(--paper);border-radius:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px}
+.results{margin:4px 0 14px;text-align:left}
+.sitebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.homelink{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;letter-spacing:.5px}
+.homelink span{color:var(--accent)}
+.admintag{font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:999px;padding:4px 10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sitebar"><a class="homelink" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1 MATCH</a><span class="admintag">관리자 전용</span></div>
+
+  <!-- HOME -->
+  <section id="home">
+    <h1>슬리더링크</h1>
+    <p class="sub">점을 이어 하나의 고리를 만드세요. 숫자는 그 칸을 둘러싼 선의 개수예요.</p>
+
+    <div class="card">
+      <div class="label">닉네임</div>
+      <input id="nick" maxlength="10" placeholder="이름을 입력하세요">
+    </div>
+
+    <div class="card">
+      <div class="label">판 크기</div>
+      <div class="seg" id="sizeSeg">
+        <button data-n="5">5×5</button>
+        <button data-n="7" class="sel">7×7</button>
+        <button data-n="10">10×10</button>
+      </div>
+      <button class="primary full mt" id="soloBtn">혼자 풀기</button>
+    </div>
+
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="hidden">
+    <div class="topbar">
+      <button class="iconbtn" id="quitBtn">← 나가기</button>
+      <div class="timer" id="timer">00:00</div>
+      <button class="iconbtn" id="undoBtn">↶ 취소</button>
+    </div>
+    <div class="strip hidden" id="strip"></div>
+    <div class="tools">
+      <button id="modeLine" class="sel"><span class="sw"></span> 선</button>
+      <button id="modeX"><span style="color:var(--x);font-weight:700">✕</span> X 표시</button>
+      <button id="resetBtn">처음부터</button>
+    </div>
+    <div class="board-wrap">
+      <svg id="board"></svg>
+      <div class="board-cover hidden" id="cover">문제 만드는 중…</div>
+    </div>
+    <div class="info"><span id="sizeInfo"></span><span>탭: 표시 · 드래그: 선 긋기</span></div>
+    <button class="full mt" id="revealBtn">정답 보기</button>
+  </section>
+</div>
+
+<div class="overlay hidden" id="countOv"><div class="count" id="countNum">3</div></div>
+
+<div class="overlay hidden" id="winOv">
+  <div class="modal">
+    <p class="correct" id="winTitle">정답!</p>
+    <div class="rtime" id="winTime">00:00.0</div>
+    <div class="rank" id="winRank"></div>
+    <div class="results players" id="winResults"></div>
+    <div id="winBtns"></div>
+  </div>
+</div>
+
+<script>
+// ===== Slitherlink core: RNG, generator, solver, checker =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+// Edge indexing for R x C cells:
+// horizontal edge (r,c): r in 0..R, c in 0..C-1 -> id = r*C + c
+// vertical edge (r,c):   r in 0..R-1, c in 0..C -> id = H + r*(C+1) + c
+function makeGeom(R,C){
+  const H=(R+1)*C, V=R*(C+1), E=H+V;
+  const hId=(r,c)=>r*C+c, vId=(r,c)=>H+r*(C+1)+c;
+  const cellEdges=[];for(let r=0;r<R;r++)for(let c=0;c<C;c++)cellEdges.push([hId(r,c),hId(r+1,c),vId(r,c),vId(r,c+1)]);
+  const vtxEdges=[];for(let r=0;r<=R;r++)for(let c=0;c<=C;c++){const a=[];if(c>0)a.push(hId(r,c-1));if(c<C)a.push(hId(r,c));if(r>0)a.push(vId(r-1,c));if(r<R)a.push(vId(r,c));vtxEdges.push(a);}
+  const edgeVtx=new Array(E),edgeCells=new Array(E);
+  for(let r=0;r<=R;r++)for(let c=0;c<C;c++){const e=hId(r,c);edgeVtx[e]=[r*(C+1)+c,r*(C+1)+c+1];const cs=[];if(r>0)cs.push((r-1)*C+c);if(r<R)cs.push(r*C+c);edgeCells[e]=cs;}
+  for(let r=0;r<R;r++)for(let c=0;c<=C;c++){const e=vId(r,c);edgeVtx[e]=[r*(C+1)+c,(r+1)*(C+1)+c];const cs=[];if(c>0)cs.push(r*C+c-1);if(c<C)cs.push(r*C+c);edgeCells[e]=cs;}
+  return {R,C,H,V,E,hId,vId,cellEdges,vtxEdges,edgeVtx,edgeCells};
+}
+
+// Grow a hole-free region whose boundary is a single loop
+function genLoop(G,rand){
+  const {R,C}=G;
+  for(let attempt=0;attempt<200;attempt++){
+    const inR=new Uint8Array(R*C);
+    const target=Math.floor(R*C*(0.45+rand()*0.2));
+    let start=Math.floor(rand()*R*C);inR[start]=1;let size=1;
+    const get=(r,c)=>(r<0||c<0||r>=R||c>=C)?0:inR[r*C+c];
+    let fails=0;
+    while(size<target&&fails<4000){
+      // pick random frontier cell
+      const fr=[];
+      for(let i=0;i<R*C;i++)if(!inR[i]){const r=(i/C)|0,c=i%C;if(get(r-1,c)||get(r+1,c)||get(r,c-1)||get(r,c+1))fr.push(i);}
+      if(!fr.length)break;
+      const i=fr[Math.floor(rand()*fr.length)];
+      inR[i]=1;
+      if(ok(inR,i)){size++;}else{inR[i]=0;fails++;}
+    }
+    if(size<R*C*0.35)continue;
+    // loop edges
+    const on=new Uint8Array(G.E);
+    for(let e=0;e<G.E;e++){const cs=G.edgeCells[e];let n=0;for(const x of cs)n+=inR[x];if(cs.length===1?n===1:n===1)on[e]=1;}
+    return on;
+  }
+  function ok(inR,i){
+    const r=(i/C)|0,c=i%C;
+    const get=(rr,cc)=>(rr<0||cc<0||rr>=R||cc>=C)?0:inR[rr*C+cc];
+    // no diagonal-only touching in the 4 2x2 blocks
+    for(const [dr,dc] of [[-1,-1],[-1,0],[0,-1],[0,0]]){
+      const a=get(r+dr,c+dc),b=get(r+dr,c+dc+1),d=get(r+dr+1,c+dc),e=get(r+dr+1,c+dc+1);
+      if((a&&e&&!b&&!d)||(b&&d&&!a&&!e))return false;
+    }
+    // complement must all reach border
+    const seen=new Uint8Array(R*C);const st=[];
+    for(let k=0;k<R*C;k++){if(inR[k])continue;const rr=(k/C)|0,cc=k%C;if(rr===0||cc===0||rr===R-1||cc===C-1){seen[k]=1;st.push(k);}}
+    while(st.length){const k=st.pop();const rr=(k/C)|0,cc=k%C;for(const [a,b] of [[rr-1,cc],[rr+1,cc],[rr,cc-1],[rr,cc+1]]){if(a<0||b<0||a>=R||b>=C)continue;const j=a*C+b;if(!inR[j]&&!seen[j]){seen[j]=1;st.push(j);}}}
+    for(let k=0;k<R*C;k++)if(!inR[k]&&!seen[k])return false;
+    return true;
+  }
+  return null;
+}
+
+// Solver: counts solutions up to `limit`, with node budget. returns {count, aborted}
+function solveCount(G,clues,limit,budget){
+  const E=G.E;let nodes=0,count=0,aborted=false;
+  const st=new Int8Array(E).fill(-1);
+  function propagate(s){
+    let changed=true;
+    while(changed){
+      changed=false;
+      for(let i=0;i<clues.length;i++){
+        const k=clues[i];if(k<0)continue;
+        let on=0,un=0;const es=G.cellEdges[i];
+        for(const e of es){if(s[e]===1)on++;else if(s[e]===-1)un++;}
+        if(on>k||on+un<k)return false;
+        if(un){if(on===k){for(const e of es)if(s[e]===-1){s[e]=0;}changed=true;}else if(on+un===k){for(const e of es)if(s[e]===-1){s[e]=1;}changed=true;}}
+      }
+      for(const es of G.vtxEdges){
+        let on=0,un=0;for(const e of es){if(s[e]===1)on++;else if(s[e]===-1)un++;}
+        if(on>2)return false;
+        if(on===1&&un===0)return false;
+        if(un){
+          if(on===2){for(const e of es)if(s[e]===-1)s[e]=0;changed=true;}
+          else if(on===1&&un===1){for(const e of es)if(s[e]===-1)s[e]=1;changed=true;}
+          else if(on===0&&un===1){for(const e of es)if(s[e]===-1)s[e]=0;changed=true;}
+        }
+      }
+      // premature cycle check
+      const r=cycleCheck(s);if(r===false)return false;
+    }
+    return true;
+  }
+  // returns false if a closed cycle exists that isn't a full solution
+  function cycleCheck(s){
+    const nV=(G.R+1)*(G.C+1);const seen=new Uint8Array(E);
+    let totalOn=0;for(let e=0;e<E;e++)if(s[e]===1)totalOn++;
+    for(let e0=0;e0<E;e0++){
+      if(s[e0]!==1||seen[e0])continue;
+      // walk component
+      let len=0,closed=true;const stack=[e0];seen[e0]=1;
+      while(stack.length){const e=stack.pop();len++;for(const v of G.edgeVtx[e]){let deg=0;for(const f of G.vtxEdges[v]){if(s[f]===1){deg++;if(!seen[f]){seen[f]=1;stack.push(f);}}}if(deg<2)closed=false;}}
+      if(closed){
+        if(len!==totalOn)return false;
+        // must satisfy all clues exactly with unknowns as off
+        for(let i=0;i<clues.length;i++){if(clues[i]<0)continue;let on=0;for(const f of G.cellEdges[i])if(s[f]===1)on++;if(on!==clues[i])return false;}
+        return 'solved';
+      }
+    }
+    return true;
+  }
+  function pick(s){
+    // prefer unknown edge at a vertex with degree 1
+    for(const es of G.vtxEdges){let on=0,u=-1;for(const e of es){if(s[e]===1)on++;else if(s[e]===-1)u=e;}if(on===1&&u>=0)return u;}
+    for(let e=0;e<E;e++)if(s[e]===-1)return e;
+    return -1;
+  }
+  let solution=null;
+  function rec(s){
+    if(count>=limit||aborted)return;
+    if(++nodes>budget){aborted=true;return;}
+    if(!propagate(s))return;
+    const cc=cycleCheck(s);
+    if(cc==='solved'){count++;if(!solution)solution=Array.from(s,x=>x===1?1:0);return;}
+    const e=pick(s);
+    if(e<0)return; // no loop at all
+    for(const val of [1,0]){const t=Int8Array.from(s);t[e]=val;rec(t);if(count>=limit||aborted)return;}
+  }
+  rec(st);
+  return {count,aborted,solution};
+}
+
+function generatePuzzle(R,C,seed){
+  const rand=mulberry32(seed>>>0);
+  const G=makeGeom(R,C);
+  const loop=genLoop(G,rand);
+  const full=G.cellEdges.map(es=>es.reduce((a,e)=>a+loop[e],0));
+  const clues=full.slice();
+  const order=[...Array(R*C).keys()];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const budget=R*C>=100?3000:4000;
+  for(const i of order){
+    const keep=clues[i];clues[i]=-1;
+    const r=solveCount(G,clues,2,budget);
+    if(r.count!==1||r.aborted)clues[i]=keep;
+  }
+  return {R,C,clues,solution:Array.from(loop)};
+}
+
+// Check user lines: single closed loop & clues satisfied
+function isSolved(G,clues,lines){
+  for(let i=0;i<clues.length;i++){if(clues[i]<0)continue;let n=0;for(const e of G.cellEdges[i])if(lines[e]===1)n++;if(n!==clues[i])return false;}
+  let total=0,start=-1;for(let e=0;e<G.E;e++)if(lines[e]===1){total++;if(start<0)start=e;}
+  if(!total)return false;
+  for(const es of G.vtxEdges){let d=0;for(const e of es)if(lines[e]===1)d++;if(d!==0&&d!==2)return false;}
+  const seen=new Uint8Array(G.E);const st=[start];seen[start]=1;let n=0;
+  while(st.length){const e=st.pop();n++;for(const v of G.edgeVtx[e])for(const f of G.vtxEdges[v])if(lines[f]===1&&!seen[f]){seen[f]=1;st.push(f);}}
+  return n===total;
+}
+if(typeof module!=='undefined')module.exports={generatePuzzle,makeGeom,solveCount,isSolved};
+
+</script>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+// ---------- state ----------
+let size = 7;
+let G=null, clues=null, lines=null, history=[];
+let mode = 1; // 1 = line, 2 = X
+let startTs=0, timerId=0, finished=false, finishTime=0, playing=false;
+let multi=null; // {code, host, rm, round, players}
+let roomApi=null;
+
+$('nick').value = store.get('sl_nick') || '';
+$('nick').addEventListener('input', ()=>store.set('sl_nick',$('nick').value.trim()));
+const nick = () => ($('nick').value.trim() || '플레이어').slice(0,10);
+
+function show(id){for(const s of ['home','game'])$(s).classList.toggle('hidden',s!==id);}
+function segSelect(seg,n){for(const b of seg.querySelectorAll('button'))b.classList.toggle('sel',+b.dataset.n===n);}
+$('sizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;segSelect($('sizeSeg'),size);};
+
+// ---------- generator (worker with fallback) ----------
+let worker=null;
+try{
+  const src=[mulberry32,makeGeom,genLoop,solveCount,generatePuzzle].map(f=>f.toString()).join('\n')+
+    '\nonmessage=e=>{const p=generatePuzzle(e.data.n,e.data.n,e.data.seed);postMessage({id:e.data.id,clues:p.clues});};';
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+}catch(e){worker=null;}
+let reqId=0;
+function makePuzzle(n,seed){
+  return new Promise(res=>{
+    const id=++reqId;
+    const fallback=()=>setTimeout(()=>res(generatePuzzle(n,n,seed).clues),30);
+    if(!worker)return fallback();
+    const t=setTimeout(()=>{worker.onmessage=null;fallback();},15000);
+    worker.onmessage=e=>{if(e.data.id!==id)return;clearTimeout(t);res(e.data.clues);};
+    worker.onerror=()=>{clearTimeout(t);worker=null;fallback();};
+    worker.postMessage({id,n,seed});
+  });
+}
+const newSeed=()=> (Math.random()*4294967295)>>>0;
+
+// ---------- board rendering ----------
+const S=40, PAD=22;
+function loadPuzzle(n,cl){
+  gaveUp=false;resetReveal();G=makeGeom(n,n); clues=cl; lines=new Int8Array(G.E); history=[];
+  $('sizeInfo').textContent=`${n}×${n}`;
+  drawBoard();
+}
+function px(c){return PAD+c*S;}
+function drawBoard(){
+  const n=G.R, W=PAD*2+n*S;
+  const svg=$('board'); svg.setAttribute('viewBox',`0 0 ${W} ${W}`);
+  const fs = n>=10?22:24;
+  let h='';
+  // edges
+  for(let r=0;r<=n;r++)for(let c=0;c<n;c++){const e=G.hId(r,c);h+=edgeEl(e,px(c),px(r),px(c+1),px(r));}
+  for(let r=0;r<n;r++)for(let c=0;c<=n;c++){const e=G.vId(r,c);h+=edgeEl(e,px(c),px(r),px(c),px(r+1));}
+  // clues
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){const k=clues[r*n+c];if(k>=0)h+=`<text id="c${r*n+c}" class="clue" x="${px(c)+S/2}" y="${px(r)+S/2+1}" font-size="${fs}">${k}</text>`;}
+  // dots
+  for(let r=0;r<=n;r++)for(let c=0;c<=n;c++)h+=`<circle cx="${px(c)}" cy="${px(r)}" r="3.6" fill="var(--dot)"/>`;
+  svg.innerHTML=h;
+  refresh();
+}
+function edgeEl(e,x1,y1,x2,y2){
+  const mx=(x1+x2)/2,my=(y1+y2)/2,d=5;
+  return `<g id="e${e}"><line class="ln" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line)" stroke-width="6" stroke-linecap="round" opacity="0"/>`+
+    `<path class="xx" d="M${mx-d} ${my-d}L${mx+d} ${my+d}M${mx+d} ${my-d}L${mx-d} ${my+d}" stroke="var(--x)" stroke-width="2.6" stroke-linecap="round" opacity="0"/></g>`;
+}
+function paintEdge(e){
+  const g=$('e'+e); if(!g)return;
+  g.children[0].setAttribute('opacity',lines[e]===1?1:0);
+  g.children[1].setAttribute('opacity',lines[e]===2?1:0);
+}
+function refresh(){
+  for(let e=0;e<G.E;e++)paintEdge(e);
+  updateClues();
+}
+function updateClues(){
+  for(let i=0;i<clues.length;i++){
+    if(clues[i]<0)continue;
+    let on=0,x=0;for(const e of G.cellEdges[i]){if(lines[e]===1)on++;else if(lines[e]===2)x++;}
+    const t=$('c'+i); if(!t)continue;
+    t.classList.toggle('bad',on>clues[i]||4-x<clues[i]);
+      }
+}
+
+// ---------- input ----------
+const svg=$('board');
+function toGrid(ev){
+  const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+  const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+  return {x:(p.x-PAD)/S,y:(p.y-PAD)/S};
+}
+function nearestEdge(x,y){
+  const n=G.R;let best=-1,bd=0.42;
+  const rr=Math.round(y),cf=Math.floor(x);
+  if(rr>=0&&rr<=n&&cf>=0&&cf<n){const d=Math.abs(y-rr);if(d<bd){bd=d;best=G.hId(rr,cf);}}
+  const cr=Math.round(x),rf=Math.floor(y);
+  if(cr>=0&&cr<=n&&rf>=0&&rf<n){const d=Math.abs(x-cr);if(d<bd){bd=d;best=G.vId(rf,cr);}}
+  return best;
+}
+function edgeBetween(v1,v2){
+  const n1=G.vtxEdges[v1];for(const e of n1){const [a,b]=G.edgeVtx[e];if((a===v1&&b===v2)||(a===v2&&b===v1))return e;}return -1;
+}
+let drag=null, batch=null;
+function setEdge(e,v){
+  if(lines[e]===v)return;
+  batch.push([e,lines[e]]);lines[e]=v;paintEdge(e);
+}
+svg.addEventListener('pointerdown',ev=>{
+  if(!playing||finished)return;
+  ev.preventDefault();svg.setPointerCapture(ev.pointerId);
+  const g=toGrid(ev);
+  const vr=Math.round(g.y),vc=Math.round(g.x);
+  drag={sx:ev.clientX,sy:ev.clientY,g0:g,moved:false,lastV:(vr>=0&&vr<=G.R&&vc>=0&&vc<=G.C)?vr*(G.C+1)+vc:-1,val:null};
+  batch=[];
+});
+svg.addEventListener('pointermove',ev=>{
+  if(!drag)return;
+  if(!drag.moved&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)<10)return;
+  drag.moved=true;
+  const g=toGrid(ev);const vr=Math.round(g.y),vc=Math.round(g.x);
+  if(vr<0||vr>G.R||vc<0||vc>G.C)return;
+  if(Math.hypot(g.y-vr,g.x-vc)>0.36)return;
+  const v=vr*(G.C+1)+vc;
+  if(drag.lastV<0){drag.lastV=v;return;}
+  if(v===drag.lastV)return;
+  const e=edgeBetween(drag.lastV,v);
+  if(e>=0){
+    if(drag.val===null)drag.val=(lines[e]===mode)?0:mode;
+    setEdge(e,drag.val);
+    updateClues();
+  }
+  drag.lastV=v;
+});
+function endDrag(ev){
+  if(!drag)return;
+  if(!drag.moved){
+    const e=nearestEdge(drag.g0.x,drag.g0.y);
+    if(e>=0){setEdge(e,lines[e]===mode?0:mode);updateClues();}
+  }
+  if(batch.length)history.push(batch);
+  drag=null;batch=null;
+  check();
+}
+svg.addEventListener('pointerup',endDrag);
+svg.addEventListener('pointercancel',endDrag);
+
+$('modeLine').onclick=()=>{mode=1;$('modeLine').classList.add('sel');$('modeX').classList.remove('sel');};
+$('modeX').onclick=()=>{mode=2;$('modeX').classList.add('sel');$('modeLine').classList.remove('sel');};
+$('undoBtn').onclick=()=>{if(!playing||finished)return;const b=history.pop();if(!b)return;for(let i=b.length-1;i>=0;i--){lines[b[i][0]]=b[i][1];}refresh();};
+$('resetBtn').onclick=()=>{if(!playing||finished)return;const b=[];for(let e=0;e<G.E;e++)if(lines[e]){b.push([e,lines[e]]);lines[e]=0;}if(b.length)history.push(b);refresh();};
+
+// ---------- timer ----------
+const fmt=(ms,tenths)=>{const s=Math.floor(ms/1000),m=Math.floor(s/60);let t=String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(tenths)t+='.'+Math.floor(ms%1000/100);return t;};
+function startTimer(){
+  startTs=performance.now();finished=false;playing=true;gaveUp=false;resetReveal();
+  clearInterval(timerId);
+  timerId=setInterval(()=>{$('timer').textContent=fmt(performance.now()-startTs);},250);
+  $('timer').textContent='00:00';
+}
+function stopTimer(){clearInterval(timerId);}
+
+function check(){
+  if(finished||!playing)return;
+  const ln=Uint8Array.from(lines,v=>v===1?1:0);
+  if(!isSolved(G,clues,ln))return;
+  finished=true;finishTime=performance.now()-startTs;stopTimer();
+  $('timer').textContent=fmt(finishTime,true);
+  // tint loop green
+  for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--ok)');
+  if(multi){multi.rm.presence({status:'done',time:Math.round(finishTime),round:multi.round}).catch(()=>{});}
+  setTimeout(showWin,350);
+}
+
+// ---------- reveal answer ----------
+let gaveUp=false, revealArm=0;
+function resetReveal(){revealArm=0;$('revealBtn').textContent='정답 보기';$('revealBtn').classList.remove('primary');$('revealBtn').disabled=false;}
+$('revealBtn').onclick=()=>{
+  if(finished){showWin();return;}
+  if(!playing)return;
+  if(!revealArm){revealArm=1;$('revealBtn').textContent='한 번 더 누르면 정답 공개 (기록 없음)';$('revealBtn').classList.add('primary');
+    setTimeout(()=>{if(revealArm&&!finished)resetReveal();},3000);return;}
+  const r=solveCount(G,clues,1,5e6);
+  if(!r.solution)return;
+  finished=true;gaveUp=true;finishTime=performance.now()-startTs;stopTimer();
+  for(let e=0;e<G.E;e++)lines[e]=r.solution[e]?1:0;
+  refresh();
+  for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--accent)');
+  $('revealBtn').textContent='결과 창 열기';$('revealBtn').classList.remove('primary');revealArm=0;
+  if(multi)multi.rm.presence({status:'gaveup',time:null,round:multi.round}).catch(()=>{});
+  setTimeout(showWin,1200);
+};
+
+// ---------- win overlay ----------
+function showWin(){
+  $('winTitle').textContent=gaveUp?'정답 공개':'정답!';
+  $('winTitle').classList.toggle('gave',gaveUp);
+  $('winTime').textContent=gaveUp?'기록 없음':fmt(finishTime,true);
+  $('winOv').classList.remove('hidden');
+  renderWin();
+}
+function addClose(){
+  const c=document.createElement('button');c.className='full mt';c.textContent=gaveUp?'닫고 정답 보기':'닫고 판 보기';
+  c.onclick=()=>{$('winOv').classList.add('hidden');$('revealBtn').textContent='결과 창 열기';};
+  $('winBtns').append(c);
+}
+function renderWin(){
+  if($('winOv').classList.contains('hidden'))return;
+  const btns=$('winBtns');
+  if(!multi){
+    $('winRank').textContent=gaveUp?`${G.R}×${G.R} · ${fmt(finishTime)}에 정답 확인`:`${G.R}×${G.R} 완료`;
+    $('winResults').innerHTML='';
+    btns.innerHTML='<button class="primary full" id="againBtn">새 문제</button><button class="full mt" id="homeBtn2">처음 화면</button>';
+    $('againBtn').onclick=()=>{$('winOv').classList.add('hidden');startSolo();};
+    $('homeBtn2').onclick=()=>{$('winOv').classList.add('hidden');stopTimer();playing=false;show('home');};
+    addClose();return;
+  }
+  const list=roundPlayers();
+  const done=list.filter(p=>p.status==='done').sort((a,b)=>a.time-b.time);
+  const myRank=done.findIndex(p=>p.me)+1;
+  $('winRank').textContent=gaveUp?'정답을 확인해서 이번 판은 순위에서 빠져요':(myRank?`${list.length}명 중 ${myRank}등으로 완료`:'');
+  $('winResults').innerHTML='';
+  const ordered=[...done,...list.filter(p=>p.status!=='done'&&p.status!=='gaveup'),...list.filter(p=>p.status==='gaveup')];
+  ordered.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='pl'+(p.me?' me':'');
+    const nm=document.createElement('span');nm.textContent=(p.status==='done'?(i+1)+'. ':'')+p.nick+(p.me?' (나)':'');
+    const st=document.createElement('span');st.className='st'+(p.status==='done'?' done':'');
+    st.textContent=p.status==='done'?fmt(p.time,true):(p.status==='gaveup'?'정답 확인':'풀이 중…');
+    d.append(nm,st);$('winResults').append(d);
+  });
+  if(multi.host){
+    btns.innerHTML='<button class="primary full" id="nextBtn">다음 판</button><button class="full mt" id="toLobby">대기실로</button>';
+    $('nextBtn').onclick=()=>{$('winOv').classList.add('hidden');hostStartRound();};
+    $('toLobby').onclick=()=>{$('winOv').classList.add('hidden');backToLobby();};
+  }else{
+    btns.innerHTML='<div class="hint">방장이 다음 판을 시작하면 자동으로 이어져요</div><button class="full mt" id="toLobby">대기실로</button>';
+    $('toLobby').onclick=()=>{$('winOv').classList.add('hidden');backToLobby();};
+  }
+  addClose();
+}
+
+// ---------- solo ----------
+async function startSolo(){
+  multi=null;$('strip').classList.add('hidden');
+  show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
+  $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
+  const cl=await makePuzzle(size,newSeed());
+  loadPuzzle(size,cl);$('cover').classList.add('hidden');startTimer();
+}
+$('soloBtn').onclick=startSolo;
+$('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
+
+})();
+</script>
+</body>
+</html>

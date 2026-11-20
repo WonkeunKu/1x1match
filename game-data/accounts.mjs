@@ -25,6 +25,9 @@ export const pwOk = pw => typeof pw === 'string' && pw.length >= 8 && pw.length 
 export const phoneDigits = p => String(p || '').replace(/\D/g, '');
 const phoneOk = d => /^01[016789]\d{7,8}$/.test(d);
 const nameOk = n => /^[A-Za-z가-힣 ]{2,20}$/.test(n);
+// 관리자 계정(전화번호 기준). 관리자만 볼 수 있는 게임(슬리더링크)이 있음
+const ADMIN_PHONES = (process.env.ADMIN_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
+const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -88,7 +91,7 @@ async function checkPw(pw, stored) {
 const sign = v => createHmac('sha256', SECRET).update(v).digest('base64url');
 export function sessionCookie(user, secure) {
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  const payload = Buffer.from(JSON.stringify({ id: user.id, n: user.nickname, exp })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ id: user.id, n: user.nickname, a: user.admin ? 1 : 0, exp })).toString('base64url');
   return `sid=${payload}.${sign(payload)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure ? '; Secure' : ''}`;
 }
 export const clearCookie = secure => `sid=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? '; Secure' : ''}`;
@@ -102,7 +105,7 @@ export function userFromReq(req) {
   try {
     const s = JSON.parse(Buffer.from(payload, 'base64url').toString());
     if (!s.exp || s.exp < Date.now()) return null;
-    return { id: s.id, nickname: s.n };
+    return { id: s.id, nickname: s.n, admin: !!s.a };
   } catch { return null; }
 }
 
@@ -125,7 +128,7 @@ export async function signup(b) {
   if (await findUser('nickname', nickname)) fail('이미 사용 중인 닉네임이에요.', 'nickname');
   if (await findUser('phone', phone)) fail('이미 가입된 전화번호예요. 전화번호 하나당 계정은 하나만 만들 수 있어요.', 'phone');
   const row = await insertUser({ nickname, name, phone, pw_hash: await hashPw(pw) });
-  return { id: row.id, nickname: row.nickname };
+  return { id: row.id, nickname: row.nickname, admin: isAdminPhone(phone) };
 }
 const attempts = new Map(); // 로그인 실패 5번이면 5분 잠금
 export async function login(b) {
@@ -143,7 +146,18 @@ export async function login(b) {
     fail('닉네임(또는 전화번호)이나 비밀번호가 맞지 않아요.', null, 401);
   }
   attempts.delete(key);
-  return { id: user.id, nickname: user.nickname };
+  return { id: user.id, nickname: user.nickname, admin: isAdminPhone(user.phone) };
+}
+
+// 관리자 표시가 없는 예전 로그인 쿠키도 한 번 확인해 줌 (전화번호를 다시 조회)
+const adminChecked = new Map();
+export async function refreshAdmin(user) {
+  if (!user || user.admin) return user;
+  if (adminChecked.has(user.id)) return adminChecked.get(user.id) ? Object.assign({}, user, { admin: true }) : user;
+  const row = await findUser('id', user.id);
+  const admin = !!(row && isAdminPhone(row.phone));
+  adminChecked.set(user.id, admin);
+  return admin ? Object.assign({}, user, { admin: true }) : user;
 }
 
 /* ---------- history ---------- */

@@ -27,7 +27,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -95,7 +95,10 @@ async function authApi(req, res, path, url) {
   };
   try {
     const user = Accounts.userFromReq(req);
-    if (path === '/api/auth/me' && req.method === 'GET') return send(200, { user });
+    if (path === '/api/auth/me' && req.method === 'GET') {
+      const u = await Accounts.refreshAdmin(user);
+      return send(200, { user: u }, u && u.admin && !user.admin ? Accounts.sessionCookie(u, secure) : null);
+    }
     if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
     if (path === '/api/history' && req.method === 'GET') {
       if (!user) return send(401, { error: '로그인해야 기록을 볼 수 있어요.' });
@@ -142,6 +145,13 @@ createServer(async (req, res) => {
     res.end();
     return;
   }
+  // 슬리더링크는 관리자 계정으로 로그인했을 때만 열림 (다른 사람에게는 없는 페이지처럼 보임)
+  if (path === '/slither' || path.startsWith('/slither/')) {
+    let admin = false;
+    try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); admin = !!(u && u.admin); } catch (e) { console.error(e); }
+    if (!admin) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
+    if (path === '/slither') { res.writeHead(301, { location: '/slither/' }); res.end(); return; }
+  }
   if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
@@ -157,7 +167,7 @@ createServer(async (req, res) => {
   const body = await readFile(file);
   res.writeHead(200, {
     'content-type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
-    'cache-control': extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
+    'cache-control': path.startsWith('/slither') ? 'private, no-store' : extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
   });
   res.end(body);
 }).listen(PORT, HOST, () => {
