@@ -160,6 +160,10 @@ button.chip.peek.showing { background: var(--pc); color: #10201b; font-weight: 7
 }
 .pcol { display: grid; gap: 8px; }
 
+/* 내 선수 연봉 */
+.chip.mine { border-color: var(--pc); }
+.chip.mine b { color: var(--amber); font-family: var(--f-mono); margin-left: 2px; }
+
 /* AI */
 .aichip { font-family: var(--f-body); font-size: 11px; font-weight: 700; background: var(--p1); color: #0a1a22; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
 .seg.three { grid-template-columns: repeat(3, 1fr); }
@@ -432,13 +436,13 @@ function playersHtml() {
     const isMe = k === V.me;
     const cards = p.cards.map(id => {
       const nm = esc(playerCard(id).name);
-      return isMe ? `<button type="button" class="chip peek" data-peek="${esc(id)}" data-label="${nm}">${nm} · 꾹</button>` : `<span class="chip">${nm}</span>`;
+      return isMe ? `<span class="chip mine">${nm} <b>${fmt(V.salaries[id])}</b></span>` : `<span class="chip">${nm}</span>`;
     }).join('');
     const ch = (p.pendingRelease ? '<span class="chip rel">방출 대기</span>' : '') + p.chances.map(id => `<span class="chip ch">${id === 'double' ? '연봉 2배' : esc(id)}</span>`).join('');
     return `<div class="pl ${isMe ? 'me' : ''}" style="--pc:${PC[k]}"><div class="hd"><span class="dot ${p.online ? 'on' : ''}" title="${p.online ? '접속 중' : '연결 끊김'}"></span><b>${esc(p.name)}${isMe ? ' (나)' : ''}</b>${p.bot ? '<span class="aichip">AI</span>' : ''}<span class="cb">큐브 <strong>${p.cubes}</strong></span></div>
       <div class="chips">${cards + ch || '<span class="muted">아직 영입한 선수가 없어요</span>'}</div></div>`;
   }).join('')}</div>
-  ${V.players[V.me].cards.length ? '<p class="muted">내 선수 칩을 꾹 누르고 있으면 연봉이 보여요. 다른 사람에게는 안 보여요.</p>' : ''}</div>`;
+  ${V.players[V.me].cards.length ? '<p class="muted">내 선수 연봉은 내 화면에만 보여요. 다른 사람 화면에는 결과 발표 전까지 안 보여요.</p>' : ''}</div>`;
 }
 function topBar() {
   const me = V.players[V.me];

@@ -141,7 +141,7 @@ function startGame(room) {
   room.deck = Array(16).fill(null);
   room.opened = {};
   room.players.forEach(p => Object.assign(p, { cubes: START_CUBES, cards: [], chances: [], pendingRelease: null }));
-  room.opener = randomInt(SEATS);
+  room.opener = 0; // 1라운드는 1번(방장)이 열고, 이후 2·3·4·1번… 순서로 한 칸씩 넘어감. 입찰도 연 사람부터 시계방향
   room.cur = null;
   room.tradeUsed = false;
   room.log = [];
