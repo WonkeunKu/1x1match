@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as Rooms from './game-data/auction-rooms.mjs';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const HOST = process.env.HOST || '0.0.0.0';
@@ -35,15 +36,51 @@ async function resolveFile(urlPath) {
   } catch { return null; }
 }
 
+function readJson(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', ch => { raw += ch; if (raw.length > 10000) { reject(new Error('too large')); req.destroy(); } });
+    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch (e) { reject(e); } });
+    req.on('error', reject);
+  });
+}
+function json(res, code, obj) {
+  res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  res.end(JSON.stringify(obj));
+}
+
+// 연봉 블라인드 경매 온라인 방 API
+async function auctionApi(req, res, path, url) {
+  const m = path.match(/^\/api\/auction\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|restart|events))?$/);
+  if (!m) return json(res, 404, { error: '없는 주소예요.' });
+  const [, code, op] = m;
+  try {
+    if (req.method === 'GET' && code && op === 'events') return Rooms.subscribe(code, url.searchParams.get('token'), res);
+    if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
+    const body = await readJson(req);
+    if (!code && !op) return json(res, 200, Rooms.createRoom(body.name));
+    if (op === 'join') return json(res, 200, Rooms.joinRoom(code, body.name, body.token));
+    if (op === 'act') { Rooms.act(code, body.token, body); return json(res, 200, { ok: true }); }
+    if (op === 'restart') { Rooms.restart(code, body.token); return json(res, 200, { ok: true }); }
+    return json(res, 404, { error: '없는 주소예요.' });
+  } catch (e) {
+    if (e instanceof Rooms.GameError) return json(res, 400, { error: e.message });
+    console.error(e);
+    return json(res, 500, { error: '서버 오류가 났어요. 다시 시도해 주세요.' });
+  }
+}
+
 createServer(async (req, res) => {
-  const path = (req.url || '/').split('?')[0];
+  const url = new URL(req.url || '/', 'http://x');
+  const path = url.pathname;
+  if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path === '/api/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
   // /auction → /auction/ so relative photo paths resolve
-  if ((path === '/auction' || path === '/blackwhite')) {
+  if (['/auction', '/blackwhite', '/auction/online'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;
