@@ -9,95 +9,98 @@
 <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
+/* Layout: one column on the scoreboard green, same palette, type and parts as the other 1x1 MATCH games. The puzzle board is a dark slot with chalk dots and lines. */
 :root{
-  --bg:#f4f1ea; --paper:#fffdf8; --ink:#1b1f2a; --muted:#7a7468; --line:#1b1f2a;
-  --dot:#1b1f2a; --x:#c8372d; --accent:#2747d8; --accent-soft:#e3e8fb; --ok:#1f8a4c; --warn:#c8372d;
-  --border:#e2ddd2; --chip:#ece7dc;
+  --board:#10302a; --board-2:#163d35; --slot:#0b2420;
+  --chalk:#f1eee4; --chalk-dim:#a7bcb2; --line-soft:rgba(241,238,228,.14);
+  --amber:#f3b641; --red:#e8604a; --green:#a9d774;
+  /* names the puzzle script paints with */
+  --dot:#f1eee4; --line:#f1eee4; --x:#e8604a; --ok:#a9d774; --accent:#f3b641; --ink:#f1eee4;
+  --f-display:"Black Han Sans","Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans KR',system-ui,sans-serif}
-body{min-height:100vh;display:flex;justify-content:center}
-.app{width:100%;max-width:520px;padding:18px 16px 40px}
-h1{font-size:26px;margin:6px 0 2px;letter-spacing:-.5px}
-.sub{color:var(--muted);font-size:14px;margin:0 0 20px}
-.card{background:var(--paper);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}
-.label{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600}
+html{background:#071815}
+body{margin:0;min-height:100vh;color:var(--chalk);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  background-color:var(--board);
+  background-image:repeating-linear-gradient(90deg,transparent 0 79px,rgba(0,0,0,.1) 79px 80px),repeating-linear-gradient(0deg,transparent 0 79px,rgba(0,0,0,.08) 79px 80px);
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+.app{max-width:560px;margin:0 auto;padding-block:14px 40px;display:grid;gap:12px}
+.app>section{display:grid;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand>div{min-width:0;flex:1}
+.logo{font-family:var(--f-display);font-size:26px;line-height:1;color:var(--chalk);text-decoration:none;padding-right:12px;border-right:1px solid var(--line-soft);white-space:nowrap;flex:none}
+.logo span{color:var(--amber)}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--chalk-dim);text-transform:uppercase}
+h1{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.05;margin:2px 0 0}
+.admintag{flex:none;font-size:12px;font-weight:700;color:#1a1405;background:#b8a6f2;border-radius:999px;padding:3px 10px}
+.sub{color:var(--chalk-dim);font-size:14px;margin:0;word-break:keep-all}
+.card{background:var(--slot);border:1px solid var(--line-soft);border-radius:10px;padding:14px;display:grid;gap:10px}
+.label{font-size:13px;color:var(--chalk-dim);font-weight:700}
 .row{display:flex;gap:8px;align-items:center}
 .seg{display:flex;gap:6px}
 .seg button{flex:1}
-button{font:inherit;border:0;border-radius:12px;padding:12px 14px;background:var(--chip);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line-soft);background:var(--board-2);padding:10px 14px;border-radius:8px;font-weight:700;font-size:15px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 button:active{transform:scale(.98)}
-button.primary{background:var(--accent);color:#fff}
-button.sel{background:var(--ink);color:#fff}
-button:disabled{opacity:.4}
-input{font:inherit;font-size:16px;border:1px solid var(--border);border-radius:12px;padding:12px;width:100%;background:#fff}
-input.code{text-transform:uppercase;letter-spacing:4px;font-family:'JetBrains Mono',monospace;text-align:center}
+button.primary{background:var(--amber);color:#1a1405;border-color:var(--amber)}
+button.sel{background:var(--chalk);color:var(--board);border-color:var(--chalk)}
+button:disabled{opacity:.4;cursor:not-allowed}
+input{font:inherit;font-size:16px;border:1px solid var(--line-soft);border-radius:8px;padding:11px 12px;width:100%;background:var(--board);color:var(--chalk)}
 .full{width:100%}
 .mt{margin-top:10px}
 .hidden{display:none!important}
-.hint{font-size:13px;color:var(--muted);line-height:1.5}
-.err{color:var(--warn);font-size:13px;margin-top:8px;min-height:1em}
-
-/* room */
-.bigcode{font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:700;letter-spacing:8px;text-align:center;margin:6px 0}
-.players{display:flex;flex-direction:column;gap:6px}
-.pl{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
-.pl .tag{font-size:12px;color:var(--muted)}
-.pl.me{outline:2px solid var(--accent-soft)}
-.pl .st{font-family:'JetBrains Mono',monospace;font-size:14px}
-.st.done{color:var(--ok);font-weight:700}
+.hint{font-size:13px;color:var(--chalk-dim);line-height:1.5}
+.err{color:var(--red);font-size:13px;min-height:1em}
 
 /* game */
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.timer{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;color:var(--accent)}
-.iconbtn{padding:10px 12px;font-size:14px}
-.tools{display:flex;gap:6px;margin-bottom:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.timer{font-family:var(--f-mono);font-size:30px;font-weight:600;color:var(--amber);font-variant-numeric:tabular-nums}
+.iconbtn{padding:9px 12px;font-size:14px}
+.tools{display:flex;gap:6px}
 .tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
 .sw{display:inline-block;width:18px;height:4px;background:currentColor;border-radius:2px}
-.board-wrap{background:var(--paper);border:1px solid var(--border);border-radius:16px;padding:10px;position:relative}
+.board-wrap{background:var(--slot);border:1px solid var(--line-soft);border-radius:10px;padding:10px;position:relative;box-shadow:inset 0 0 0 4px rgba(0,0,0,.25)}
 svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-.clue{font-family:'IBM Plex Sans KR',sans-serif;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
-.clue.okc{fill:#b9b3a6}
-.clue.bad{fill:var(--warn)}
-.info{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:8px}
-.strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.chip{background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:13px;display:flex;gap:6px;align-items:center}
-.chip .d{width:8px;height:8px;border-radius:50%;background:#e2a400}
-.chip.fin .d{background:var(--ok)}
-.chip.me{border-color:var(--accent)}
+.clue{font-family:var(--f-display);font-weight:400;fill:var(--chalk);text-anchor:middle;dominant-baseline:central}
+.clue.bad{fill:var(--red)}
+.info{display:flex;justify-content:space-between;color:var(--chalk-dim);font-size:13px;font-family:var(--f-mono)}
+.strip{display:flex;gap:6px;flex-wrap:wrap}
+.players{display:flex;flex-direction:column;gap:6px}
+.pl{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;background:var(--board-2);font-size:15px}
+.st{font-family:var(--f-mono);font-size:14px}
+.st.done{color:var(--green);font-weight:700}
 
 /* overlays */
-.overlay{position:fixed;inset:0;background:rgba(20,22,30,.55);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
-.modal{background:var(--paper);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;text-align:center}
-.correct.gave{color:var(--muted);font-size:34px}
-.correct{font-size:44px;font-weight:700;color:var(--ok);margin:0;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.overlay{position:fixed;inset:0;background:rgba(4,14,12,.84);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+.modal{background:var(--slot);border:1px solid var(--line-soft);border-top:4px solid var(--amber);border-radius:12px;padding:22px 20px;width:100%;max-width:380px;text-align:center;display:grid;gap:6px}
+.correct{font-family:var(--f-display);font-weight:400;font-size:48px;color:var(--green);margin:0;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.correct.gave{color:var(--chalk-dim);font-size:36px}
 @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
-.rtime{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;margin:8px 0 4px}
-.rank{color:var(--muted);font-size:14px;margin-bottom:14px}
-.count{font-family:'JetBrains Mono',monospace;font-size:96px;font-weight:700;color:#fff;animation:pop .4s}
-.board-cover{position:absolute;inset:0;background:var(--paper);border-radius:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px}
-.results{margin:4px 0 14px;text-align:left}
-.sitebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-.homelink{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--ink);text-decoration:none;letter-spacing:.5px}
-.homelink span{color:var(--accent)}
-.admintag{font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:999px;padding:4px 10px}
+@media (prefers-reduced-motion:reduce){.correct,.count{animation:none}}
+.rtime{font-family:var(--f-mono);font-size:34px;font-weight:600;color:var(--amber)}
+.rank{color:var(--chalk-dim);font-size:14px;margin-bottom:8px}
+.count{font-family:var(--f-display);font-size:110px;color:var(--amber);animation:pop .4s}
+.board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
+.results{margin:4px 0 10px;text-align:left}
+#winBtns{display:grid;gap:0}
+@media (min-width:900px){.app{padding-block:22px 48px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="sitebar"><a class="homelink" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1 MATCH</a><span class="admintag">관리자 전용</span></div>
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · 퍼즐</div><h1>슬리더링크</h1></div><span class="admintag">관리자 전용</span></header>
 
   <!-- HOME -->
   <section id="home">
-    <h1>슬리더링크</h1>
     <p class="sub">점을 이어 하나의 고리를 만드세요. 숫자는 그 칸을 둘러싼 선의 개수예요.</p>
 
-    <div class="card">
-      <div class="label">닉네임</div>
-      <input id="nick" maxlength="10" placeholder="이름을 입력하세요">
-    </div>
+    <input id="nick" type="hidden">
 
     <div class="card">
       <div class="label">판 크기</div>
@@ -106,7 +109,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
         <button data-n="7" class="sel">7×7</button>
         <button data-n="10">10×10</button>
       </div>
-      <button class="primary full mt" id="soloBtn">혼자 풀기</button>
+      <button class="primary full" id="soloBtn">퍼즐 풀기</button>
     </div>
 
   </section>
