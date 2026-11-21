@@ -117,7 +117,6 @@ h2{font-family:var(--f-display);font-weight:400;font-size:26px}
     <a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a>
     <div><div class="eyebrow">1x1 MATCH · 2~4인 · 땅따먹기</div><h1>벽바둑 <span>Ⅱ</span></h1></div>
     <div class="sp"></div>
-    <span class="admintag">관리자 전용</span>
   </header>
 
   <!-- HOME -->
@@ -525,7 +524,7 @@ let G=null;          // host authoritative state
 let S=null;          // state being viewed
 let localDeadline=0, pending=null, helloTimer=null;
 function norm(a,b){ if(a&&a.t) return a; if(a&&a.data&&a.data.t) return a.data; if(b&&b.t) return b; if(b&&b.data&&b.data.t) return b.data; return null; }
-// 1x1 MATCH 서버가 같은 방 코드의 브라우저끼리 메시지를 전달함 (관리자만)
+// 1x1 MATCH 서버가 같은 방 코드의 브라우저끼리 메시지를 전달함 (누구나)
 async function detectNet(){ return 'relay'; }
 async function relayPost(path,body){ const r=await fetch('/api/wallgo/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body||{})}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||'연결 실패'); return d; }
 function relayOpen(code){ return new Promise((res,rej)=>{
@@ -707,7 +706,7 @@ function renderLobby(V){
   const host=Net.isHost, online=Net.mode!=='local';
   $('#codeBox').classList.toggle('hidden',!online);
   $('#codeTxt').textContent=Net.code||'----';
-  $('#inviteHint').textContent='다른 관리자가 벽바둑 Ⅱ에서 이 코드를 입력하면 들어와요.';
+  $('#inviteHint').textContent='같이 할 사람이 벽바둑 Ⅱ에서 이 코드를 입력하면 들어와요.';
   $('#seats').innerHTML=V.seats.map((x,i)=>{
     const me=x.kind==='human'&&x.cid===myCid; let ctrl='';
     if(host){
@@ -821,7 +820,7 @@ function renderGame(V){
     $('#btnAgain').classList.toggle('hidden',!Net.isHost);
   } else $('#resultModal').classList.add('hidden');
 }
-// 끝난 판을 로그인한 관리자의 경기 기록에 저장 (내 자리 한 번만)
+// 끝난 판을 로그인한 사람의 경기 기록에 저장 (내 자리 한 번만)
 const savedGames=new Set();
 function saveResult(V){
   const key=(Net.code||'local')+':'+V.first+':'+V.turnNo+':'+V.log.length;
@@ -927,7 +926,7 @@ detectNet().then(k=>{
   Net.kind=k; Net.mode=k;
   const ok=k!=='none';
   $('#btnCreate').disabled=!ok; $('#btnJoin').disabled=!ok;
-  $('#netInfo').textContent='온라인 방은 관리자 계정끼리만 들어올 수 있어요. 빈자리는 AI가 채워요.';
+  $('#netInfo').textContent='방을 만들고 코드를 보내 친구를 초대하세요. 빈자리는 시작할 때 AI가 채워요.';
 });
 render();
 </script>

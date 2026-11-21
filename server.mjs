@@ -141,11 +141,8 @@ async function authApi(req, res, path, url) {
 }
 const bwApi = roomApi(BwRooms, '/api/bw');
 
-// 벽바둑 Ⅱ 메시지 중계 (관리자 전용)
+// 벽바둑 온라인 메시지 중계 (누구나)
 async function wallgoApi(req, res, path, url) {
-  let user = null;
-  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
-  if (!user || !user.admin) return json(res, 404, { error: '없는 주소예요.' });
   try {
     if (path === '/api/wallgo/new' && req.method === 'POST') return json(res, 200, { code: Relay.newCode() });
     const m = path.match(/^\/api\/wallgo\/([A-Za-z]{4})\/(events|send|check)$/);
@@ -160,11 +157,11 @@ async function wallgoApi(req, res, path, url) {
   }
 }
 
-// 슬리더링크 기록 대결 (관리자 전용). 관리자가 아니면 없는 주소처럼 404
+// 슬리더링크 기록 대결 (로그인한 사람)
 async function slitherApi(req, res, path, url) {
   let user = null;
-  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
-  if (!user || !user.admin) return json(res, 404, { error: '없는 주소예요.' });
+  try { user = Accounts.userFromReq(req); } catch (e) { console.error(e); }
+  if (!user) return json(res, 401, { error: '로그인하면 기록 대결을 할 수 있어요.' });
   const m = path.match(/^\/api\/slither\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|events|leave))?$/);
   if (!m) return json(res, 404, { error: '없는 주소예요.' });
   const [, code, op] = m;
@@ -206,7 +203,6 @@ createServer(async (req, res) => {
     res.end();
     return;
   }
-  // 슬리더링크는 관리자 계정으로 로그인했을 때만 열림 (다른 사람에게는 없는 페이지처럼 보임)
   // 대표 계정 전용 관리 페이지
   if (path === '/owner' || path.startsWith('/owner/')) {
     let ok = false;
@@ -214,14 +210,8 @@ createServer(async (req, res) => {
     if (!ok) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
     if (path === '/owner') { res.writeHead(301, { location: '/owner/' }); res.end(); return; }
   }
-  const adminPage = ['/slither', '/wallgo', '/wallgo1', '/owner'].find(b => path === b || path.startsWith(b + '/'));
-  if (adminPage) {
-    let admin = false;
-    try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); admin = !!(u && u.admin); } catch (e) { console.error(e); }
-    if (!admin) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
-    if (path === adminPage) { res.writeHead(301, { location: adminPage + '/' }); res.end(); return; }
-  }
-  if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
+  const adminPage = path === '/owner/' || path.startsWith('/owner/');
+  if (['/slither', '/wallgo', '/wallgo1', '/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
     return;

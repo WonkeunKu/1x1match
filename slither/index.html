@@ -122,7 +122,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
 </head>
 <body>
 <div class="app">
-  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 퍼즐 · 기록 대결</div><h1>슬리더링크</h1></div><span class="admintag">관리자 전용</span></header>
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 퍼즐 · 기록 대결</div><h1>슬리더링크</h1></div></header>
 
   <!-- HOME -->
   <section id="home">
@@ -141,14 +141,14 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
     </div>
 
     <div class="card">
-      <div class="label">관리자끼리 기록 대결</div>
+      <div class="label">친구와 기록 대결</div>
       <button class="full" id="createBtn">대결방 만들기</button>
       <div class="row">
         <input id="codeIn" class="code" maxlength="4" placeholder="방 코드 4자리" autocomplete="off">
         <button id="joinBtn" style="white-space:nowrap">참가</button>
       </div>
       <div class="err" id="homeErr"></div>
-      <div class="hint">방을 만들면 4자리 코드가 나와요. 다른 관리자가 코드를 입력하면 같은 문제로 동시에 시작해서 정답을 먼저 맞힌 순서로 순위가 정해져요.</div>
+      <div class="hint">방을 만들면 4자리 코드가 나와요. 다른 사람이 코드를 입력하면 같은 문제로 동시에 시작해서 정답을 먼저 맞힌 순서로 순위가 정해져요. 기록 대결은 로그인해야 할 수 있어요.</div>
     </div>
 
   </section>
@@ -159,7 +159,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
     <div class="card" style="text-align:center">
       <div class="label">방 코드</div>
       <div class="bigcode" id="roomCode">----</div>
-      <div class="hint">다른 관리자에게 이 코드를 알려 주세요</div>
+      <div class="hint">같이 할 사람에게 이 코드를 알려 주세요</div>
     </div>
     <div class="card">
       <div class="label">참가자</div>
@@ -629,7 +629,7 @@ async function startSolo(){
 $('soloBtn').onclick=startSolo;
 $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
 
-// 혼자 푼 결과는 로그인한 관리자의 경기 기록에 저장 (대결 기록은 서버가 저장)
+// 혼자 푼 결과는 로그인한 사람의 경기 기록에 저장 (대결 기록은 서버가 저장)
 function saveSolo(result){
   fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime)})}).catch(()=>{});
 }

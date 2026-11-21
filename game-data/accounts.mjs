@@ -243,7 +243,6 @@ export function cleanClientEntry(e, isAdmin) {
     if (!result) fail('저장할 수 없는 기록이에요.');
     return { game: 'bw', mode: 'ai', level: ['low', 'mid', 'high'].includes(e.level) ? e.level : 'mid', result, myWins: n(e.myWins), oppWins: n(e.oppWins), opponent: 'AI', innings: n(e.innings) };
   }
-  if (!isAdmin) fail('저장할 수 없는 기록이에요.');
   if (e.game === 'slither' && e.mode === 'solo') {
     const size = [5, 7, 10].includes(Number(e.size)) ? Number(e.size) : null;
     const result = ['solved', 'gaveup'].includes(e.result) ? e.result : null;

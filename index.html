@@ -82,12 +82,12 @@ a.game.ai { border-top-color: #f28f74; }
 a.game.ai .go { color: #f28f74; }
 a.game.bwai { border-top-color: #a9d774; }
 a.game.bwai .go { color: #a9d774; }
-a.game.admin { border-top-color: #b8a6f2; border-style: dashed; border-top-style: solid; }
-a.game.admin .go { color: #b8a6f2; }
-a.game.admin.wall { border-top-color: #e7a0c8; }
-a.game.admin.wall1 { border-top-color: #f0a35e; }
-a.game.admin.wall1 .go { color: #f0a35e; }
-a.game.admin.wall .go { color: #e7a0c8; }
+a.game.dp { border-top-color: #b8a6f2; }
+a.game.dp .go { color: #b8a6f2; }
+a.game.dp.wall { border-top-color: #e7a0c8; }
+a.game.dp.wall1 { border-top-color: #f0a35e; }
+a.game.dp.wall1 .go { color: #f0a35e; }
+a.game.dp.wall .go { color: #e7a0c8; }
 .lockchip { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
 .demo { display: flex; gap: 6px; }
 .demo i { display: grid; place-items: center; width: 34px; height: 40px; border-radius: 6px; font-style: normal; font-family: var(--f-display); font-size: 15px; }
@@ -142,12 +142,12 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <p>야구를 많이 아는 사람이 이기는 게임. 연봉 블라인드 경매, 9이닝 홈런 흑과 백.</p>
       <span class="fmeta"><b id="cntBaseball">4</b>개 게임 <span class="go">열기 →</span></span>
     </a>
-    <a class="folder fd locked" href="#devils" id="devilsFolder" aria-disabled="true">
-      <span class="ftag">FOLDER 02<span class="lockchip" id="devilsChip">곧 공개</span></span>
-      <span class="fstack" aria-hidden="true"><i>?</i><i>?</i></span>
+    <a class="folder fd" href="#devils" id="devilsFolder">
+      <span class="ftag">FOLDER 02</span>
+      <span class="fstack" aria-hidden="true"><i>퍼즐</i><i>벽</i><i>벽Ⅱ</i></span>
       <h2>데블스플랜</h2>
-      <p id="devilsDesc">두뇌 서바이벌에서 가져온 게임들을 준비하고 있어요.</p>
-      <span class="fmeta"><b id="cntDevils">–</b><span id="devilsUnit"></span> <span class="go" id="devilsGo">준비 중</span></span>
+      <p id="devilsDesc">두뇌 서바이벌에서 가져온 게임. 슬리더링크, 벽바둑, 벽바둑 Ⅱ.</p>
+      <span class="fmeta"><b id="cntDevils">3</b>개 게임 <span class="go">열기 →</span></span>
     </a>
   </section>
 
@@ -190,8 +190,12 @@ footer { font-size: 13px; color: var(--chalk-dim); }
   </section>
 
   <section class="fview" id="view-devils" hidden>
-    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>데블스플랜</h2><span class="fcount" id="devilsCount"></span></div>
-    <div class="games" id="devilsGames"></div>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>데블스플랜</h2><span class="fcount" id="devilsCount">3개 게임</span></div>
+    <div class="games" id="devilsGames">
+      <div class="gw"><a class="game dp" href="slither/"><span class="tag">퍼즐 · 기록 대결</span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 혼자 풀거나, 방을 만들어 친구와 같은 문제로 시간 기록 대결을 해요.</p><div class="chips"><span class="chip">혼자 풀기</span><span class="chip">기록 대결</span></div><span class="go">퍼즐 풀기 →</span></a></div>
+      <div class="gw"><a class="game dp wall1" href="wallgo1/"><span class="tag">데블스플랜 시즌2 · 땅따먹기</span><h2>벽바둑</h2><p>말을 상하좌우로 0~2칸 옮기고 그 칸에 벽을 세워, 내 말만 있는 영역을 더 넓게 만드는 게임이에요. 2인은 말 4개씩. 친구를 초대하거나 AI와 겨뤄요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a></div>
+      <div class="gw"><a class="game dp wall" href="wallgo/"><span class="tag">2~4인 · 땅따먹기</span><h2>벽바둑 Ⅱ</h2><p>사각 말과 원형 말을 옮기고 벽을 세워 내 말이 있는 영역을 가장 넓게 만드는 게임이에요. 친구를 초대하고, 빈자리는 AI가 채워요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a></div>
+    </div>
   </section>
 
   <footer>Rallypick · 기록 출처: KBO 공식 기록실</footer>
@@ -217,26 +221,6 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
   if (d.user) {
     el.innerHTML = (d.user.owner ? '<a href="owner/" class="ownerlink">회원 관리</a>' : '') + '<span class="acct-name"></span><button type="button" id="logoutBtn">로그아웃</button>';
     el.querySelector('.acct-name').textContent = d.user.nickname + '님';
-    if (d.user.admin && !document.getElementById('adminGame')) {
-      // 관리자 계정에만 보이는 게임
-      const w = document.createElement('div'); w.className = 'gw'; w.id = 'adminGame';
-      w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 퍼즐 · 기록 대결<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 혼자 풀거나, 관리자끼리 방을 만들어 같은 문제로 시간 기록 대결을 해요.</p><div class="chips"><span class="chip">혼자 풀기</span><span class="chip">관리자 기록 대결</span></div><span class="go">퍼즐 풀기 →</span></a>';
-      document.getElementById('devilsGames').appendChild(w);
-      const w1 = document.createElement('div'); w1.className = 'gw';
-      w1.innerHTML = '<a class="game admin wall1" href="wallgo1/"><span class="tag">ADMIN · 데블스플랜 시즌2 · 땅따먹기<span class="lockchip">관리자 전용</span></span><h2>벽바둑</h2><p>말을 상하좌우로 0~2칸 옮기고 그 칸에 벽을 세워, 내 말만 있는 영역을 더 넓게 만드는 게임이에요. 2인은 말 4개씩, 관리자끼리 하거나 AI와 겨뤄요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a>';
-      document.getElementById('devilsGames').appendChild(w1);
-      const w2 = document.createElement('div'); w2.className = 'gw';
-      w2.innerHTML = '<a class="game admin wall" href="wallgo/"><span class="tag">ADMIN · 2~4인 · 땅따먹기<span class="lockchip">관리자 전용</span></span><h2>벽바둑 Ⅱ</h2><p>말을 옮기고 벽을 세워 내 말이 있는 영역을 가장 넓게 만드는 게임이에요. 관리자끼리 방을 만들어 하거나, 빈자리는 AI와 겨뤄요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a>';
-      document.getElementById('devilsGames').appendChild(w2);
-      const n = document.querySelectorAll('#devilsGames .gw').length;
-      document.getElementById('cntDevils').textContent = n; document.getElementById('devilsCount').textContent = n + '개 게임';
-      const f = document.getElementById('devilsFolder'); f.classList.remove('locked'); f.removeAttribute('aria-disabled');
-      document.getElementById('devilsChip').textContent = '관리자 전용';
-      f.querySelector('.fstack').innerHTML = '<i>퍼즐</i><i>벽</i>';
-      document.getElementById('devilsDesc').textContent = '두뇌 서바이벌에서 가져온 게임. 슬리더링크, 벽바둑, 벽바둑 Ⅱ.';
-      document.getElementById('devilsUnit').textContent = '개 게임'; document.getElementById('devilsGo').textContent = '열기 →';
-      route();
-    }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
   }
 }).catch(() => {});

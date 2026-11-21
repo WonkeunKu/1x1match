@@ -93,9 +93,9 @@ const tm = ms => { if (ms == null) return '–'; const s = Math.floor(ms / 1000)
 const GAMES = [
   { id: 'auction', short: '경매', name: '연봉 블라인드 경매', c: 'var(--amber)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
-  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', admin: true, modes: [['solo', '혼자'], ['battle', '기록 대결']] },
-  { id: 'wallgo1', short: '벽바둑', name: '벽바둑', c: '#f0a35e', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] },
-  { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] }
+  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결']] },
+  { id: 'wallgo1', short: '벽바둑', name: '벽바둑', c: '#f0a35e', modes: [['online', '온라인'], ['local', '이 기기']] },
+  { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', modes: [['online', '온라인'], ['local', '이 기기']] }
 ];
 const G_BY = Object.fromEntries(GAMES.map(g => [g.id, g]));
 let game = 'all', mode = 'all';
