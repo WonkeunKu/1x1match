@@ -715,11 +715,9 @@ function renderLobby(V){
     const me=x.kind==='human'&&x.cid===myCid; let ctrl='';
     if(host){
       if(Net.mode==='local') ctrl=`<button class="small" data-seat="${i}" data-sa="toggle">${x.kind==='ai'?'사람으로':'AI로'}</button>`;
-      else if(x.kind==='open') ctrl=`<button class="small" data-seat="${i}" data-sa="ai">AI 넣기</button>`;
-      else if(x.kind==='ai') ctrl=`<button class="small" data-seat="${i}" data-sa="open">자리 비우기</button>`;
-      else if(!me) ctrl=`<button class="small" data-seat="${i}" data-sa="kick">내보내기</button>`;
+      else if(x.kind==='human'&&!me) ctrl=`<button class="small" data-seat="${i}" data-sa="kick">내보내기</button>`;
     }
-    let nm=x.kind==='open'?'<span class="muted">빈자리 · 시작하면 AI</span>':esc(x.name||(x.kind==='ai'?'AI':'플레이어 '+(i+1)));
+    let nm=x.kind==='open'?'<span class="muted">초대 대기 중 · 시작하면 AI</span>':esc(x.name||(x.kind==='ai'?'AI':'플레이어 '+(i+1)));
     if(Net.mode==='local'&&x.kind==='human'&&host) nm=`<input data-rename="${i}" value="${esc(x.name)}" maxlength="12" style="padding:5px 8px;width:100%">`;
     const badge=x.kind==='ai'?`<span class="badge">AI · ${AILV[V.opts.ai]}</span>`:x.kind==='human'?(me&&Net.mode!=='local'?'<span class="badge me">나</span>':(i===0&&online?'<span class="badge">방장</span>':'')):'';
     return `<div class="seat"><span class="dot" style="background:${COLORS[i]}"></span><span class="nm">${nm}</span>${badge}${ctrl}</div>`;
@@ -883,7 +881,7 @@ $('#players').addEventListener('click',e=>{ const b=e.target.closest('[data-toai
 $('#btnStart').onclick=()=>hostStart();
 $('#btnAgain').onclick=()=>{ $('#resultModal').classList.add('hidden'); hostStart(); };
 $('#btnCloseRes').onclick=()=>$('#resultModal').classList.add('hidden');
-$('#btnToLobby').onclick=()=>{ if(!Net.isHost) return; const seats=G.seats.map(x=>({...x})); const opts=G.opts, spect=G.spect||[]; G={phase:'lobby',opts,seats,spect,log:[],turnNo:0}; ui.sel=null; hostChanged(); };
+$('#btnToLobby').onclick=()=>{ if(!Net.isHost) return; const seats=G.seats.map(x=>({...x})).map(x=>Net.mode!=='local'&&x.kind==='ai'?{kind:'open',name:''}:x); const opts=G.opts, spect=G.spect||[]; G={phase:'lobby',opts,seats,spect,log:[],turnNo:0}; ui.sel=null; hostChanged(); };
 function leave(){ try{ netSend({t:'bye'}); }catch(e){} try{ Net.es&&Net.es.close(); Net.es=null; }catch(e){} try{ Net.group&&Net.group.leave&&Net.group.leave(); }catch(e){} try{ Net.peer&&Net.peer.destroy(); }catch(e){}
   clearInterval(helloTimer); Net.isHost=false; Net.group=null; Net.peer=null; Net.conns=[]; Net.hostConn=null; Net.code=null; G=null; S=null; pending=null; Net.mode=Net.kind;
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} render(); }
