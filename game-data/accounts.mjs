@@ -209,16 +209,17 @@ const attempts = new Map(); // 로그인 실패 5번이면 5분 잠금
 export async function login(b) {
   if (ACCOUNTS_DISABLED) fail('회원 기능을 준비하고 있어요. 지금은 로그인 없이 게임을 할 수 있어요.', null, 503);
   const id = String(b.id || '').trim(), pw = String(b.password || '');
-  if (!id || !pw) fail('닉네임(또는 전화번호)과 비밀번호를 입력하세요.');
+  if (!id || !pw) fail('전화번호와 비밀번호를 입력하세요.');
   const key = id.toLowerCase();
   const a = attempts.get(key);
   if (a && a.until > Date.now()) fail('로그인을 5번 틀려서 5분 동안 잠겼어요. 잠시 뒤 다시 시도하세요.', null, 429);
   const digits = phoneDigits(id);
-  const user = phoneOk(digits) && /^[\d\-\s]+$/.test(id) ? await findUser('phone', digits) : await findUser('nickname', id);
+  if (!phoneOk(digits) || !/^[\d\-\s]+$/.test(id)) fail('휴대폰 번호로 로그인하세요. 예: 010-1234-5678', 'id');
+  const user = await findUser('phone', digits);
   if (!user || !(await checkPw(pw, user.pw_hash))) {
     const n = (a && !(a.until && a.until <= Date.now()) ? a.n : 0) + 1; // 잠금이 풀린 뒤에는 처음부터 다시 셈
     attempts.set(key, { n, until: n >= 5 ? Date.now() + 5 * 60000 : 0 });
-    fail('닉네임(또는 전화번호)이나 비밀번호가 맞지 않아요.', null, 401);
+    fail('전화번호나 비밀번호가 맞지 않아요.', null, 401);
   }
   attempts.delete(key);
   logEvent(user.id, '_login', b.device).catch(e => console.error('login log failed', e.message));

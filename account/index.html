@@ -119,7 +119,7 @@ details summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var
     </div>
 
     <form id="loginForm" role="tabpanel" aria-labelledby="tabLogin" novalidate style="margin-top:12px">
-      <div class="field"><label for="lgId">닉네임 또는 전화번호</label><input type="text" id="lgId" autocomplete="username" placeholder="예: 홍길동 또는 010-1234-5678"></div>
+      <div class="field"><label for="lgId">휴대폰 번호</label><input type="tel" id="lgId" inputmode="numeric" maxlength="13" autocomplete="username" placeholder="예: 010-1234-5678"></div>
       <div class="field"><label for="lgPw">비밀번호</label>
         <div class="row"><input type="password" id="lgPw" autocomplete="current-password"><button type="button" class="eye" data-eye="lgPw" aria-pressed="false">보기</button></div></div>
       <p class="err" id="lgErr"></p>
@@ -269,7 +269,7 @@ $('loginForm').addEventListener('submit', async e => {
   try { await api('/api/auth/login', { id: $('lgId').value.trim(), password: $('lgPw').value }); location.href = next; }
   catch (ex) { $('lgErr').textContent = ex.message; }
 });
-$('lgId').addEventListener('input', e => { if (/^\d[\d-]*$/.test(e.target.value)) e.target.value = fmtPhone(e.target.value); });
+$('lgId').addEventListener('input', e => { e.target.value = fmtPhone(e.target.value); });
 
 
 /* 내 정보 수정 */
