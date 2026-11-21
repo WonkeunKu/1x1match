@@ -104,8 +104,10 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
   #game .info{grid-area:info;flex-direction:column;gap:6px}
   #revealBtn{grid-area:reveal;margin-top:0}
 }
-.diff{display:inline-block;font-size:14px;font-weight:700;border-radius:999px;padding:4px 12px;margin:2px 0 6px;background:var(--board-2);color:var(--chalk-dim)}
-.diff.d0{background:var(--green);color:#14200c}.diff.d1{background:var(--blue);color:#0b1f2a}.diff.d2{background:var(--amber);color:#1a1405}.diff.d3{background:var(--red);color:#2a0b06}
+.diff{display:inline-block;font-size:15px;font-weight:700;border-radius:999px;padding:4px 12px;margin:2px 0 6px;background:var(--board-2);color:var(--chalk-dim);border:1px solid currentColor}
+.d0{color:var(--green)}.d1{color:var(--blue)}.d2{color:var(--amber)}.d3{color:var(--red)}
+.diff.d0,.diff.d1,.diff.d2,.diff.d3{background:var(--slot)}
+#sizeInfo b{font-weight:700}
 .board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
 .results{margin:4px 0 10px;text-align:left}
 #winBtns{display:grid;gap:0}
@@ -472,7 +474,7 @@ function diffHtml(){ return diff==null?'<span class="diff">난이도 계산 중�
 function showDiff(){
   if(!finished) return;
   const w=$('winDiff'); if(w) w.innerHTML=diffHtml();
-  $('sizeInfo').innerHTML=`${G.R}×${G.R} · `+(diff==null?'난이도 계산 중':'난이도 '+DIFF_NAME[diff]);
+  $('sizeInfo').innerHTML=`${G.R}×${G.R} · `+(diff==null?'난이도 계산 중':`난이도 <b class="d${diff}">${DIFF_NAME[diff]}</b>`);
 }
 let reqId=0;
 function makePuzzle(n,seed){
