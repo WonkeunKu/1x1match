@@ -30,7 +30,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'owner'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -88,6 +88,13 @@ function roomApi(R, prefix) {
 }
 const auctionApi = roomApi(Rooms, '/api/auction');
 
+// 접속 기기를 짧게 (예: 'iPhone · Safari') — 대표 계정의 접속 기록용
+function deviceOf(ua) {
+  ua = String(ua || '');
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac OS X|Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '기타';
+  const br = /KAKAOTALK/i.test(ua) ? '카카오톡' : /NAVER/.test(ua) ? '네이버' : /SamsungBrowser/.test(ua) ? '삼성 인터넷' : /Edg\//.test(ua) ? 'Edge' : /Whale/.test(ua) ? 'Whale' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '브라우저';
+  return os + ' · ' + br;
+}
 // 회원가입·로그인·경기 기록
 async function authApi(req, res, path, url) {
   const secure = req.headers['x-forwarded-proto'] === 'https';
@@ -100,7 +107,12 @@ async function authApi(req, res, path, url) {
     const user = Accounts.userFromReq(req);
     if (path === '/api/auth/me' && req.method === 'GET') {
       const u = await Accounts.refreshAdmin(user);
+      Accounts.noteVisit(user, deviceOf(req.headers['user-agent']));
       return send(200, { user: u }, u && u.admin && !user.admin ? Accounts.sessionCookie(u, secure) : null);
+    }
+    if (path === '/api/owner/overview' && req.method === 'GET') {
+      if (!(await Accounts.isOwner(user))) return send(404, { error: '없는 주소예요.' });
+      return send(200, await Accounts.ownerOverview());
     }
     if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
     if (path === '/api/history' && req.method === 'GET') {
@@ -110,6 +122,7 @@ async function authApi(req, res, path, url) {
     }
     if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
+    body.device = deviceOf(req.headers['user-agent']);
     if (path === '/api/auth/signup') { const u = await Accounts.signup(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/login') { const u = await Accounts.login(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/logout') return send(200, { ok: true }, Accounts.clearCookie(secure));
@@ -176,7 +189,7 @@ createServer(async (req, res) => {
     try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level, Accounts.userFromReq(req))); }
     catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
   }
-  if (path.startsWith('/api/auth/') || path === '/api/history') return authApi(req, res, path, url);
+  if (path.startsWith('/api/auth/') || path === '/api/history' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);
@@ -194,7 +207,14 @@ createServer(async (req, res) => {
     return;
   }
   // 슬리더링크는 관리자 계정으로 로그인했을 때만 열림 (다른 사람에게는 없는 페이지처럼 보임)
-  const adminPage = ['/slither', '/wallgo'].find(b => path === b || path.startsWith(b + '/'));
+  // 대표 계정 전용 관리 페이지
+  if (path === '/owner' || path.startsWith('/owner/')) {
+    let ok = false;
+    try { ok = await Accounts.isOwner(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
+    if (!ok) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
+    if (path === '/owner') { res.writeHead(301, { location: '/owner/' }); res.end(); return; }
+  }
+  const adminPage = ['/slither', '/wallgo', '/owner'].find(b => path === b || path.startsWith(b + '/'));
   if (adminPage) {
     let admin = false;
     try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); admin = !!(u && u.admin); } catch (e) { console.error(e); }

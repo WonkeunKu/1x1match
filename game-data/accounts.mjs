@@ -28,6 +28,10 @@ const nameOk = n => /^[A-Za-z가-힣 ]{2,20}$/.test(n);
 // 관리자 계정(전화번호 기준). 관리자만 볼 수 있는 게임(슬리더링크)이 있음
 const ADMIN_PHONES = (process.env.ADMIN_PHONES || '01073343125,01034238296,01029903125,01087868296,01071135737').split(',').map(phoneDigits).filter(Boolean);
 const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
+// 대표 계정: 회원 목록·접속 기록을 볼 수 있음
+const OWNER_PHONES = (process.env.OWNER_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
+const isOwnerPhone = p => OWNER_PHONES.includes(phoneDigits(p));
+const EVENT_GAMES = ['_login', '_visit']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -128,6 +132,7 @@ export async function signup(b) {
   if (await findUser('nickname', nickname)) fail('이미 사용 중인 닉네임이에요.', 'nickname');
   if (await findUser('phone', phone)) fail('이미 가입된 전화번호예요. 전화번호 하나당 계정은 하나만 만들 수 있어요.', 'phone');
   const row = await insertUser({ nickname, name, phone, pw_hash: await hashPw(pw) });
+  logEvent(row.id, '_login', b.device).catch(e => console.error('login log failed', e.message));
   return { id: row.id, nickname: row.nickname, admin: isAdminPhone(phone) };
 }
 const attempts = new Map(); // 로그인 실패 5번이면 5분 잠금
@@ -146,18 +151,69 @@ export async function login(b) {
     fail('닉네임(또는 전화번호)이나 비밀번호가 맞지 않아요.', null, 401);
   }
   attempts.delete(key);
+  logEvent(user.id, '_login', b.device).catch(e => console.error('login log failed', e.message));
   return { id: user.id, nickname: user.nickname, admin: isAdminPhone(user.phone) };
 }
 
 // 관리자 표시가 없는 예전 로그인 쿠키도 한 번 확인해 줌 (전화번호를 다시 조회)
-const adminChecked = new Map();
+const roleCache = new Map(); // id -> { admin, owner }
+async function rolesOf(id) {
+  if (roleCache.has(id)) return roleCache.get(id);
+  const row = await findUser('id', id);
+  const r = { admin: !!(row && isAdminPhone(row.phone)), owner: !!(row && isOwnerPhone(row.phone)) };
+  roleCache.set(id, r);
+  return r;
+}
 export async function refreshAdmin(user) {
-  if (!user || user.admin) return user;
-  if (adminChecked.has(user.id)) return adminChecked.get(user.id) ? Object.assign({}, user, { admin: true }) : user;
-  const row = await findUser('id', user.id);
-  const admin = !!(row && isAdminPhone(row.phone));
-  adminChecked.set(user.id, admin);
-  return admin ? Object.assign({}, user, { admin: true }) : user;
+  if (!user) return user;
+  const r = await rolesOf(user.id);
+  return Object.assign({}, user, { admin: user.admin || r.admin, owner: r.owner });
+}
+
+/* ---------- 접속 기록 (대표 계정이 봄) ---------- */
+const lastVisit = new Map();
+const cleanDevice = d => String(d || '').slice(0, 40);
+async function logEvent(userId, kind, device) {
+  const row = { user_id: userId, game: kind, mode: 'event', level: null, result: { device: cleanDevice(device) } };
+  if (usingSupabase) { await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); return; }
+  const db = await fdb();
+  db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row));
+  await fsave();
+}
+// 로그인을 유지한 채 다시 들어온 것도 접속으로 남김 (한 사람당 3시간에 한 번)
+export function noteVisit(user, device) {
+  if (!user) return;
+  const t = Date.now();
+  if (t - (lastVisit.get(user.id) || 0) < 3 * 3600 * 1000) return;
+  lastVisit.set(user.id, t);
+  logEvent(user.id, '_visit', device).catch(e => console.error('visit log failed', e.message));
+}
+export async function isOwner(user) {
+  if (!user) return false;
+  return (await rolesOf(user.id)).owner;
+}
+export async function ownerOverview() {
+  let users, events, plays;
+  if (usingSupabase) {
+    users = await sb('match_users?select=id,nickname,name,phone,created_at&order=created_at.desc&limit=5000');
+    events = await sb(`match_history?select=user_id,game,result,played_at&game=in.(${EVENT_GAMES.join(',')})&order=played_at.desc&limit=1000`);
+    plays = await sb(`match_history?select=user_id,game,played_at&game=not.in.(${EVENT_GAMES.join(',')})&order=played_at.desc&limit=10000`);
+  } else {
+    const db = await fdb();
+    users = db.users.slice().sort((a, b) => b.id - a.id);
+    const h = db.history.slice().sort((a, b) => b.id - a.id);
+    events = h.filter(x => EVENT_GAMES.includes(x.game)).slice(0, 1000);
+    plays = h.filter(x => !EVENT_GAMES.includes(x.game));
+  }
+  const byId = new Map(users.map(u => [u.id, u]));
+  const stat = new Map();
+  for (const u of users) stat.set(u.id, { games: 0, byGame: {}, lastPlay: null, lastSeen: null, logins: 0 });
+  for (const p of plays) { const st = stat.get(p.user_id); if (!st) continue; st.games++; st.byGame[p.game] = (st.byGame[p.game] || 0) + 1; if (!st.lastPlay) st.lastPlay = p.played_at; }
+  for (const e of events) { const st = stat.get(e.user_id); if (!st) continue; if (!st.lastSeen) st.lastSeen = e.played_at; if (e.game === '_login') st.logins++; }
+  return {
+    users: users.map(u => Object.assign({ id: u.id, nickname: u.nickname, name: u.name, phone: u.phone, created_at: u.created_at, admin: isAdminPhone(u.phone), owner: isOwnerPhone(u.phone) }, stat.get(u.id))),
+    events: events.filter(e => byId.has(e.user_id)).map(e => ({ nickname: byId.get(e.user_id).nickname, name: byId.get(e.user_id).name, kind: e.game === '_login' ? 'login' : 'visit', device: (e.result && e.result.device) || '', at: e.played_at }))
+  };
 }
 
 /* ---------- history ---------- */
@@ -170,11 +226,11 @@ export async function addHistory(userId, entry) {
 }
 export async function listHistory(userId) {
   if (usingSupabase) {
-    const rows = await sb(`match_history?select=result,played_at&user_id=eq.${Number(userId)}&order=played_at.desc&limit=300`);
+    const rows = await sb(`match_history?select=result,played_at&user_id=eq.${Number(userId)}&game=not.in.(${EVENT_GAMES.join(',')})&order=played_at.desc&limit=300`);
     return rows.map(r => Object.assign({}, r.result, { at: Date.parse(r.played_at) }));
   }
   const db = await fdb();
-  return db.history.filter(h => h.user_id === userId).sort((a, b) => b.id - a.id).slice(0, 300).map(h => Object.assign({}, h.result, { at: Date.parse(h.played_at) }));
+  return db.history.filter(h => h.user_id === userId && !EVENT_GAMES.includes(h.game)).sort((a, b) => b.id - a.id).slice(0, 300).map(h => Object.assign({}, h.result, { at: Date.parse(h.played_at) }));
 }
 // 브라우저에서 끝나는 경기(AI 흑과 백, 슬리더링크 혼자 풀기, 벽바둑 Ⅱ)는 화면이 결과를 보내옴 — 모양만 확인해서 저장
 export function cleanClientEntry(e, isAdmin) {

@@ -53,6 +53,7 @@ h1 span { color: var(--amber); }
 .acct a, .acct button { color: var(--chalk); text-decoration: none; font-weight: 700; background: var(--slot); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font: inherit; font-weight: 700; cursor: pointer; }
 .acct a.join { background: var(--amber); color: #1a1405; border-color: var(--amber); }
 .acct-name { font-weight: 700; color: var(--amber); }
+.acct a.ownerlink { background: var(--amber); color: #1a1405; border-color: var(--amber); }
 .lede { margin: 0; font-size: 17px; color: var(--chalk-dim); max-width: 34em; }
 .games { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 640px) { .games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -212,7 +213,7 @@ route();
 fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
   const el = document.getElementById('acct');
   if (d.user) {
-    el.innerHTML = '<span class="acct-name"></span><button type="button" id="logoutBtn">로그아웃</button>';
+    el.innerHTML = (d.user.owner ? '<a href="owner/" class="ownerlink">회원 관리</a>' : '') + '<span class="acct-name"></span><button type="button" id="logoutBtn">로그아웃</button>';
     el.querySelector('.acct-name').textContent = d.user.nickname + '님';
     if (d.user.admin && !document.getElementById('adminGame')) {
       // 관리자 계정에만 보이는 게임
