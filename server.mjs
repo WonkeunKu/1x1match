@@ -31,7 +31,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -219,7 +219,14 @@ createServer(async (req, res) => {
     if (!ok) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
     if (path === '/owner') { res.writeHead(301, { location: '/owner/' }); res.end(); return; }
   }
-  const adminPage = path === '/owner/' || path.startsWith('/owner/');
+  // 새로 추가한 게임(바그찰·데스게임)은 공개 전이라 대표·관리자 계정만 열림. 다른 사람에게는 없는 페이지
+  if (path === '/dg' || path.startsWith('/dg/')) {
+    let ok = false;
+    try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); ok = !!(u && (u.admin || u.owner)); } catch (e) { console.error(e); }
+    if (!ok) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
+    if (path === '/dg') { res.writeHead(301, { location: '/dg/' }); res.end(); return; }
+  }
+  const adminPage = path === '/owner/' || path.startsWith('/owner/') || path.startsWith('/dg/');
   if (['/slither', '/wallgo', '/wallgo1', '/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
     res.end();
