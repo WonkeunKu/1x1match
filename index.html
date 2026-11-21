@@ -83,12 +83,39 @@ a.game.admin { border-top-color: #b8a6f2; border-style: dashed; border-top-style
 a.game.admin .go { color: #b8a6f2; }
 a.game.admin.wall { border-top-color: #e7a0c8; }
 a.game.admin.wall .go { color: #e7a0c8; }
-.lockchip { font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
+.lockchip { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
 .demo { display: flex; gap: 6px; }
 .demo i { display: grid; place-items: center; width: 34px; height: 40px; border-radius: 6px; font-style: normal; font-family: var(--f-display); font-size: 15px; }
 .demo .b { background: var(--ink); color: var(--chalk); border: 1px solid rgba(241,238,228,0.35); }
 .demo .w { background: var(--chalk); color: var(--ink); }
 .demo .q { background: var(--board-2); border: 1px dashed var(--line); color: var(--amber); }
+[hidden] { display: none !important; }
+.folders { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 640px) { .folders { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+a.folder { position: relative; display: grid; gap: 14px; align-content: start; text-decoration: none; color: inherit; min-width: 0;
+  background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 24px 24px 22px; transition: transform .15s, border-color .15s; }
+a.folder::before { content: ""; position: absolute; left: 18px; top: -9px; width: 92px; height: 12px; border-radius: 8px 8px 0 0; background: var(--fc); }
+a.folder { border-top: 4px solid var(--fc); }
+a.folder.fb { --fc: var(--amber); }
+a.folder.fd { --fc: #b8a6f2; }
+a.folder.locked { cursor: default; opacity: .72; }
+a.folder.locked:hover { transform: none; border-color: var(--line); border-top-color: var(--fc); }
+a.folder:not(.locked):hover { transform: translateY(-3px); border-color: var(--chalk-dim); border-top-color: var(--fc); }
+a.folder:focus-visible { outline: 2px solid var(--fc); outline-offset: 3px; }
+.ftag { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); letter-spacing: .08em; }
+.fstack { display: flex; gap: 6px; }
+.fstack i { font-style: normal; display: grid; place-items: center; min-width: 44px; height: 52px; padding: 0 8px; border-radius: 8px; background: var(--board-2); border: 1px solid var(--line); font-family: var(--f-display); font-size: 15px; color: var(--fc); }
+a.folder h2 { font-family: var(--f-display); font-weight: 400; font-size: 40px; line-height: 1.05; margin: 0; }
+a.folder p { margin: 0; color: var(--chalk-dim); font-size: 15px; word-break: keep-all; }
+.fmeta { display: flex; align-items: baseline; gap: 4px; font-size: 14px; color: var(--chalk-dim); }
+.fmeta b { font-family: var(--f-mono); font-size: 22px; color: var(--chalk); }
+.fmeta .go { margin-left: auto; color: var(--fc); font-size: 15px; }
+.fview { display: grid; gap: 16px; }
+.fhead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.fhead h2 { font-family: var(--f-display); font-weight: 400; font-size: 32px; margin: 0; }
+.fhead .fcount { font-size: 14px; color: var(--chalk-dim); }
+.back { color: var(--chalk); text-decoration: none; font-weight: 700; font-size: 14px; background: var(--slot); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; }
+.back:hover { border-color: var(--amber); color: var(--amber); }
 footer { font-size: 13px; color: var(--chalk-dim); }
 @media (prefers-reduced-motion: reduce) { a.game { transition: none; } }
 </style>
@@ -96,12 +123,31 @@ footer { font-size: 13px; color: var(--chalk-dim); }
 <body>
 <div class="wrap">
   <header>
-    <div class="topline"><div class="eyebrow">KBO 야구 두뇌 게임</div><div class="acct" id="acct"><a href="account/">로그인</a><a href="account/?tab=signup" class="join">회원가입</a></div></div>
+    <div class="topline"><div class="eyebrow">야구 · 두뇌 게임</div><div class="acct" id="acct"><a href="account/">로그인</a><a href="account/?tab=signup" class="join">회원가입</a></div></div>
     <h1>1<span>x</span>1 MATCH</h1>
-    <p class="lede">야구를 많이 아는 사람이 이기는 게임. 선수 연봉과 기록을 누가 더 정확히 아는지 겨뤄 보세요.</p>
+    <p class="lede">야구를 많이 아는 사람이 이기는 야구 게임과, 두뇌 서바이벌에서 가져온 게임을 모았어요. 폴더를 골라 들어가 보세요.</p>
     <a class="histbtn" href="history/">내 경기 기록 보기 →</a>
   </header>
 
+  <section class="folders" id="folders" aria-label="게임 폴더">
+    <a class="folder fb" href="#baseball">
+      <span class="ftag">FOLDER 01</span>
+      <span class="fstack" aria-hidden="true"><i>연봉</i><i>AI</i><i>흑백</i><i>AI</i></span>
+      <h2>야구 게임</h2>
+      <p>야구를 많이 아는 사람이 이기는 게임. 연봉 블라인드 경매, 9이닝 홈런 흑과 백.</p>
+      <span class="fmeta"><b id="cntBaseball">4</b>개 게임 <span class="go">열기 →</span></span>
+    </a>
+    <a class="folder fd locked" href="#devils" id="devilsFolder" aria-disabled="true">
+      <span class="ftag">FOLDER 02<span class="lockchip" id="devilsChip">곧 공개</span></span>
+      <span class="fstack" aria-hidden="true"><i>?</i><i>?</i></span>
+      <h2>데블스플랜</h2>
+      <p id="devilsDesc">두뇌 서바이벌에서 가져온 게임들을 준비하고 있어요.</p>
+      <span class="fmeta"><b id="cntDevils">–</b><span id="devilsUnit"></span> <span class="go" id="devilsGo">준비 중</span></span>
+    </a>
+  </section>
+
+  <section class="fview" id="view-baseball" hidden>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>야구 게임</h2><span class="fcount">4개 게임</span></div>
   <main class="games">
     <div class="gw"><a class="game online" href="auction/online/">
       <span class="tag">GAME 01 · 온라인 4인 · 각자 폰</span>
@@ -136,10 +182,28 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <span class="go">AI와 대전하기 →</span>
     </a><a class="rl" href="blackwhite/#rules" aria-label="규칙 보기">? 규칙</a></div>
   </main>
+  </section>
+
+  <section class="fview" id="view-devils" hidden>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>데블스플랜</h2><span class="fcount" id="devilsCount"></span></div>
+    <div class="games" id="devilsGames"></div>
+  </section>
 
   <footer>Rallypick · 기록 출처: KBO 공식 기록실</footer>
 </div>
 <script>
+// 홈: 폴더 목록 ↔ 폴더 안 게임 목록 (#baseball, #devils)
+function route() {
+  const h = location.hash.replace('#', '');
+  const devilsOk = !document.getElementById('devilsFolder').classList.contains('locked');
+  const view = h === 'baseball' ? 'baseball' : (h === 'devils' && devilsOk) ? 'devils' : '';
+  document.getElementById('folders').hidden = !!view;
+  document.getElementById('view-baseball').hidden = view !== 'baseball';
+  document.getElementById('view-devils').hidden = view !== 'devils';
+}
+document.getElementById('devilsFolder').addEventListener('click', e => { if (e.currentTarget.classList.contains('locked')) e.preventDefault(); });
+window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
+route();
 // 로그인 상태에 따라 오른쪽 위 계정 버튼을 바꿈
 fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
   const el = document.getElementById('acct');
@@ -150,10 +214,18 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
       // 관리자 계정에만 보이는 게임
       const w = document.createElement('div'); w.className = 'gw'; w.id = 'adminGame';
       w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 퍼즐 · 기록 대결<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 혼자 풀거나, 관리자끼리 방을 만들어 같은 문제로 시간 기록 대결을 해요.</p><div class="chips"><span class="chip">혼자 풀기</span><span class="chip">관리자 기록 대결</span></div><span class="go">퍼즐 풀기 →</span></a>';
-      document.querySelector('main.games').appendChild(w);
+      document.getElementById('devilsGames').appendChild(w);
       const w2 = document.createElement('div'); w2.className = 'gw';
       w2.innerHTML = '<a class="game admin wall" href="wallgo/"><span class="tag">ADMIN · 2~4인 · 땅따먹기<span class="lockchip">관리자 전용</span></span><h2>벽바둑 Ⅱ</h2><p>말을 옮기고 벽을 세워 내 말이 있는 영역을 가장 넓게 만드는 게임이에요. 관리자끼리 방을 만들어 하거나, 빈자리는 AI와 겨뤄요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a>';
-      document.querySelector('main.games').appendChild(w2);
+      document.getElementById('devilsGames').appendChild(w2);
+      const n = document.querySelectorAll('#devilsGames .gw').length;
+      document.getElementById('cntDevils').textContent = n; document.getElementById('devilsCount').textContent = n + '개 게임';
+      const f = document.getElementById('devilsFolder'); f.classList.remove('locked'); f.removeAttribute('aria-disabled');
+      document.getElementById('devilsChip').textContent = '관리자 전용';
+      f.querySelector('.fstack').innerHTML = '<i>퍼즐</i><i>벽</i>';
+      document.getElementById('devilsDesc').textContent = '두뇌 서바이벌에서 가져온 게임. 슬리더링크, 벽바둑 Ⅱ.';
+      document.getElementById('devilsUnit').textContent = '개 게임'; document.getElementById('devilsGo').textContent = '열기 →';
+      route();
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
   }

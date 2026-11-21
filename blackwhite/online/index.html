@@ -254,7 +254,7 @@ function applyLogin() {
   });
 }
 
-const HDR = '<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1</div><h1>9이닝 홈런 흑과 백</h1></div></header>';
+const HDR = '<header class="brand"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1</div><h1>9이닝 홈런 흑과 백</h1></div></header>';
 
 async function post(path, body) {
   const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
@@ -386,7 +386,7 @@ function cardFace(c, cls) {
 function topBar() {
   let who = '';
   if (V.phase === 'play') who = V.pend[V.lead] === null ? `${nameOf(V.lead)}님 선공` : `${nameOf(1 - V.lead)}님 후공`;
-  return `<div class="bar"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">9이닝 홈런 흑과 백</span><span class="code">방 ${esc(V.code)}</span></div>
+  return `<div class="bar"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">9이닝 홈런 흑과 백</span><span class="code">방 ${esc(V.code)}</span></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
     ${deadlineAt && V.phase === 'play' ? `<div class="timer"><span>${who}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
