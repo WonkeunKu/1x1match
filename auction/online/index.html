@@ -258,7 +258,7 @@ function renderAiEntry(msg) {
   app.classList.add('narrow');
   const lastName = store.get('auction-online:name') || '';
   let level = store.get('auction-ai:level') || 'mid';
-  app.innerHTML = `<header class="brand"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
+  app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
     <p class="muted">나와 AI 3명이 겨뤄요. AI도 선수 연봉을 '대충' 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요. 사람과 하려면 <a href="/auction/online/" style="color:var(--amber)">온라인 4인</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL"><div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -290,7 +290,7 @@ function renderEntry(msg) {
   if (AI_MODE) return renderAiEntry(msg);
   const lastName = store.get('auction-online:name') || '';
   app.innerHTML = `
-    <header class="brand"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
+    <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
     <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요. 혼자 연습하려면 <a href="/auction/ai/" style="color:var(--amber)">AI 대전</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
@@ -484,7 +484,7 @@ function playersHtml() {
 }
 function topBar() {
   const me = V.players[V.me];
-  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매${V.ai ? ` <span class="aichip">AI ${LEVEL_KO[V.ai]}</span>` : ''}</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
+  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매${V.ai ? ` <span class="aichip">AI ${LEVEL_KO[V.ai]}</span>` : ''}</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
     ${deadlineAt ? `<div class="timer"><span>${V.cur && V.cur.kind === 'auction' ? `${nameOf(V.cur.toAct)}님 차례` : V.cur && V.cur.kind === 'trade' ? `${nameOf(V.cur.by)}님 트레이드` : `${nameOf(V.opener)}님 카드 열기`}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
@@ -495,7 +495,7 @@ function renderLobby() {
     ? `<div class="seat" style="--pc:${PC[k]}">${esc(V.players[k].name)}${k === V.host ? ' · 방장' : ''}${k === V.me ? ' (나)' : ''}</div>`
     : `<div class="seat empty">빈 자리</div>`).join('');
   const isHost = V.me === V.host, full = V.players.length === 4;
-  app.innerHTML = `<header class="brand"><a class="logo" href="/#baseball" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
+  app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
     <div class="entryGrid"><div class="colL"><div class="panel"><p class="muted" style="text-align:center">${V.public ? '공개 방 · 누구나 들어올 수 있어요' : '비공개 방 · 코드를 아는 사람만'} · 방 코드</p><div class="bigcode">${esc(V.code)}</div>
       <div class="row"><input type="text" id="lnk" readonly value="${esc(link)}"><button class="btn" type="button" id="copyBtn">링크 복사</button></div>
       <p class="muted">이 링크를 보내거나, 방 코드를 알려주세요.</p></div></div><div class="colR">
