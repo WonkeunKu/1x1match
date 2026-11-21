@@ -26,7 +26,7 @@ export const phoneDigits = p => String(p || '').replace(/\D/g, '');
 const phoneOk = d => /^01[016789]\d{7,8}$/.test(d);
 const nameOk = n => /^[A-Za-z가-힣 ]{2,20}$/.test(n);
 // 관리자 계정(전화번호 기준). 관리자만 볼 수 있는 게임(슬리더링크)이 있음
-const ADMIN_PHONES = (process.env.ADMIN_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
+const ADMIN_PHONES = (process.env.ADMIN_PHONES || '01073343125,01034238296,01029903125,01087868296').split(',').map(phoneDigits).filter(Boolean);
 const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 
 /* ---------- storage ---------- */
