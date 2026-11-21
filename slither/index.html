@@ -87,6 +87,23 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
 .rtime{font-family:var(--f-mono);font-size:34px;font-weight:600;color:var(--amber)}
 .rank{color:var(--chalk-dim);font-size:14px;margin-bottom:8px}
 .count{font-family:var(--f-display);font-size:110px;color:var(--amber);animation:pop .4s}
+/* fit the whole play screen in one viewport: wide screens put the board left and controls right; narrow screens cap the board by height */
+@media (max-width:859px){
+  #game .board-wrap{width:min(100%,max(280px,calc(100vh - 330px)));width:min(100%,max(280px,calc(100dvh - 330px)));justify-self:center}
+}
+@media (min-width:860px){
+  .app:has(#game:not(.hidden)){max-width:980px}
+  #game:not(.hidden){grid-template-columns:auto minmax(220px,260px);grid-template-rows:repeat(5,auto) 1fr;grid-template-areas:"board top" "board strip" "board tools" "board info" "board reveal" "board .";justify-content:center;align-items:start;column-gap:18px}
+  #game .board-wrap{grid-area:board;width:clamp(320px,calc(100vh - 140px),660px);width:clamp(320px,calc(100dvh - 140px),660px)}
+  #game .topbar{grid-area:top;flex-wrap:wrap}
+  #game .timer{order:-1;flex:1 1 100%;text-align:center;font-size:42px;background:var(--slot);border:1px solid var(--line-soft);border-radius:10px;padding:6px 0}
+  #game .topbar .iconbtn{flex:1}
+  #game .strip{grid-area:strip}
+  #game .tools{grid-area:tools;flex-direction:column}
+  #game .tools button{justify-content:flex-start;padding:12px 14px}
+  #game .info{grid-area:info;flex-direction:column;gap:6px}
+  #revealBtn{grid-area:reveal;margin-top:0}
+}
 .board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
 .results{margin:4px 0 10px;text-align:left}
 #winBtns{display:grid;gap:0}
