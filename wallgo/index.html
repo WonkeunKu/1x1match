@@ -671,8 +671,8 @@ setInterval(()=>{
   if(G.phase==='place'||G.phase==='play'){
     const seat=G.seats[G.turn];
     if(seat.kind==='ai'&&!aiBusy){ aiBusy=true; const tn=G.turnNo, t0=Date.now(), lv=G.opts.ai;
-      // 사람처럼 보이게 생각 시간을 둔다: 수 두기 5~10초, 처음 말 놓기 2~4초
-      const aiDelay=G.phase==='place'?2000+Math.random()*2000:5000+Math.random()*5000;
+      // 사람처럼 보이게 생각 시간을 둔다: 2~4초
+      const aiDelay=2000+Math.random()*2000;
       const done=a=>{ if(!G||G.turnNo!==tn){aiBusy=false;return;} const wait=Math.max(0,aiDelay-(Date.now()-t0)); setTimeout(()=>{ if(G&&G.turnNo===tn) hostApply(G.turn,a||{type:'pass'},true); else aiBusy=false; },wait); };
       if(G.phase==='place') done(aiPlace(G,G.turn,lv));
       else if(lv===0) done(aiChoose(G,G.turn,0));
