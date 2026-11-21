@@ -31,7 +31,7 @@ const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 // 대표 계정: 회원 목록·접속 기록을 볼 수 있음
 const OWNER_PHONES = (process.env.OWNER_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
 const isOwnerPhone = p => OWNER_PHONES.includes(phoneDigits(p));
-const EVENT_GAMES = ['_login', '_visit']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
+const EVENT_GAMES = ['_login', '_visit', '_pv']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -267,15 +267,16 @@ export async function ownerOverview() {
   let users, events, plays;
   if (usingSupabase) {
     users = await sb('match_users?select=id,nickname,name,phone,created_at&order=created_at.desc&limit=5000');
-    events = await sb(`match_history?select=user_id,game,result,played_at&game=in.(${EVENT_GAMES.join(',')})&order=played_at.desc&limit=1000`);
+    events = await sb(`match_history?select=user_id,game,result,played_at&game=in.(_login,_visit)&order=played_at.desc&limit=1000`);
     plays = await sb(`match_history?select=user_id,game,played_at&game=not.in.(${EVENT_GAMES.join(',')})&order=played_at.desc&limit=10000`);
   } else {
     const db = await fdb();
     users = db.users.slice().sort((a, b) => b.id - a.id);
     const h = db.history.slice().sort((a, b) => b.id - a.id);
-    events = h.filter(x => EVENT_GAMES.includes(x.game)).slice(0, 1000);
+    events = h.filter(x => x.game === '_login' || x.game === '_visit').slice(0, 1000);
     plays = h.filter(x => !EVENT_GAMES.includes(x.game));
   }
+  users = users.filter(u => u.nickname !== VISITOR_NICK);
   const byId = new Map(users.map(u => [u.id, u]));
   const stat = new Map();
   for (const u of users) stat.set(u.id, { games: 0, byGame: {}, lastPlay: null, lastSeen: null, logins: 0 });
@@ -283,7 +284,70 @@ export async function ownerOverview() {
   for (const e of events) { const st = stat.get(e.user_id); if (!st) continue; if (!st.lastSeen) st.lastSeen = e.played_at; if (e.game === '_login') st.logins++; }
   return {
     users: users.map(u => Object.assign({ id: u.id, nickname: u.nickname, name: u.name, phone: u.phone, created_at: u.created_at, admin: isAdminPhone(u.phone), owner: isOwnerPhone(u.phone) }, stat.get(u.id))),
-    events: events.filter(e => byId.has(e.user_id)).map(e => ({ nickname: byId.get(e.user_id).nickname, name: byId.get(e.user_id).name, kind: e.game === '_login' ? 'login' : 'visit', device: (e.result && e.result.device) || '', at: e.played_at }))
+    events: events.filter(e => byId.has(e.user_id)).map(e => ({ nickname: byId.get(e.user_id).nickname, name: byId.get(e.user_id).name, kind: e.game === '_login' ? 'login' : 'visit', device: (e.result && e.result.device) || '', at: e.played_at })),
+    visitors: await visitorSummary(byId)
+  };
+}
+
+/* ---------- 방문자 집계 (회원·비회원 모두) ----------
+   브라우저마다 무작위 번호(vid 쿠키)를 하나 주고, 페이지를 연 기록을 '_pv' 로 남김. 이름·전화번호 같은 개인정보는 저장하지 않음.
+   같은 브라우저가 같은 날 같은 페이지를 다시 열면 한 번만 셈. */
+const VISITOR_NICK = '__visitors';
+const pvSeen = new Set(); let pvDay = '';
+const kstDay = t => new Date(t + 9 * 3600 * 1000).toISOString().slice(0, 10);
+let visitorUid; // 비회원 기록을 붙일 자리 (user_id 가 비어 있으면 안 되는 DB일 때만 씀)
+async function visitorUserId() {
+  if (visitorUid) return visitorUid;
+  const u = await findUser('nickname', VISITOR_NICK);
+  visitorUid = u ? u.id : (await insertUser({ nickname: VISITOR_NICK, name: '방문자 집계', phone: '00000000000', pw_hash: '!' })).id;
+  return visitorUid;
+}
+export async function logPageView(vid, user, page, device) {
+  if (ACCOUNTS_DISABLED || !vid || !page) return;
+  const day = kstDay(Date.now());
+  if (day !== pvDay) { pvSeen.clear(); pvDay = day; }
+  const key = vid + '|' + page;
+  if (pvSeen.has(key)) return;
+  pvSeen.add(key);
+  const row = { user_id: user ? user.id : null, game: '_pv', mode: 'event', level: null, result: { vid: String(vid).slice(0, 40), page, device: cleanDevice(device), member: !!user } };
+  if (usingSupabase) {
+    if (!row.user_id && visitorUid) row.user_id = visitorUid;
+    try { await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); }
+    catch (e) { if (row.user_id) throw e; row.user_id = await visitorUserId(); await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); }
+    return;
+  }
+  const db = await fdb();
+  db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row));
+  await fsave();
+}
+async function visitorSummary(byId) {
+  const since = new Date(Date.now() - 30 * 864e5).toISOString();
+  let rows;
+  if (usingSupabase) rows = await sb(`match_history?select=user_id,result,played_at&game=eq._pv&played_at=gte.${since}&order=played_at.desc&limit=20000`);
+  else rows = (await fdb()).history.filter(x => x.game === '_pv' && x.played_at >= since).sort((a, b) => b.id - a.id);
+  const now = Date.now(), today = kstDay(now), week = kstDay(now - 6 * 864e5);
+  const days = new Map(); // day -> {all:Set, guest:Set, member:Set}
+  const pages = new Map(), devices = new Map(), weekAll = new Set(), weekGuest = new Set();
+  for (const r of rows) {
+    const x = r.result || {}; const d = kstDay(Date.parse(r.played_at));
+    if (!days.has(d)) days.set(d, { all: new Set(), guest: new Set(), member: new Set() });
+    const D = days.get(d); D.all.add(x.vid); (x.member ? D.member : D.guest).add(x.vid);
+    if (d >= week) {
+      weekAll.add(x.vid); if (!x.member) weekGuest.add(x.vid);
+      if (!pages.has(x.page)) pages.set(x.page, new Set()); pages.get(x.page).add(x.vid);
+      const dv = (x.device || '기타').split(' · ')[0];
+      if (!devices.has(dv)) devices.set(dv, new Set()); devices.get(dv).add(x.vid);
+    }
+  }
+  const dayList = [];
+  for (let i = 0; i < 14; i++) { const d = kstDay(now - i * 864e5), D = days.get(d); dayList.push({ day: d, all: D ? D.all.size : 0, guest: D ? D.guest.size : 0, member: D ? D.member.size : 0 }); }
+  const T = days.get(today);
+  const top = m => [...m].map(([k, v]) => ({ name: k, count: v.size })).sort((a, b) => b.count - a.count);
+  return {
+    today: { all: T ? T.all.size : 0, guest: T ? T.guest.size : 0, member: T ? T.member.size : 0 },
+    week: { all: weekAll.size, guest: weekGuest.size },
+    days: dayList, pages: top(pages), devices: top(devices),
+    recent: rows.slice(0, 150).map(r => ({ at: r.played_at, page: r.result && r.result.page, device: r.result && r.result.device, nickname: r.result && r.result.member && byId.get(r.user_id) ? byId.get(r.user_id).nickname : null }))
   };
 }
 

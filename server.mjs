@@ -1,6 +1,7 @@
 // 1x1 MATCH — static game site server (no dependencies).
 // Serves index.html, auction/, blackwhite/ and keeps /api/health for the hosting platform's health check.
 import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -89,6 +90,12 @@ function roomApi(R, prefix) {
 const auctionApi = roomApi(Rooms, '/api/auction');
 
 // 접속 기기를 짧게 (예: 'iPhone · Safari') — 대표 계정의 접속 기록용
+function pageName(p) {
+  if (p === '/' || p === '/index.html') return '홈';
+  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
+  const m = map.find(([k]) => p === k || p.startsWith(k + '/'));
+  return m ? m[1] : null;
+}
 function deviceOf(ua) {
   ua = String(ua || '');
   const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac OS X|Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '기타';
@@ -226,10 +233,21 @@ createServer(async (req, res) => {
     return;
   }
   const body = await readFile(file);
-  res.writeHead(200, {
+  const headers = {
     'content-type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
     'cache-control': adminPage ? 'private, no-store' : extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
-  });
+  };
+  // 방문자 집계: 게임 페이지를 열 때마다 브라우저 번호(vid)로 하루 한 번씩 셈 (회원 관리 > 방문자)
+  if (extname(file) === '.html' && req.method === 'GET' && !adminPage) {
+    const ua = req.headers['user-agent'] || '';
+    const page = pageName(path);
+    if (page && !/bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|curl|wget|python|node-fetch|headless/i.test(ua)) {
+      let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1];
+      if (!vid) { vid = randomBytes(12).toString('hex'); headers['set-cookie'] = `vid=${vid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''}`; }
+      Accounts.logPageView(vid, Accounts.userFromReq(req), page, deviceOf(ua)).catch(e => console.error('pv log failed', e.message));
+    }
+  }
+  res.writeHead(200, headers);
   res.end(body);
 }).listen(PORT, HOST, () => {
   console.log(`1x1 MATCH running at http://${HOST}:${PORT}`);
