@@ -464,11 +464,16 @@ try{ rateWorker=new Worker(URL.createObjectURL(new Blob([[makeGeom,rateDifficult
 const DIFF_T={5:[7,12],7:[19,41],10:[65,100]};
 const DIFF_NAME=['쉬움','보통','어려움','매우 어려움'];
 function diffLevel(n,r){ if(!r||r.lv<0) return null; if(r.lv===3) return 3; const sc=r.t1+4*r.t2, t=DIFF_T[n]||DIFF_T[7]; return sc<=t[0]?0:sc<=t[1]?1:2; }
+const rateWait={}; let ratePromise=Promise.resolve(null);
+if(rateWorker) rateWorker.onmessage=e=>{ const f=rateWait[e.data.id]; delete rateWait[e.data.id]; if(f) f(e.data.r); };
 function startRate(n,cl){
   const id=++rateJob; diff=null;
-  const done=r=>{ if(id!==rateJob) return; diff=diffLevel(n,r); showDiff(); };
-  if(rateWorker){ rateWorker.onmessage=e=>{ if(e.data.id===id) done(e.data.r); }; rateWorker.postMessage({id,n,clues:Array.from(cl)}); }
-  else setTimeout(()=>done(rateDifficulty(makeGeom(n,n),cl)),50);
+  // 이 문제의 난이도(0~3)로 끝나는 약속. 기록 저장은 이걸 기다렸다가 함께 보냄
+  ratePromise=new Promise(res=>{
+    const done=r=>{ const lv=diffLevel(n,r); res(lv); if(id!==rateJob) return; diff=lv; showDiff(); if(multi&&multi.code) api('act',{type:'diff',lv}).catch(()=>{}); };
+    if(rateWorker){ rateWait[id]=done; rateWorker.postMessage({id,n,clues:Array.from(cl)}); }
+    else setTimeout(()=>done(rateDifficulty(makeGeom(n,n),cl)),50);
+  });
 }
 function diffHtml(){ return diff==null?'<span class="diff">난이도 계산 중…</span>':`<span class="diff d${diff}">난이도 · ${DIFF_NAME[diff]}</span>`; }
 function showDiff(){
@@ -708,7 +713,8 @@ $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else 
 
 // 혼자 푼 결과는 로그인한 사람의 경기 기록에 저장 (대결 기록은 서버가 저장)
 function saveSolo(result){
-  fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime)})}).catch(()=>{});
+  const body={game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime)};
+  ratePromise.then(lv=>{ body.diff=lv; fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).catch(()=>{}); });
 }
 // ---------- 기록 대결 (서버 방) ----------
 const homeErr=t=>{$('homeErr').textContent=t||'';};

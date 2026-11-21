@@ -58,6 +58,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .badge.win { background: var(--amber); color: #1a1405; }
 .badge.lose { color: var(--chalk-dim); }
 .item .g { font-weight: 700; }
+.dl { font-weight: 700; } .dl.d0 { color: var(--green); } .dl.d1 { color: var(--blue); } .dl.d2 { color: var(--amber); } .dl.d3 { color: var(--red); }
 .item .d { font-size: 13px; color: var(--chalk-dim); overflow: hidden; text-overflow: ellipsis; }
 .item .r { font-family: var(--f-mono); font-size: 18px; font-weight: 600; text-align: right; white-space: nowrap; }
 .item .r small { display: block; font-family: var(--f-body); font-size: 11px; color: var(--chalk-dim); font-weight: 400; }
@@ -100,10 +101,11 @@ const GAMES = [
 const G_BY = Object.fromEntries(GAMES.map(g => [g.id, g]));
 let game = 'all', mode = 'all';
 const visibleGames = () => GAMES.filter(g => !g.admin || ADMIN || DATA.some(x => x.game === g.id));
+const DIFF = ['쉬움', '보통', '어려움', '매우 어려움'];
 const modeText = x => {
   if (x.game === 'auction') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 4인';
   if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
-  if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : '혼자 풀기') + ` · ${x.size}×${x.size}`;
+  if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : '혼자 풀기') + ` · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
   if (x.game === 'wallgo' || x.game === 'wallgo1') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
   return '';
 };

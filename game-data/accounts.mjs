@@ -318,7 +318,8 @@ export function cleanClientEntry(e, isAdmin) {
     const size = [5, 7, 10].includes(Number(e.size)) ? Number(e.size) : null;
     const result = ['solved', 'gaveup'].includes(e.result) ? e.result : null;
     if (!size || !result) fail('저장할 수 없는 기록이에요.');
-    return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null };
+    const diff = [0, 1, 2, 3].includes(e.diff) ? e.diff : null;
+    return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null, diff };
   }
   if ((e.game === 'wallgo' || e.game === 'wallgo1') && ['online', 'local'].includes(e.mode)) {
     const total = int(e.total, 2, 4);

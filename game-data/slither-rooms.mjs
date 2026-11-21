@@ -112,6 +112,11 @@ export function act(code, tok, body) {
   const p = room.players[k];
   const isHost = room.host === tok;
   const type = body && body.type;
+  if (type === 'diff') { // 문제 난이도(0~3): 모두 같은 문제라 같은 값. 기록에 같이 남김
+    const lv = Number(body.lv);
+    if (room.round && p.round === room.round.no && [0, 1, 2, 3].includes(lv) && room.round.diff == null) room.round.diff = lv;
+    return;
+  }
   if (type === 'size') {
     if (!isHost) fail('방장만 판 크기를 바꿀 수 있어요.');
     const n = Number(body.n);
@@ -201,7 +206,7 @@ function recordRound(room) {
   for (const q of inRound) {
     if (!q.uid) continue;
     const rank = q.status === 'done' ? done.indexOf(q) + 1 : null;
-    const entry = { game: 'slither', mode: 'battle', level: null, size: r.n, result: q.status === 'done' ? 'solved' : 'gaveup', time: q.status === 'done' ? q.time : null, rank, total: inRound.length,
+    const entry = { game: 'slither', mode: 'battle', level: null, size: r.n, diff: r.diff == null ? null : r.diff, result: q.status === 'done' ? 'solved' : 'gaveup', time: q.status === 'done' ? q.time : null, rank, total: inRound.length,
       players: list.map(x => Object.assign({}, x, { me: x.name === q.name })) };
     try { finishHook(q.uid, entry); } catch (e) { console.error(e); }
   }
