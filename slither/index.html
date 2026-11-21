@@ -529,7 +529,7 @@ function check(){
   $('timer').textContent=fmt(finishTime,true);
   // tint loop green
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--ok)');
-  if(multi)sendFinish();
+  if(multi)sendFinish(); else saveSolo('solved');
   setTimeout(showWin,350);
 }
 
@@ -548,7 +548,7 @@ $('revealBtn').onclick=()=>{
   refresh();
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--accent)');
   $('revealBtn').textContent='결과 창 열기';$('revealBtn').classList.remove('primary');revealArm=0;
-  if(multi)api('act',{type:'giveup'}).catch(()=>{});
+  if(multi)api('act',{type:'giveup'}).catch(()=>{}); else saveSolo('gaveup');
   setTimeout(showWin,1200);
 };
 
@@ -612,6 +612,10 @@ async function startSolo(){
 $('soloBtn').onclick=startSolo;
 $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
 
+// 혼자 푼 결과는 로그인한 관리자의 경기 기록에 저장 (대결 기록은 서버가 저장)
+function saveSolo(result){
+  fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime)})}).catch(()=>{});
+}
 // ---------- 기록 대결 (서버 방) ----------
 const homeErr=t=>{$('homeErr').textContent=t||'';};
 async function post(path,body){

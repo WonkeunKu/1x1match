@@ -176,11 +176,29 @@ export async function listHistory(userId) {
   const db = await fdb();
   return db.history.filter(h => h.user_id === userId).sort((a, b) => b.id - a.id).slice(0, 300).map(h => Object.assign({}, h.result, { at: Date.parse(h.played_at) }));
 }
-// AI 흑과 백처럼 브라우저에서 끝나는 경기는 화면이 결과를 보내옴 — 모양만 확인해서 저장
-export function cleanClientEntry(e) {
-  if (!e || e.game !== 'bw' || e.mode !== 'ai') fail('저장할 수 없는 기록이에요.');
-  const n = v => Math.max(0, Math.min(9, Math.floor(Number(v) || 0)));
-  const result = ['win', 'lose', 'draw'].includes(e.result) ? e.result : null;
-  if (!result) fail('저장할 수 없는 기록이에요.');
-  return { game: 'bw', mode: 'ai', level: ['low', 'mid', 'high'].includes(e.level) ? e.level : 'mid', result, myWins: n(e.myWins), oppWins: n(e.oppWins), opponent: 'AI', innings: n(e.innings) };
+// 브라우저에서 끝나는 경기(AI 흑과 백, 슬리더링크 혼자 풀기, 벽바둑 Ⅱ)는 화면이 결과를 보내옴 — 모양만 확인해서 저장
+export function cleanClientEntry(e, isAdmin) {
+  if (!e || typeof e !== 'object') fail('저장할 수 없는 기록이에요.');
+  const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
+  const nm = v => String(v || '').trim().slice(0, 12);
+  if (e.game === 'bw' && e.mode === 'ai') {
+    const n = v => int(v, 0, 9);
+    const result = ['win', 'lose', 'draw'].includes(e.result) ? e.result : null;
+    if (!result) fail('저장할 수 없는 기록이에요.');
+    return { game: 'bw', mode: 'ai', level: ['low', 'mid', 'high'].includes(e.level) ? e.level : 'mid', result, myWins: n(e.myWins), oppWins: n(e.oppWins), opponent: 'AI', innings: n(e.innings) };
+  }
+  if (!isAdmin) fail('저장할 수 없는 기록이에요.');
+  if (e.game === 'slither' && e.mode === 'solo') {
+    const size = [5, 7, 10].includes(Number(e.size)) ? Number(e.size) : null;
+    const result = ['solved', 'gaveup'].includes(e.result) ? e.result : null;
+    if (!size || !result) fail('저장할 수 없는 기록이에요.');
+    return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null };
+  }
+  if (e.game === 'wallgo' && ['online', 'local'].includes(e.mode)) {
+    const total = int(e.total, 2, 4);
+    const players = (Array.isArray(e.players) ? e.players : []).slice(0, 4).map(p => ({ name: nm(p && p.name), ai: !!(p && p.ai), score: int(p && p.score, 0, 49), rank: int(p && p.rank, 1, 4), me: !!(p && p.me) }));
+    const rank = int(e.rank, 1, total);
+    return { game: 'wallgo', mode: e.mode, level: ['easy', 'normal', 'hard'].includes(e.level) ? e.level : null, result: rank === 1 ? 'win' : 'lose', rank, total, score: int(e.score, 0, 49), best: int(e.best, 0, 49), players };
+  }
+  fail('저장할 수 없는 기록이에요.');
 }

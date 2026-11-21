@@ -814,11 +814,27 @@ function renderGame(V){
   $('#log').innerHTML=V.log.slice().reverse().map(l=>`<div>${l.p>=0?`<b style="color:${COLORS[l.p]}">${esc(V.seats[l.p].name)}</b> `:''}${esc(l.m)}</div>`).join('');
   $('#btnToLobby').classList.toggle('hidden',!Net.isHost);
   // result
+  if(V.phase==='over') saveResult(V);
   if(V.phase==='over'){
     if(!renderGame._shown||renderGame._shown!==V.turnNo+':'+V.log.length){ renderGame._shown=V.turnNo+':'+V.log.length; $('#resultModal').classList.remove('hidden'); }
     const r=V.result; $('#ranks').innerHTML=r.order.map(p=>`<div class="rank"><div class="n">${r.rank[p]}</div><span class="dot" style="background:${COLORS[p]}"></span><div style="flex:1"><b>${esc(V.seats[p].name)}</b>${r.rank[p]===1?' 👑':''}<div class="muted" style="font-size:12px">가장 큰 영역 ${r.sc[p].mx}칸</div></div><div style="font-size:24px;font-weight:900">${r.sc[p].sum}<span class="muted" style="font-size:13px">칸</span></div></div>`).join('');
     $('#btnAgain').classList.toggle('hidden',!Net.isHost);
   } else $('#resultModal').classList.add('hidden');
+}
+// 끝난 판을 로그인한 관리자의 경기 기록에 저장 (내 자리 한 번만)
+const savedGames=new Set();
+function saveResult(V){
+  const key=(Net.code||'local')+':'+V.first+':'+V.turnNo+':'+V.log.length;
+  if(savedGames.has(key)) return;
+  let me=-1;
+  if(Net.mode==='local'){ const hs=V.seats.map((x,i)=>x.kind==='human'?i:-1).filter(i=>i>=0); if(hs.length===1) me=hs[0]; }
+  else me=V.seats.findIndex(x=>x.kind==='human'&&x.cid===myCid);
+  savedGames.add(key);
+  if(me<0||!V.result) return;
+  const r=V.result, LVN=['easy','normal','hard'];
+  const players=V.seats.map((x,i)=>({name:x.name||('플레이어 '+(i+1)),ai:x.kind==='ai',score:r.sc[i].sum,rank:r.rank[i],me:i===me}));
+  const body={game:'wallgo',mode:Net.mode==='local'?'local':'online',level:V.seats.some(x=>x.kind==='ai')?LVN[V.opts.ai]:null,rank:r.rank[me],total:V.seats.length,score:r.sc[me].sum,best:r.sc[me].mx,players};
+  fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
 }
 function slotRect(r,c,d){
   if(d===0) return [X(c)-3,Y(r)-GAP+1,CELL+6,GAP-2];

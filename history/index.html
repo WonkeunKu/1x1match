@@ -47,6 +47,10 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .filters button { border: 1px solid var(--line); background: var(--slot); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--chalk-dim); }
 .filters button[aria-pressed="true"] { background: var(--chalk); color: var(--board); border-color: var(--chalk); }
+#body:not([hidden]) { display: grid; gap: 12px; }
+.tabs button { font-size: 14px; padding: 8px 14px; }
+.tabs button[aria-pressed="true"] { background: var(--c, var(--chalk)); border-color: var(--c, var(--chalk)); color: #1a1405; }
+.lock { font-size: 11px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
 .list { display: grid; gap: 8px; }
 .day { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); margin: 8px 0 0; }
 .item { background: var(--slot); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
@@ -73,57 +77,111 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
   <section class="empty" id="needLogin" hidden><b>로그인해야 경기 기록을 볼 수 있어요</b><span class="muted">로그인한 상태로 끝까지 한 경기가 여기에 쌓여요. 로그인하지 않아도 게임은 할 수 있어요.</span><div class="links"><a href="/account/?next=/history/">로그인</a><a href="/account/?tab=signup&amp;next=/history/">회원가입</a></div></section>
   <div id="body" hidden>
   <section class="sum" id="sum" aria-label="게임별 요약"></section>
-  <div class="filters" id="filters" role="group" aria-label="기록 거르기">
-    <button type="button" data-f="all" aria-pressed="true">전체</button>
-    <button type="button" data-f="auction" aria-pressed="false">연봉 블라인드 경매</button>
-    <button type="button" data-f="bw" aria-pressed="false">9이닝 홈런 흑과 백</button>
-    <button type="button" data-f="online" aria-pressed="false">사람과 한 경기</button>
-    <button type="button" data-f="ai" aria-pressed="false">AI와 한 경기</button>
-  </div>
+  <div class="filters tabs" id="gameTabs" role="group" aria-label="게임 고르기"></div>
+  <div class="filters" id="modeTabs" role="group" aria-label="경기 방식 거르기"></div>
   <section class="list" id="list" aria-live="polite"></section>
   </div>
   <div class="foot"><a class="go" href="/">← 게임 하러 가기</a><span class="links" id="acct"></span></div>
 </div>
 <script>
-let DATA = [];
-const LV = { low: '하', mid: '중', high: '상' };
+let DATA = [], ADMIN = false;
+const LV = { low: '하', mid: '중', high: '상', easy: '쉬움', normal: '보통', hard: '어려움' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 const fmt = v => { const r = Math.round(v * 100) / 100; return (Number.isInteger(r) ? String(r) : r.toFixed(2).replace(/0$/, '')) + '억'; };
-let filter = 'all';
-function load() { return DATA; }
-const modeText = x => x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : x.game === 'auction' ? '온라인 4인' : '온라인 1:1';
-function isWin(x) { return x.game === 'auction' ? x.rank === 1 : x.result === 'win'; }
-function summary(list) {
-  const a = list.filter(x => x.game === 'auction'), b = list.filter(x => x.game === 'bw');
-  const avgRank = a.length ? (a.reduce((s, x) => s + x.rank, 0) / a.length).toFixed(1) : '–';
-  const best = a.length ? fmt(Math.max(...a.map(x => x.score))) : '–';
-  const bw = { w: b.filter(x => x.result === 'win').length, l: b.filter(x => x.result === 'lose').length, d: b.filter(x => x.result === 'draw').length };
-  document.getElementById('sum').innerHTML = `
-    <div class="stat" style="--c:var(--amber)"><span class="t">연봉 블라인드 경매</span><span class="v">${a.length ? `우승 ${a.filter(isWin).length}회` : '기록 없음'}</span><span class="s">${a.length}판 · 평균 ${avgRank}위 · 최고 ${best}</span></div>
-    <div class="stat" style="--c:var(--blue)"><span class="t">9이닝 홈런 흑과 백</span><span class="v">${b.length ? `${bw.w}승 ${bw.l}패${bw.d ? ` ${bw.d}무` : ''}` : '기록 없음'}</span><span class="s">${b.length}판 · 승률 ${b.length ? Math.round(bw.w / b.length * 100) + '%' : '–'}</span></div>
-    <div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${list.length}판</span><span class="s">사람과 ${list.filter(x => x.mode === 'online').length}판 · AI와 ${list.filter(x => x.mode === 'ai').length}판</span></div>`;
+const tm = ms => { if (ms == null) return '–'; const s = Math.floor(ms / 1000), m = Math.floor(s / 60); return String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') + '.' + Math.floor(ms % 1000 / 100); };
+// 게임별 기록: 게임 탭 → 경기 방식
+const GAMES = [
+  { id: 'auction', short: '경매', name: '연봉 블라인드 경매', c: 'var(--amber)', modes: [['online', '사람과'], ['ai', 'AI와']] },
+  { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
+  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', admin: true, modes: [['solo', '혼자'], ['battle', '기록 대결']] },
+  { id: 'wallgo', short: '벽바둑', name: '벽바둑 Ⅱ', c: '#e7a0c8', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] }
+];
+const G_BY = Object.fromEntries(GAMES.map(g => [g.id, g]));
+let game = 'all', mode = 'all';
+const visibleGames = () => GAMES.filter(g => !g.admin || ADMIN || DATA.some(x => x.game === g.id));
+const modeText = x => {
+  if (x.game === 'auction') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 4인';
+  if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
+  if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : '혼자 풀기') + ` · ${x.size}×${x.size}`;
+  if (x.game === 'wallgo') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
+  return '';
+};
+function statCard(g, list) {
+  const L = list.filter(x => x.game === g.id);
+  let v = '기록 없음', sub = `${L.length}판`;
+  if (g.id === 'auction' && L.length) {
+    v = `우승 ${L.filter(x => x.rank === 1).length}회`;
+    sub = `${L.length}판 · 평균 ${(L.reduce((s, x) => s + x.rank, 0) / L.length).toFixed(1)}위 · 최고 ${fmt(Math.max(...L.map(x => x.score)))}`;
+  } else if (g.id === 'bw' && L.length) {
+    const w = L.filter(x => x.result === 'win').length, l = L.filter(x => x.result === 'lose').length, d = L.filter(x => x.result === 'draw').length;
+    v = `${w}승 ${l}패${d ? ` ${d}무` : ''}`; sub = `${L.length}판 · 승률 ${Math.round(w / L.length * 100)}%`;
+  } else if (g.id === 'slither' && L.length) {
+    const ok = L.filter(x => x.result === 'solved');
+    const best = [5, 7, 10].map(n => { const t = ok.filter(x => x.size === n).map(x => x.time); return t.length ? `${n}×${n} ${tm(Math.min(...t))}` : null; }).filter(Boolean);
+    v = `${ok.length}번 풀이`; sub = (best.length ? '최고 ' + best.join(' · ') : `${L.length}판`) + (L.some(x => x.mode === 'battle') ? ` · 대결 1위 ${L.filter(x => x.mode === 'battle' && x.rank === 1).length}회` : '');
+  } else if (g.id === 'wallgo' && L.length) {
+    v = `1위 ${L.filter(x => x.rank === 1).length}회`;
+    sub = `${L.length}판 · 평균 ${(L.reduce((s, x) => s + x.rank, 0) / L.length).toFixed(1)}위 · 최고 ${Math.max(...L.map(x => x.score))}칸`;
+  }
+  return `<div class="stat" style="--c:${g.c}"><span class="t">${g.name}${g.admin ? '<span class="lock">관리자</span>' : ''}</span><span class="v">${v}</span><span class="s">${sub}</span></div>`;
+}
+function summary(all) {
+  const gs = game === 'all' ? visibleGames() : [G_BY[game]];
+  let html = gs.map(g => statCard(g, all)).join('');
+  if (game === 'all') html += `<div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${all.length}판</span><span class="s">${visibleGames().map(g => `${g.short} ${all.filter(x => x.game === g.id).length}`).join(' · ')}</span></div>`;
+  document.getElementById('sum').innerHTML = html;
 }
 function itemHtml(x) {
   const t = new Date(x.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  const g = G_BY[x.game] || { name: x.game, c: 'var(--chalk-dim)' };
+  const head = `<div class="g">${g.name} <span class="muted">· ${modeText(x)} · ${t}</span></div>`;
   if (x.game === 'auction') {
     const others = (x.players || []).filter(p => !p.me).sort((a, b) => b.score - a.score).map(p => `${esc(p.name)} ${fmt(p.score)}`).join(' · ');
     const mine = (x.mine || []).map(p => esc(p.name)).join(', ') || '선수 없음';
-    return `<div class="item" style="--c:var(--amber)"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
-      <div><div class="g">연봉 블라인드 경매 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">내 선수: ${mine}</div><div class="d">${others}</div></div>
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
+      <div>${head}<div class="d">내 선수: ${mine}</div><div class="d">${others}</div></div>
       <div class="r">${fmt(x.score)}<small>${x.total}명 중</small></div></div>`;
   }
-  const label = x.result === 'win' ? '승' : x.result === 'lose' ? '패' : '무';
-  return `<div class="item" style="--c:var(--blue)"><span class="badge ${x.result}">${label}</span>
-    <div><div class="g">9이닝 홈런 흑과 백 <span class="muted">· ${modeText(x)} · ${t}</span></div><div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
-    <div class="r">${x.myWins} : ${x.oppWins}<small>나 : 상대</small></div></div>`;
+  if (x.game === 'bw') {
+    const label = x.result === 'win' ? '승' : x.result === 'lose' ? '패' : '무';
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${x.result}">${label}</span>
+      <div>${head}<div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
+      <div class="r">${x.myWins} : ${x.oppWins}<small>나 : 상대</small></div></div>`;
+  }
+  if (x.game === 'slither') {
+    const solved = x.result === 'solved';
+    const badge = x.mode === 'battle' ? (solved ? `${x.rank}위` : '포기') : (solved ? '완료' : '포기');
+    const win = x.mode === 'battle' ? x.rank === 1 : solved;
+    const others = x.mode === 'battle' ? (x.players || []).filter(p => !p.me).map(p => `${esc(p.name)} ${p.status === 'done' ? tm(p.time) : '포기'}`).join(' · ') : '';
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${win ? 'win' : 'lose'}">${badge}</span>
+      <div>${head}${others ? `<div class="d">${others}</div>` : `<div class="d">${solved ? '정답을 맞혔어요' : '정답 보기로 확인'}</div>`}</div>
+      <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small></div></div>`;
+  }
+  if (x.game === 'wallgo') {
+    const others = (x.players || []).filter(p => !p.me).sort((a, b) => a.rank - b.rank).map(p => `${esc(p.name)}${p.ai ? '(AI)' : ''} ${p.score}칸`).join(' · ');
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
+      <div>${head}<div class="d">${others}</div></div>
+      <div class="r">${x.score}칸<small>가장 큰 영역 ${x.best}칸</small></div></div>`;
+  }
+  return '';
+}
+function renderTabs() {
+  const vg = visibleGames();
+  if (game !== 'all' && !vg.some(g => g.id === game)) game = 'all';
+  document.getElementById('gameTabs').innerHTML = `<button type="button" data-g="all" aria-pressed="${game === 'all'}">전체</button>` +
+    vg.map(g => `<button type="button" data-g="${g.id}" style="--c:${g.c}" aria-pressed="${game === g.id}">${g.name}</button>`).join('');
+  const mt = document.getElementById('modeTabs');
+  const modes = game === 'all' ? [] : G_BY[game].modes;
+  mt.hidden = !modes.length;
+  mt.innerHTML = modes.length ? `<button type="button" data-m="all" aria-pressed="${mode === 'all'}">전체</button>` + modes.map(([m, l]) => `<button type="button" data-m="${m}" aria-pressed="${mode === m}">${l}</button>`).join('') : '';
 }
 function render() {
-  const all = load();
-  summary(all);
-  const list = all.filter(x => filter === 'all' || x.game === filter || x.mode === filter);
+  renderTabs();
+  summary(DATA);
+  const list = DATA.filter(x => (game === 'all' || x.game === game) && (mode === 'all' || x.mode === mode));
   const el = document.getElementById('list');
   if (!list.length) {
-    el.innerHTML = `<div class="empty"><b>${all.length ? '이 조건의 기록이 없어요' : '아직 기록이 없어요'}</b><span class="muted">경기를 끝까지 하면 결과가 여기에 자동으로 쌓여요.</span><a href="/">게임 고르러 가기 →</a></div>`;
+    el.innerHTML = `<div class="empty"><b>${DATA.length ? '이 조건의 기록이 없어요' : '아직 기록이 없어요'}</b><span class="muted">경기를 끝까지 하면 결과가 여기에 자동으로 쌓여요.</span><a href="/">게임 고르러 가기 →</a></div>`;
   } else {
     let html = '', day = '';
     for (const x of list) {
@@ -134,24 +192,21 @@ function render() {
     el.innerHTML = html;
   }
 }
-document.getElementById('filters').addEventListener('click', e => {
-  const b = e.target.closest('[data-f]'); if (!b) return;
-  filter = b.dataset.f;
-  document.querySelectorAll('[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  render();
-});
+document.getElementById('gameTabs').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (!b) return; game = b.dataset.g; mode = 'all'; try { history.replaceState(null, '', game === 'all' ? location.pathname : '#' + game); } catch {} render(); });
+document.getElementById('modeTabs').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; mode = b.dataset.m; render(); });
 async function start() {
   try {
     const r = await fetch('/api/history', { cache: 'no-store' });
     if (r.status === 401) { document.getElementById('who').hidden = true; document.getElementById('needLogin').hidden = false; return; }
     const d = await r.json();
-    DATA = d.history || [];
+    DATA = d.history || []; ADMIN = !!(d.user && d.user.admin);
+    const h = location.hash.replace('#', ''); if (G_BY[h]) game = h;
     document.getElementById('who').innerHTML = `<b>${esc(d.user.nickname)}</b>님의 경기 기록이에요. 로그인한 상태로 끝까지 한 경기만 쌓여요.`;
     document.getElementById('acct').innerHTML = '<button type="button" id="logoutBtn">로그아웃</button>';
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
     document.getElementById('body').hidden = false;
     render();
-  } catch { document.getElementById('who').textContent = '기록을 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.'; }
+  } catch (e) { console.error(e); document.getElementById('who').textContent = '기록을 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.'; }
 }
 start();
 </script>

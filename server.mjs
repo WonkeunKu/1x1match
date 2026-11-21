@@ -14,6 +14,7 @@ import * as Accounts from './game-data/accounts.mjs';
 const saveFinish = (uid, entry) => Accounts.addHistory(uid, entry).catch(e => console.error('history save failed', e.message));
 Rooms.setFinishHook(saveFinish);
 BwRooms.setFinishHook(saveFinish);
+SlitherRooms.setFinishHook(saveFinish);
 console.log(Accounts.usingSupabase ? 'Accounts: Supabase' : 'Accounts: local data/accounts.json (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set)');
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -104,7 +105,8 @@ async function authApi(req, res, path, url) {
     if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
     if (path === '/api/history' && req.method === 'GET') {
       if (!user) return send(401, { error: '로그인해야 기록을 볼 수 있어요.' });
-      return send(200, { user, history: await Accounts.listHistory(user.id) });
+      const u = await Accounts.refreshAdmin(user);
+      return send(200, { user: u, history: await Accounts.listHistory(user.id) });
     }
     if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
@@ -113,7 +115,8 @@ async function authApi(req, res, path, url) {
     if (path === '/api/auth/logout') return send(200, { ok: true }, Accounts.clearCookie(secure));
     if (path === '/api/history') {
       if (!user) return send(401, { error: '로그인하지 않아서 기록을 저장하지 않았어요.' });
-      await Accounts.addHistory(user.id, Accounts.cleanClientEntry(body));
+      const u = await Accounts.refreshAdmin(user);
+      await Accounts.addHistory(user.id, Accounts.cleanClientEntry(body, !!(u && u.admin)));
       return send(200, { ok: true });
     }
     return send(404, { error: '없는 주소예요.' });

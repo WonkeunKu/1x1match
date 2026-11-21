@@ -92,6 +92,9 @@ export function leaveRoom(code, tok) {
   if (!room) return;
   const k = seatOf(room, tok);
   if (k < 0) return;
+  const leaving = room.players[k];
+  if (leaving.status === 'playing') leaving.status = 'gaveup';
+  if (room.round && room.players.filter(q => q.round === room.round.no).every(q => q.status !== 'playing')) recordRound(room);
   room.players.splice(k, 1);
   for (const c of room.clients) if (c.token === tok) { try { c.res.write(`data: ${JSON.stringify({ left: true })}\n\n`); c.res.end(); } catch {} }
   if (!room.players.length) { closeRoom(room); return; }
@@ -119,6 +122,7 @@ export function act(code, tok, body) {
     const n = Number(body.n), c = String(body.clues || '');
     if (!SIZES.includes(n) || c.length !== n * n || !/^[.0-3]+$/.test(c)) fail('문제가 올바르지 않아요.');
     room.size = n;
+    recordRound(room); // 이전 판을 아직 기록하지 않았으면(누가 끝까지 안 풀었으면) 지금까지 결과로 기록
     room.round = { no: (room.round ? room.round.no : 0) + 1, n, clues: c, startAt: now() + COUNTDOWN_MS };
     for (const q of room.players) { q.status = 'playing'; q.time = null; q.round = room.round.no; }
   } else if (type === 'finish') {
@@ -138,6 +142,7 @@ export function act(code, tok, body) {
     p.inLobby = true;
   } else fail('알 수 없는 동작이에요.');
   if (type !== 'lobby') p.inLobby = false;
+  if (room.round && room.players.filter(q => q.round === room.round.no).every(q => q.status !== 'playing')) recordRound(room);
   bump(room);
 }
 
@@ -180,5 +185,26 @@ setInterval(() => {
     if (t - room.touched > ROOM_TTL_MS || (!room.clients.size && t - room.touched > 30 * 60 * 1000)) closeRoom(room);
   }
 }, 5 * 60 * 1000).unref();
+
+/* ---------- 로그인한 참가자의 경기 기록 ---------- */
+let finishHook = null;
+export function setFinishHook(fn) { finishHook = fn; }
+function recordRound(room) {
+  const r = room.round;
+  if (!r || r.recorded) return;
+  const inRound = room.players.filter(q => q.round === r.no);
+  if (!inRound.length) return;
+  r.recorded = true;
+  const done = inRound.filter(q => q.status === 'done').sort((a, b) => a.time - b.time);
+  const list = inRound.map(q => ({ name: q.name, time: q.status === 'done' ? q.time : null, status: q.status === 'done' ? 'done' : 'gaveup' }));
+  if (!finishHook) return;
+  for (const q of inRound) {
+    if (!q.uid) continue;
+    const rank = q.status === 'done' ? done.indexOf(q) + 1 : null;
+    const entry = { game: 'slither', mode: 'battle', level: null, size: r.n, result: q.status === 'done' ? 'solved' : 'gaveup', time: q.status === 'done' ? q.time : null, rank, total: inRound.length,
+      players: list.map(x => Object.assign({}, x, { me: x.name === q.name })) };
+    try { finishHook(q.uid, entry); } catch (e) { console.error(e); }
+  }
+}
 
 export { GameError };
