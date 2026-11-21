@@ -584,7 +584,7 @@ function myName(){ return ($('#inName').value.trim()||'플레이어').slice(0,12
 function defaultOpts(){ return {n:2,mode:'basic',brk:true,time:90,ai:1}; }
 function makeLobby(online){
   G={phase:'lobby',opts:defaultOpts(),seats:[],spect:[],log:[],turnNo:0};
-  G.seats.push({kind:'human',cid:myCid,name:online?myName():'플레이어 1'});
+  G.seats.push({kind:'human',cid:myCid,name:online?myName():(myAccount||'플레이어 1')});
   G.seats.push(online?{kind:'open',name:''}:{kind:'ai',name:'AI 1'});
   S=G;
 }
@@ -827,7 +827,7 @@ function saveResult(V){
   const key=(Net.code||'local')+':'+V.first+':'+V.turnNo+':'+V.log.length;
   if(savedGames.has(key)) return;
   let me=-1;
-  if(Net.mode==='local'){ const hs=V.seats.map((x,i)=>x.kind==='human'?i:-1).filter(i=>i>=0); if(hs.length===1) me=hs[0]; }
+  if(Net.mode==='local') me=V.seats.findIndex(x=>x.kind==='human'); // 한 기기에서 여럿이 두면 첫 번째 사람 자리를 로그인한 사람으로 기록
   else me=V.seats.findIndex(x=>x.kind==='human'&&x.cid===myCid);
   savedGames.add(key);
   if(me<0||!V.result) return;
@@ -921,7 +921,8 @@ $('#btnJoin').onclick=async()=>{
 };
 window.addEventListener('beforeunload',()=>{ try{ netSend({t:'bye'}); }catch(e){} });
 
-fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.json()).then(d=>{ if(d.user&&!$('#inName').value.trim()) $('#inName').value=d.user.nickname; }).catch(()=>{});
+let myAccount='';
+fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.json()).then(d=>{ if(d.user){ myAccount=d.user.nickname; if(!$('#inName').value.trim()) $('#inName').value=d.user.nickname; } }).catch(()=>{});
 detectNet().then(k=>{
   Net.kind=k; Net.mode=k;
   const ok=k!=='none';
