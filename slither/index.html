@@ -16,7 +16,7 @@
 :root{
   --board:#10302a; --board-2:#163d35; --slot:#0b2420;
   --chalk:#f1eee4; --chalk-dim:#a7bcb2; --line-soft:rgba(241,238,228,.14);
-  --amber:#f3b641; --red:#e8604a; --green:#a9d774;
+  --amber:#f3b641; --red:#e8604a; --green:#a9d774; --blue:#6fc4ea;
   /* names the puzzle script paints with */
   --dot:#f1eee4; --line:#f1eee4; --x:#e8604a; --ok:#a9d774; --accent:#f3b641; --ink:#f1eee4;
   --f-display:"Black Han Sans","Noto Sans KR","Apple SD Gothic Neo",sans-serif;
@@ -104,6 +104,8 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
   #game .info{grid-area:info;flex-direction:column;gap:6px}
   #revealBtn{grid-area:reveal;margin-top:0}
 }
+.diff{display:inline-block;font-size:14px;font-weight:700;border-radius:999px;padding:4px 12px;margin:2px 0 6px;background:var(--board-2);color:var(--chalk-dim)}
+.diff.d0{background:var(--green);color:#14200c}.diff.d1{background:var(--blue);color:#0b1f2a}.diff.d2{background:var(--amber);color:#1a1405}.diff.d3{background:var(--red);color:#2a0b06}
 .board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
 .results{margin:4px 0 10px;text-align:left}
 #winBtns{display:grid;gap:0}
@@ -208,6 +210,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
   <div class="modal">
     <p class="correct" id="winTitle">정답!</p>
     <div class="rtime" id="winTime">00:00.0</div>
+    <div id="winDiff"></div>
     <div class="rank" id="winRank"></div>
     <div class="results players" id="winResults"></div>
     <div id="winBtns"></div>
@@ -360,6 +363,58 @@ function generatePuzzle(R,C,seed){
   return {R,C,clues,solution:Array.from(loop)};
 }
 
+// 난이도: 사람처럼 푼다고 가정하고 몇 번이나 "가정해 보고 모순 찾기"가 필요한지로 매김 (0=규칙만, 1=한 번 가정, 2=두 번 겹친 가정, 3=그래도 안 풀림)
+function rateDifficulty(G,clues){
+  const E=G.E;
+  function prop(s){ // returns false on contradiction
+    let ch=true;
+    while(ch){ch=false;
+      for(let i=0;i<clues.length;i++){const k=clues[i];if(k<0)continue;let on=0,un=0;const es=G.cellEdges[i];
+        for(const e of es){if(s[e]===1)on++;else if(s[e]===-1)un++;}
+        if(on>k||on+un<k)return false;
+        if(un&&(on===k||on+un===k)){const v=on===k?0:1;for(const e of es)if(s[e]===-1)s[e]=v;ch=true;}}
+      for(const es of G.vtxEdges){let on=0,un=0;for(const e of es){if(s[e]===1)on++;else if(s[e]===-1)un++;}
+        if(on>2||(on===1&&un===0))return false;
+        if(un){if(on===2||(on===0&&un===1)){for(const e of es)if(s[e]===-1)s[e]=0;ch=true;}else if(on===1&&un===1){for(const e of es)if(s[e]===-1)s[e]=1;ch=true;}}}
+      if(!loopOk(s))return false;
+    }
+    return true;
+  }
+  function loopOk(s){ // no premature closed loop
+    const seen=new Uint8Array(E);let total=0;for(let e=0;e<E;e++)if(s[e]===1)total++;
+    for(let e0=0;e0<E;e0++){if(s[e0]!==1||seen[e0])continue;let len=0,closed=true;const st=[e0];seen[e0]=1;
+      while(st.length){const e=st.pop();len++;for(const v of G.edgeVtx[e]){let d=0;for(const f of G.vtxEdges[v])if(s[f]===1){d++;if(!seen[f]){seen[f]=1;st.push(f);}}if(d<2)closed=false;}}
+      if(closed&&len!==total)return false;
+      if(closed){for(let i=0;i<clues.length;i++){if(clues[i]<0)continue;let on=0;for(const f of G.cellEdges[i])if(s[f]===1)on++;if(on!==clues[i])return false;}}}
+    return true;
+  }
+  const done=s=>{for(let e=0;e<E;e++)if(s[e]===-1)return false;return true;};
+  function trial(s,depth){ // try each unknown edge; returns number of forced edges found
+    let found=0;
+    for(let e=0;e<E;e++){if(s[e]!==-1)continue;
+      for(const v of [1,0]){const t=Int8Array.from(s);t[e]=v;let bad=!prop(t);
+        if(!bad&&depth>1&&!done(t)){ /* nested: does every second assumption fail? */ bad=nestedFail(t,depth-1); }
+        if(bad){s[e]=1-v;if(!prop(s))return -1;found++;break;}}
+    }
+    return found;
+  }
+  function nestedFail(t,depth){ // contradiction reachable with one more trial level
+    for(let e=0;e<E;e++){if(t[e]!==-1)continue;let both=0;
+      for(const v of [1,0]){const u=Int8Array.from(t);u[e]=v;if(!prop(u))both++;}
+      if(both===2)return true;}
+    return false;
+  }
+  const s=new Int8Array(E).fill(-1);
+  if(!prop(s))return {lv:-1};
+  let t1=0,t2=0,rounds=0;
+  while(!done(s)&&rounds<200){rounds++;
+    const f=trial(s,1); if(f>0){t1+=f;continue;}
+    const g=trial(s,2); if(g>0){t2+=g;continue;}
+    return {lv:3,t1,t2};
+  }
+  return {lv:t2?2:t1?1:0,t1,t2};
+}
+
 // Check user lines: single closed loop & clues satisfied
 function isSolved(G,clues,lines){
   for(let i=0;i<clues.length;i++){if(clues[i]<0)continue;let n=0;for(const e of G.cellEdges[i])if(lines[e]===1)n++;if(n!==clues[i])return false;}
@@ -401,6 +456,24 @@ try{
     '\nonmessage=e=>{const p=generatePuzzle(e.data.n,e.data.n,e.data.seed);postMessage({id:e.data.id,clues:p.clues});};';
   worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
 }catch(e){worker=null;}
+// 난이도 계산은 별도 worker에서 (10×10은 1초 남짓 걸림). 판을 불러올 때 시작해 두고 끝나면 공개
+let rateWorker=null, rateJob=0, diff=null;
+try{ rateWorker=new Worker(URL.createObjectURL(new Blob([[makeGeom,rateDifficulty].map(f=>f.toString()).join('\n')+'\nonmessage=e=>{const r=rateDifficulty(makeGeom(e.data.n,e.data.n),e.data.clues);postMessage({id:e.data.id,r});};'],{type:'text/javascript'}))); }catch(e){ rateWorker=null; }
+const DIFF_T={5:[7,12],7:[19,41],10:[65,100]};
+const DIFF_NAME=['쉬움','보통','어려움','매우 어려움'];
+function diffLevel(n,r){ if(!r||r.lv<0) return null; if(r.lv===3) return 3; const sc=r.t1+4*r.t2, t=DIFF_T[n]||DIFF_T[7]; return sc<=t[0]?0:sc<=t[1]?1:2; }
+function startRate(n,cl){
+  const id=++rateJob; diff=null;
+  const done=r=>{ if(id!==rateJob) return; diff=diffLevel(n,r); showDiff(); };
+  if(rateWorker){ rateWorker.onmessage=e=>{ if(e.data.id===id) done(e.data.r); }; rateWorker.postMessage({id,n,clues:Array.from(cl)}); }
+  else setTimeout(()=>done(rateDifficulty(makeGeom(n,n),cl)),50);
+}
+function diffHtml(){ return diff==null?'<span class="diff">난이도 계산 중…</span>':`<span class="diff d${diff}">난이도 · ${DIFF_NAME[diff]}</span>`; }
+function showDiff(){
+  if(!finished) return;
+  const w=$('winDiff'); if(w) w.innerHTML=diffHtml();
+  $('sizeInfo').innerHTML=`${G.R}×${G.R} · `+(diff==null?'난이도 계산 중':'난이도 '+DIFF_NAME[diff]);
+}
 let reqId=0;
 function makePuzzle(n,seed){
   return new Promise(res=>{
@@ -420,6 +493,7 @@ const S=40, PAD=22;
 function loadPuzzle(n,cl){
   gaveUp=false;resetReveal();G=makeGeom(n,n); clues=cl; lines=new Int8Array(G.E); history=[];
   $('sizeInfo').textContent=`${n}×${n}`;
+  startRate(n,cl);
   drawBoard();
 }
 function px(c){return PAD+c*S;}
@@ -575,6 +649,7 @@ function showWin(){
   $('winTitle').classList.toggle('gave',gaveUp);
   $('winTime').textContent=gaveUp?'기록 없음':fmt(finishTime,true);
   $('winOv').classList.remove('hidden');
+  showDiff();
   renderWin();
 }
 function addClose(){
@@ -740,6 +815,6 @@ try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.cod
 
 })();
 </script>
-<script src="/rules.js?v=13" defer></script>
+<script src="/rules.js?v=14" defer></script>
 </body>
 </html>
