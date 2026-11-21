@@ -36,7 +36,8 @@ body{margin:0;min-height:100vh;color:var(--chalk);font-family:var(--f-body);font
 .brand>div{min-width:0;flex:1}
 .logo{font-family:var(--f-display);font-size:26px;line-height:1;color:var(--chalk);text-decoration:none;padding-right:12px;border-right:1px solid var(--line-soft);white-space:nowrap;flex:none}
 .logo span{color:var(--amber)}
-.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--chalk-dim);text-transform:uppercase}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--chalk-dim);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:420px){.admintag{display:none}}
 h1{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.05;margin:2px 0 0}
 .admintag{flex:none;font-size:12px;font-weight:700;color:#1a1405;background:#b8a6f2;border-radius:999px;padding:3px 10px}
 .sub{color:var(--chalk-dim);font-size:14px;margin:0;word-break:keep-all}
@@ -179,7 +180,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
       <svg id="board"></svg>
       <div class="board-cover hidden" id="cover">문제 만드는 중…</div>
     </div>
-    <div class="info"><span id="sizeInfo"></span><span>탭: 표시 · 드래그: 선 긋기</span></div>
+    <div class="info"><span id="sizeInfo"></span><span>탭: 표시 · 드래그: 선 긋기 · <button type="button" class="rb-inline" data-rules>규칙</button></span></div>
     <button class="full mt" id="revealBtn">정답 보기</button>
   </section>
 </div>
@@ -718,5 +719,6 @@ try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.cod
 
 })();
 </script>
+<script src="/rules.js?v=12" defer></script>
 </body>
 </html>

@@ -2,7 +2,8 @@
 // - 주소 끝에 #rules가 있으면 열린 채로 시작 (홈 화면의 "규칙" 링크용)
 // - data-rules 속성이 있는 버튼·링크를 눌러도 열림
 (function () {
-  const GAME = location.pathname.startsWith('/blackwhite') ? 'bw' : 'auction';
+  const P = location.pathname;
+  const GAME = P.startsWith('/blackwhite') ? 'bw' : P.startsWith('/slither') ? 'slither' : P.startsWith('/wallgo') ? 'wallgo' : 'auction';
 
   const RULES = {
     auction: {
@@ -59,11 +60,69 @@
           <li>비공개 방과 AI 대전에는 시간 제한이 없어요.</li>
         </ul>`]
       ]
+    },
+    slither: {
+      title: '슬리더링크',
+      lede: '점과 점을 선으로 이어 <b>하나의 닫힌 고리</b>를 만드는 퍼즐이에요. 칸 안의 숫자는 그 칸을 둘러싼 네 변 중 <b>선이 그어진 변의 개수</b>예요.',
+      sections: [
+        ['규칙', `<ol>
+          <li>선은 이웃한 점끼리 가로·세로로만 그어요. 대각선은 없어요.</li>
+          <li>고리는 딱 하나여야 해요. 중간에 끊기거나, 갈라지거나, 서로 교차하면 안 돼요. 모든 점에는 선이 0개 아니면 2개만 붙어요.</li>
+          <li>숫자가 있는 칸은 둘레의 선 개수가 그 숫자와 같아야 해요. 숫자가 없는 칸은 몇 개든 상관없어요.</li>
+          <li>모든 숫자를 맞추고 고리 하나가 완성되면 자동으로 정답 처리되고 타이머가 멈춰요.</li>
+        </ol>`],
+        ['조작', `<ul>
+          <li><b>탭</b>: 선을 긋거나 지워요. 점을 따라 <b>드래그</b>하면 여러 칸을 한 번에 그을 수 있어요.</li>
+          <li><b>X 표시</b> 모드로 바꾸면 선이 없다고 확신하는 변에 X를 표시할 수 있어요.</li>
+          <li>숫자가 빨갛게 바뀌면 그 칸의 선이 너무 많거나 X 때문에 숫자를 채울 수 없다는 뜻이에요.</li>
+          <li><b>취소</b>는 한 동작 되돌리기, <b>처음부터</b>는 판을 비워요. <b>정답 보기</b>를 두 번 누르면 정답이 공개되고 기록은 남지 않아요.</li>
+        </ul>`],
+        ['기록 대결', `<ul>
+          <li>대결방을 만들면 4자리 코드가 나와요. 다른 관리자가 코드를 입력해 들어올 수 있어요 (최대 8명).</li>
+          <li>방장이 판 크기를 골라 시작하면 모두 같은 문제를 받고, 3초 카운트다운 뒤 동시에 시작해요.</li>
+          <li>시간은 서버가 시작부터 정답 제출까지 재고, 정답인지도 서버가 다시 확인해요. 빨리 푼 순서로 순위가 정해져요.</li>
+          <li>정답 보기를 누르거나 나가면 그 판은 포기로 처리돼요.</li>
+        </ul>`],
+        ['풀이 팁', `<ul>
+          <li><b>0</b> 둘레의 네 변은 모두 X예요.</li>
+          <li>모서리 칸의 <b>3</b>은 바깥쪽 두 변이 반드시 선이에요.</li>
+          <li>나란히 붙은 <b>3</b>과 <b>3</b>은 사이 변과 양 끝 변이 선이에요.</li>
+          <li>점에 선이 하나만 있으면 반드시 한쪽으로 이어져야 해요. 막힌 방향에 X를 쳐 두면 길이 보여요.</li>
+        </ul>`]
+      ]
+    },
+    wallgo: {
+      title: '벽바둑 Ⅱ',
+      lede: '7×7 판에서 말을 옮기고 벽을 세워, <b>내 말이 있는 영역을 가장 넓게</b> 만든 사람이 이겨요. 2~4명이 할 수 있고 빈자리는 AI가 채워요.',
+      sections: [
+        ['말', `<ul>
+          <li><b>사각 말 ■</b>: 상하좌우 한 방향으로 1~2칸 직진해요.</li>
+          <li><b>원형 말 ●</b>: 상하좌우로 1칸 간 뒤, 원하면 왼쪽이나 오른쪽으로 꺾어 1칸 더 가요 (ㄱ자). 직진 2칸은 안 돼요.</li>
+          <li>기본은 각자 사각 1개 + 원형 1개예요. <b>4말 모드</b>(2인 전용)는 사각 2개 + 원형 2개이고, 원형 말은 정해진 칸에서 시작해요.</li>
+        </ul>`],
+        ['진행 순서', `<ol>
+          <li><b>배치</b>: 선 플레이어부터 차례로 말 하나를 골라 빈 칸에 놓고, 두 번째 말은 역순으로 놓아요.</li>
+          <li><b>내 차례</b>: 말 하나를 이동한 뒤, 그 말이 있는 칸의 네 면 중 하나에 반드시 벽을 세워요.</li>
+          <li>다른 말이 있는 칸으로 가거나 지나갈 수 없고, 벽을 넘을 수 없어요.</li>
+          <li>이미 벽이 있는 면이나 판 테두리에는 벽을 세울 수 없어요.</li>
+          <li>움직일 수 없으면 말을 제자리에 두고 벽만 세워요.</li>
+        </ol>`],
+        ['특수 규칙', `<dl>
+          <dt>벽 부수기 (옵션)</dt><dd>게임 중 한 번, 이동 경로에 있는 벽 하나를 부수고 지나갈 수 있어요. 갈 수 있는 칸에 ⚡ 표시가 떠요.</dd>
+          <dt>제한시간 (옵션)</dt><dd>시간을 넘기면 말은 제자리에 있고, 아무 면에나 벽이 세워져요.</dd>
+          <dt>영역 미리보기</dt><dd>켜면 지금 상태에서 누가 더 가까운 칸인지 색으로 보여 줘요. 점수판의 "예상"도 이 기준이에요.</dd>
+        </dl>`],
+        ['승리 조건', `<ul>
+          <li>모든 플레이어의 말이 벽으로 서로 완전히 갈라지면 바로 끝나요.</li>
+          <li>내 말이 있는 영역의 칸 수 합이 점수예요. 동점이면 가장 큰 영역 하나가 넓은 쪽이 앞서요.</li>
+          <li>이미 다른 플레이어와 완전히 갈라진 사람은 차례를 건너뛰어요.</li>
+        </ul>`]
+      ]
     }
   };
 
   const css = `
-  .rb-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; font: 700 13px/1 "Noto Sans KR", "Apple SD Gothic Neo", sans-serif; color: var(--chalk, #f1eee4); background: var(--slot, #0b2420); border: 1px solid var(--line, rgba(241,238,228,.14)); border-radius: 999px; padding: 6px 11px; cursor: pointer; white-space: nowrap; }
+  .rb-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; font: 700 13px/1 "Noto Sans KR", "Apple SD Gothic Neo", sans-serif; color: var(--chalk, #f1eee4); background: var(--slot, #0b2420); border: 1px solid rgba(241,238,228,.2); border-radius: 999px; padding: 6px 11px; cursor: pointer; white-space: nowrap; }
   .rb-btn:hover, .rb-btn:focus-visible { border-color: var(--amber, #f3b641); color: var(--amber, #f3b641); outline: none; }
   .rb-btn i { font-style: normal; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--amber, #f3b641); color: #1a1405; font-size: 11px; }
   @media (max-width: 480px) { .rb-btn .t { display: none; } .rb-btn { padding: 6px; } }
