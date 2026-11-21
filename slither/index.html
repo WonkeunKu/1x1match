@@ -89,12 +89,22 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
 .board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
 .results{margin:4px 0 10px;text-align:left}
 #winBtns{display:grid;gap:0}
+input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono);text-align:center}
+.bigcode{font-family:var(--f-mono);font-size:44px;font-weight:700;letter-spacing:8px;color:var(--amber)}
+.pl.me{outline:2px solid rgba(243,182,65,.5)}
+.pl .tag{font-size:12px;color:var(--chalk-dim)}
+.pl .off{opacity:.5}
+.chip{background:var(--slot);border:1px solid var(--line-soft);border-radius:999px;padding:5px 10px;font-size:13px;display:flex;gap:6px;align-items:center}
+.chip .d{width:8px;height:8px;border-radius:50%;background:var(--amber)}
+.chip.fin .d{background:var(--green)}
+.chip.gave .d{background:var(--chalk-dim)}
+.chip.me{border-color:var(--amber)}
 @media (min-width:900px){.app{padding-block:22px 48px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · 퍼즐</div><h1>슬리더링크</h1></div><span class="admintag">관리자 전용</span></header>
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 퍼즐 · 기록 대결</div><h1>슬리더링크</h1></div><span class="admintag">관리자 전용</span></header>
 
   <!-- HOME -->
   <section id="home">
@@ -112,6 +122,44 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
       <button class="primary full" id="soloBtn">퍼즐 풀기</button>
     </div>
 
+    <div class="card">
+      <div class="label">관리자끼리 기록 대결</div>
+      <button class="full" id="createBtn">대결방 만들기</button>
+      <div class="row">
+        <input id="codeIn" class="code" maxlength="4" placeholder="방 코드 4자리" autocomplete="off">
+        <button id="joinBtn" style="white-space:nowrap">참가</button>
+      </div>
+      <div class="err" id="homeErr"></div>
+      <div class="hint">방을 만들면 4자리 코드가 나와요. 다른 관리자가 코드를 입력하면 같은 문제로 동시에 시작해서 정답을 먼저 맞힌 순서로 순위가 정해져요.</div>
+    </div>
+
+  </section>
+
+  <!-- ROOM LOBBY -->
+  <section id="room" class="hidden">
+    <div class="topbar"><button class="iconbtn" id="leaveBtn">← 방 나가기</button><span class="hint" id="connState"></span></div>
+    <div class="card" style="text-align:center">
+      <div class="label">방 코드</div>
+      <div class="bigcode" id="roomCode">----</div>
+      <div class="hint">다른 관리자에게 이 코드를 알려 주세요</div>
+    </div>
+    <div class="card">
+      <div class="label">참가자</div>
+      <div class="players" id="lobbyPlayers"></div>
+    </div>
+    <div class="card" id="hostPanel">
+      <div class="label">판 크기</div>
+      <div class="seg" id="roomSizeSeg">
+        <button data-n="5">5×5</button>
+        <button data-n="7">7×7</button>
+        <button data-n="10">10×10</button>
+      </div>
+      <button class="primary full" id="startBtn">시작</button>
+      <div class="err" id="roomErr"></div>
+    </div>
+    <div class="card hidden" id="guestPanel" style="text-align:center">
+      <div class="hint" id="guestMsg">방장이 시작하기를 기다리는 중…</div>
+    </div>
   </section>
 
   <!-- GAME -->
@@ -324,7 +372,7 @@ $('nick').value = store.get('sl_nick') || '';
 $('nick').addEventListener('input', ()=>store.set('sl_nick',$('nick').value.trim()));
 const nick = () => ($('nick').value.trim() || '플레이어').slice(0,10);
 
-function show(id){for(const s of ['home','game'])$(s).classList.toggle('hidden',s!==id);}
+function show(id){for(const s of ['home','room','game'])$(s).classList.toggle('hidden',s!==id);}
 function segSelect(seg,n){for(const b of seg.querySelectorAll('button'))b.classList.toggle('sel',+b.dataset.n===n);}
 $('sizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;segSelect($('sizeSeg'),size);};
 
@@ -480,7 +528,7 @@ function check(){
   $('timer').textContent=fmt(finishTime,true);
   // tint loop green
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--ok)');
-  if(multi){multi.rm.presence({status:'done',time:Math.round(finishTime),round:multi.round}).catch(()=>{});}
+  if(multi)sendFinish();
   setTimeout(showWin,350);
 }
 
@@ -499,7 +547,7 @@ $('revealBtn').onclick=()=>{
   refresh();
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--accent)');
   $('revealBtn').textContent='결과 창 열기';$('revealBtn').classList.remove('primary');revealArm=0;
-  if(multi)multi.rm.presence({status:'gaveup',time:null,round:multi.round}).catch(()=>{});
+  if(multi)api('act',{type:'giveup'}).catch(()=>{});
   setTimeout(showWin,1200);
 };
 
@@ -527,27 +575,28 @@ function renderWin(){
     $('homeBtn2').onclick=()=>{$('winOv').classList.add('hidden');stopTimer();playing=false;show('home');};
     addClose();return;
   }
-  const list=roundPlayers();
-  const done=list.filter(p=>p.status==='done').sort((a,b)=>a.time-b.time);
+  const v=multi.view, list=roundPlayers();
+  const done=list.filter(p=>p.status==='done').sort((x,y)=>x.time-y.time);
   const myRank=done.findIndex(p=>p.me)+1;
-  $('winRank').textContent=gaveUp?'정답을 확인해서 이번 판은 순위에서 빠져요':(myRank?`${list.length}명 중 ${myRank}등으로 완료`:'');
+  const waiting=list.filter(p=>p.status==='playing').length;
+  $('winRank').textContent=gaveUp?'정답을 확인해서 이번 판은 순위에서 빠져요':(myRank?`${list.length}명 중 ${myRank}등`+(waiting?` · ${waiting}명 아직 푸는 중`:''):'기록 확인 중…');
+  if(!gaveUp){const mine=done.find(p=>p.me);if(mine)$('winTime').textContent=fmt(mine.time,true);}
   $('winResults').innerHTML='';
-  const ordered=[...done,...list.filter(p=>p.status!=='done'&&p.status!=='gaveup'),...list.filter(p=>p.status==='gaveup')];
+  const ordered=[...done,...list.filter(p=>p.status==='playing'),...list.filter(p=>p.status==='gaveup')];
   ordered.forEach((p,i)=>{
     const d=document.createElement('div');d.className='pl'+(p.me?' me':'');
-    const nm=document.createElement('span');nm.textContent=(p.status==='done'?(i+1)+'. ':'')+p.nick+(p.me?' (나)':'');
+    const nm=document.createElement('span');nm.textContent=(p.status==='done'?(i+1)+'. ':'')+p.name+(p.me?' (나)':'');
     const st=document.createElement('span');st.className='st'+(p.status==='done'?' done':'');
-    st.textContent=p.status==='done'?fmt(p.time,true):(p.status==='gaveup'?'정답 확인':'풀이 중…');
+    st.textContent=p.status==='done'?fmt(p.time,true):(p.status==='gaveup'?'포기':'푸는 중…');
     d.append(nm,st);$('winResults').append(d);
   });
-  if(multi.host){
+  if(v.host){
     btns.innerHTML='<button class="primary full" id="nextBtn">다음 판</button><button class="full mt" id="toLobby">대기실로</button>';
     $('nextBtn').onclick=()=>{$('winOv').classList.add('hidden');hostStartRound();};
-    $('toLobby').onclick=()=>{$('winOv').classList.add('hidden');backToLobby();};
   }else{
     btns.innerHTML='<div class="hint">방장이 다음 판을 시작하면 자동으로 이어져요</div><button class="full mt" id="toLobby">대기실로</button>';
-    $('toLobby').onclick=()=>{$('winOv').classList.add('hidden');backToLobby();};
   }
+  $('toLobby').onclick=()=>{$('winOv').classList.add('hidden');backToLobby();};
   addClose();
 }
 
@@ -561,6 +610,111 @@ async function startSolo(){
 }
 $('soloBtn').onclick=startSolo;
 $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
+
+// ---------- 기록 대결 (서버 방) ----------
+const homeErr=t=>{$('homeErr').textContent=t||'';};
+async function post(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body||{})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||'연결에 실패했어요');
+  return d;
+}
+const api=(op,body)=>post(`/api/slither/rooms/${multi.code}/${op}`,Object.assign({token:multi.token},body));
+function saveSess(){try{multi?sessionStorage.setItem('sl_room',JSON.stringify({code:multi.code,token:multi.token})):sessionStorage.removeItem('sl_room');}catch(e){}}
+async function enterRoom(code,token){
+  multi={code,token,view:null,startedRound:0,offset:0,es:null};saveSess();
+  segSelect($('roomSizeSeg'),7);$('roomCode').textContent=code;
+  show('room');connect();
+}
+function connect(){
+  if(!multi)return;
+  if(multi.es)multi.es.close();
+  const es=new EventSource(`/api/slither/rooms/${multi.code}/events?token=${multi.token}`);multi.es=es;
+  es.onopen=()=>{$('connState').textContent='● 연결됨';};
+  es.onerror=()=>{$('connState').textContent='○ 다시 연결하는 중…';};
+  es.onmessage=e=>{let v;try{v=JSON.parse(e.data);}catch(x){return;}if(v.left){exitRoom();return;}onView(v);};
+}
+function exitRoom(){if(multi&&multi.es)multi.es.close();multi=null;saveSess();stopTimer();playing=false;$('countOv').classList.add('hidden');$('winOv').classList.add('hidden');show('home');}
+$('createBtn').onclick=async()=>{homeErr('방 만드는 중…');try{const d=await post('/api/slither/rooms',{});homeErr('');enterRoom(d.code,d.token);}catch(e){homeErr(e.message);}};
+$('joinBtn').onclick=async()=>{const c=$('codeIn').value.trim().toUpperCase();if(!/^[A-Z0-9]{4}$/.test(c)){homeErr('4자리 코드를 입력하세요');return;}
+  homeErr('들어가는 중…');try{const d=await post(`/api/slither/rooms/${c}/join`,{});homeErr('');enterRoom(d.code,d.token);}catch(e){homeErr(e.message);}};
+$('codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('joinBtn').click();});
+$('leaveBtn').onclick=async()=>{const m=multi;exitRoom();if(m)post(`/api/slither/rooms/${m.code}/leave`,{token:m.token}).catch(()=>{});};
+$('roomSizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b||!multi||!multi.view||!multi.view.host)return;segSelect($('roomSizeSeg'),+b.dataset.n);api('act',{type:'size',n:+b.dataset.n}).catch(()=>{});};
+$('startBtn').onclick=()=>hostStartRound();
+
+function roundPlayers(){return (multi&&multi.view?multi.view.players:[]).filter(p=>p.status!=='lobby');}
+function onView(v){
+  if(!multi)return;
+  multi.view=v;multi.offset=v.serverNow-Date.now();
+  $('hostPanel').classList.toggle('hidden',!v.host);$('guestPanel').classList.toggle('hidden',v.host);
+  if(v.host)segSelect($('roomSizeSeg'),v.size);
+  renderLobby();renderStrip();renderWin();
+  const r=v.round, mine=v.players.find(p=>p.me);
+  if(r&&r.no>multi.startedRound&&mine&&mine.status==='playing'){multi.startedRound=r.no;beginRound(r);}
+}
+function renderLobby(){
+  const box=$('lobbyPlayers');box.innerHTML='';
+  for(const p of multi.view.players){
+    const d=document.createElement('div');d.className='pl'+(p.me?' me':'');
+    const a=document.createElement('span');a.textContent=p.name+(p.me?' (나)':'');if(!p.online)a.className='off';
+    const b=document.createElement('span');b.className='tag';
+    b.textContent=(p.host?'방장':'참가자')+(p.status==='playing'?' · 푸는 중':p.status==='done'?' · '+fmt(p.time,true):'')+(p.online?'':' · 연결 끊김');
+    d.append(a,b);box.append(d);
+  }
+  const n=multi.view.players.length;
+  $('guestMsg').textContent=`방장이 시작하기를 기다리는 중… (${n}명)`;
+}
+function renderStrip(){
+  const s=$('strip');s.innerHTML='';
+  for(const p of roundPlayers()){
+    const c=document.createElement('div');c.className='chip'+(p.status==='done'?' fin':p.status==='gaveup'?' gave':'')+(p.me?' me':'');
+    const dot=document.createElement('span');dot.className='d';
+    const t=document.createElement('span');t.textContent=p.name+(p.me?'(나)':'')+(p.status==='done'?' '+fmt(p.time,true):p.status==='gaveup'?' 포기':'');
+    c.append(dot,t);s.append(c);
+  }
+}
+async function hostStartRound(){
+  if(!multi)return;
+  const n=multi.view?multi.view.size:7;
+  $('roomErr').textContent='';
+  show('game');$('strip').classList.remove('hidden');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
+  $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
+  const cl=await makePuzzle(n,newSeed());
+  if(!multi)return;
+  try{await api('act',{type:'start',n,clues:cl.map(k=>k<0?'.':String(k)).join('')});}
+  catch(e){show('room');$('roomErr').textContent=e.message;}
+}
+function beginRound(r){
+  const n=r.n, cl=Array.from(r.clues,ch=>ch==='.'?-1:+ch);
+  $('winOv').classList.add('hidden');
+  show('game');$('strip').classList.remove('hidden');
+  loadPuzzle(n,cl);renderStrip();
+  playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
+  $('cover').textContent='곧 시작해요';$('cover').classList.remove('hidden');
+  const startLocal=r.startAt-multi.offset;
+  const ov=$('countOv'),num=$('countNum');
+  const tick=()=>{
+    if(!multi||multi.startedRound!==r.no)return;
+    const left=startLocal-Date.now();
+    if(left>0){ov.classList.remove('hidden');const k=Math.ceil(left/1000);if(num.textContent!==String(k)){num.textContent=k;num.style.animation='none';num.offsetHeight;num.style.animation='';}setTimeout(tick,Math.min(200,left));return;}
+    ov.classList.add('hidden');$('cover').classList.add('hidden');
+    startTimer();startTs=performance.now()-(Date.now()-startLocal);
+  };
+  tick();
+}
+async function sendFinish(){
+  const ln=Array.from(lines,v=>v===1?'1':'0').join('');
+  try{await api('act',{type:'finish',lines:ln});}catch(e){$('winRank').textContent=e.message;}
+}
+function backToLobby(){
+  stopTimer();playing=false;
+  if(!multi){show('home');return;}
+  api('act',{type:'lobby'}).catch(()=>{});
+  show('room');renderLobby();
+}
+// 새로고침해도 들어가 있던 방으로 돌아감
+try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.code&&sv.token)post(`/api/slither/rooms/${sv.code}/join`,{token:sv.token}).then(d=>enterRoom(d.code,d.token)).catch(()=>{try{sessionStorage.removeItem('sl_room')}catch(e){}});}catch(e){}
 
 })();
 </script>

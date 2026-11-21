@@ -6,6 +6,7 @@ import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
+import * as SlitherRooms from './game-data/slither-rooms.mjs';
 import * as Accounts from './game-data/accounts.mjs';
 
 // 로그인한 사람이 방에서 경기를 끝내면 기록을 저장
@@ -123,6 +124,28 @@ async function authApi(req, res, path, url) {
 }
 const bwApi = roomApi(BwRooms, '/api/bw');
 
+// 슬리더링크 기록 대결 (관리자 전용). 관리자가 아니면 없는 주소처럼 404
+async function slitherApi(req, res, path, url) {
+  let user = null;
+  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
+  if (!user || !user.admin) return json(res, 404, { error: '없는 주소예요.' });
+  const m = path.match(/^\/api\/slither\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|events|leave))?$/);
+  if (!m) return json(res, 404, { error: '없는 주소예요.' });
+  const [, code, op] = m;
+  try {
+    if (req.method === 'GET' && code && op === 'events') return SlitherRooms.subscribe(code, url.searchParams.get('token'), res);
+    if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
+    const body = await readJson(req);
+    if (!code && !op) return json(res, 200, SlitherRooms.createRoom(user));
+    if (op === 'join') return json(res, 200, SlitherRooms.joinRoom(code, body.token, user));
+    if (op === 'leave') { SlitherRooms.leaveRoom(code, body.token); return json(res, 200, { ok: true }); }
+    if (op === 'act') { SlitherRooms.act(code, body.token, body); return json(res, 200, { ok: true }); }
+    return json(res, 404, { error: '없는 주소예요.' });
+  } catch (e) {
+    return e instanceof SlitherRooms.GameError ? json(res, 400, { error: e.message }) : (console.error(e), json(res, 500, { error: '서버 오류가 났어요.' }));
+  }
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   const path = url.pathname;
@@ -133,6 +156,7 @@ createServer(async (req, res) => {
   if (path.startsWith('/api/auth/') || path === '/api/history') return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
+  if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);
   if (path === '/api/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));

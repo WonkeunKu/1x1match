@@ -147,7 +147,7 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
     if (d.user.admin && !document.getElementById('adminGame')) {
       // 관리자 계정에만 보이는 게임
       const w = document.createElement('div'); w.className = 'gw'; w.id = 'adminGame';
-      w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 혼자 · 퍼즐<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 5×5, 7×7, 10×10 중에 골라 혼자 풀어요.</p><div class="chips"><span class="chip">기록 타이머</span><span class="chip">정답 보기</span></div><span class="go">퍼즐 풀기 →</span></a>';
+      w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 퍼즐 · 기록 대결<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 혼자 풀거나, 관리자끼리 방을 만들어 같은 문제로 시간 기록 대결을 해요.</p><div class="chips"><span class="chip">혼자 풀기</span><span class="chip">관리자 기록 대결</span></div><span class="go">퍼즐 풀기 →</span></a>';
       document.querySelector('main.games').appendChild(w);
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
