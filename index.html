@@ -81,6 +81,8 @@ a.game.bwai { border-top-color: #a9d774; }
 a.game.bwai .go { color: #a9d774; }
 a.game.admin { border-top-color: #b8a6f2; border-style: dashed; border-top-style: solid; }
 a.game.admin .go { color: #b8a6f2; }
+a.game.admin.wall { border-top-color: #e7a0c8; }
+a.game.admin.wall .go { color: #e7a0c8; }
 .lockchip { font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
 .demo { display: flex; gap: 6px; }
 .demo i { display: grid; place-items: center; width: 34px; height: 40px; border-radius: 6px; font-style: normal; font-family: var(--f-display); font-size: 15px; }
@@ -149,6 +151,9 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
       const w = document.createElement('div'); w.className = 'gw'; w.id = 'adminGame';
       w.innerHTML = '<a class="game admin" href="slither/"><span class="tag">ADMIN · 퍼즐 · 기록 대결<span class="lockchip">관리자 전용</span></span><h2>슬리더링크</h2><p>점을 이어 하나의 고리를 만드는 퍼즐이에요. 숫자는 그 칸을 둘러싼 선의 개수예요. 혼자 풀거나, 관리자끼리 방을 만들어 같은 문제로 시간 기록 대결을 해요.</p><div class="chips"><span class="chip">혼자 풀기</span><span class="chip">관리자 기록 대결</span></div><span class="go">퍼즐 풀기 →</span></a>';
       document.querySelector('main.games').appendChild(w);
+      const w2 = document.createElement('div'); w2.className = 'gw';
+      w2.innerHTML = '<a class="game admin wall" href="wallgo/"><span class="tag">ADMIN · 2~4인 · 땅따먹기<span class="lockchip">관리자 전용</span></span><h2>벽바둑 Ⅱ</h2><p>말을 옮기고 벽을 세워 내 말이 있는 영역을 가장 넓게 만드는 게임이에요. 관리자끼리 방을 만들어 하거나, 빈자리는 AI와 겨뤄요.</p><div class="chips"><span class="chip">온라인 방</span><span class="chip">AI 쉬움·보통·어려움</span></div><span class="go">벽 세우러 가기 →</span></a>';
+      document.querySelector('main.games').appendChild(w2);
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
   }

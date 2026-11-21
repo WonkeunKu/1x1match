@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
 import * as SlitherRooms from './game-data/slither-rooms.mjs';
+import * as Relay from './game-data/relay.mjs';
 import * as Accounts from './game-data/accounts.mjs';
 
 // 로그인한 사람이 방에서 경기를 끝내면 기록을 저장
@@ -28,7 +29,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -124,6 +125,25 @@ async function authApi(req, res, path, url) {
 }
 const bwApi = roomApi(BwRooms, '/api/bw');
 
+// 벽바둑 Ⅱ 메시지 중계 (관리자 전용)
+async function wallgoApi(req, res, path, url) {
+  let user = null;
+  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
+  if (!user || !user.admin) return json(res, 404, { error: '없는 주소예요.' });
+  try {
+    if (path === '/api/wallgo/new' && req.method === 'POST') return json(res, 200, { code: Relay.newCode() });
+    const m = path.match(/^\/api\/wallgo\/([A-Za-z]{4})\/(events|send|check)$/);
+    if (!m) return json(res, 404, { error: '없는 주소예요.' });
+    const code = m[1].toUpperCase();
+    if (m[2] === 'events' && req.method === 'GET') return Relay.subscribe(code, url.searchParams.get('cid'), res);
+    if (m[2] === 'check' && req.method === 'POST') return json(res, 200, { exists: Relay.exists(code) });
+    if (m[2] === 'send' && req.method === 'POST') { Relay.send(code, await readJson(req)); return json(res, 200, { ok: true }); }
+    return json(res, 405, { error: 'POST만 돼요.' });
+  } catch (e) {
+    return e instanceof Relay.RelayError ? json(res, e.status, { error: e.message }) : (console.error(e), json(res, 500, { error: '서버 오류가 났어요.' }));
+  }
+}
+
 // 슬리더링크 기록 대결 (관리자 전용). 관리자가 아니면 없는 주소처럼 404
 async function slitherApi(req, res, path, url) {
   let user = null;
@@ -157,6 +177,7 @@ createServer(async (req, res) => {
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);
+  if (path.startsWith('/api/wallgo/')) return wallgoApi(req, res, path, url);
   if (path === '/api/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
@@ -170,11 +191,12 @@ createServer(async (req, res) => {
     return;
   }
   // 슬리더링크는 관리자 계정으로 로그인했을 때만 열림 (다른 사람에게는 없는 페이지처럼 보임)
-  if (path === '/slither' || path.startsWith('/slither/')) {
+  const adminPage = ['/slither', '/wallgo'].find(b => path === b || path.startsWith(b + '/'));
+  if (adminPage) {
     let admin = false;
     try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); admin = !!(u && u.admin); } catch (e) { console.error(e); }
     if (!admin) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
-    if (path === '/slither') { res.writeHead(301, { location: '/slither/' }); res.end(); return; }
+    if (path === adminPage) { res.writeHead(301, { location: adminPage + '/' }); res.end(); return; }
   }
   if (['/blackwhite', '/auction/online', '/blackwhite/online', '/auction/ai', '/history', '/account'].includes(path)) {
     res.writeHead(301, { location: path + '/' });
@@ -191,7 +213,7 @@ createServer(async (req, res) => {
   const body = await readFile(file);
   res.writeHead(200, {
     'content-type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
-    'cache-control': path.startsWith('/slither') ? 'private, no-store' : extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
+    'cache-control': adminPage ? 'private, no-store' : extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
   });
   res.end(body);
 }).listen(PORT, HOST, () => {
