@@ -114,6 +114,7 @@ async function authApi(req, res, path, url) {
       if (!(await Accounts.isOwner(user))) return send(404, { error: '없는 주소예요.' });
       return send(200, await Accounts.ownerOverview());
     }
+    if (path === '/api/auth/profile' && req.method === 'GET') return send(200, await Accounts.getProfile(user));
     if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
     if (path === '/api/history' && req.method === 'GET') {
       if (!user) return send(401, { error: '로그인해야 기록을 볼 수 있어요.' });
@@ -125,6 +126,7 @@ async function authApi(req, res, path, url) {
     body.device = deviceOf(req.headers['user-agent']);
     if (path === '/api/auth/signup') { const u = await Accounts.signup(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/login') { const u = await Accounts.login(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
+    if (path === '/api/auth/profile') { const u = await Accounts.updateProfile(user, body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/logout') return send(200, { ok: true }, Accounts.clearCookie(secure));
     if (path === '/api/history') {
       if (!user) return send(401, { error: '로그인하지 않아서 기록을 저장하지 않았어요.' });

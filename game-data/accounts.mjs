@@ -135,6 +135,76 @@ export async function signup(b) {
   logEvent(row.id, '_login', b.device).catch(e => console.error('login log failed', e.message));
   return { id: row.id, nickname: row.nickname, admin: isAdminPhone(phone) };
 }
+/* ---------- 내 정보 보기·수정 ---------- */
+async function userById(id) {
+  if (usingSupabase) { const rows = await sb(`match_users?select=id,nickname,name,phone,pw_hash&id=eq.${Number(id)}&limit=1`); return rows[0] || null; }
+  return (await fdb()).users.find(u => u.id === id) || null;
+}
+async function patchUser(id, patch) {
+  if (usingSupabase) {
+    try { return (await sb(`match_users?id=eq.${Number(id)}`, { method: 'PATCH', body: patch }))[0]; }
+    catch (e) {
+      if (e.code === '23505') {
+        const msg = String(e.details && (e.details.details || e.details.message) || '');
+        if (msg.includes('phone')) fail('이미 다른 계정에서 쓰는 전화번호예요.', 'phone');
+        fail('이미 사용 중인 닉네임이에요.', 'nickname');
+      }
+      throw e;
+    }
+  }
+  const db = await fdb(); const u = db.users.find(x => x.id === id);
+  Object.assign(u, patch); await fsave(); return u;
+}
+export async function getProfile(user) {
+  const u = user && await userById(user.id);
+  if (!u) fail('로그인이 필요해요.', null, 401);
+  return { nickname: u.nickname, name: u.name, phone: u.phone };
+}
+// 닉네임·이름은 바로 바꿀 수 있고, 전화번호·비밀번호를 바꿀 때는 지금 비밀번호를 확인함
+export async function updateProfile(user, b) {
+  const u = user && await userById(user.id);
+  if (!u) fail('로그인이 필요해요.', null, 401);
+  const patch = {};
+  const nickname = b.nickname == null ? u.nickname : String(b.nickname).trim();
+  const name = b.name == null ? u.name : String(b.name).trim();
+  const phone = b.phone == null ? u.phone : phoneDigits(b.phone);
+  const newPw = b.newPassword ? String(b.newPassword) : '';
+  if (nickname !== u.nickname) {
+    if (!NICK_RE.test(nickname)) fail('닉네임은 2~10자의 한글·영문·숫자·밑줄(_)만 쓸 수 있어요.', 'nickname');
+    const other = await findUser('nickname', nickname);
+    if (other && other.id !== u.id) fail('이미 사용 중인 닉네임이에요.', 'nickname');
+    patch.nickname = nickname;
+  }
+  if (name !== u.name) { if (!nameOk(name)) fail('이름을 2~20자로 입력하세요.', 'name'); patch.name = name; }
+  if (phone !== u.phone) {
+    if (!phoneOk(phone)) fail('휴대폰 번호를 정확히 입력하세요. 예: 010-1234-5678', 'phone');
+    const other = await findUser('phone', phone);
+    if (other && other.id !== u.id) fail('이미 다른 계정에서 쓰는 전화번호예요.', 'phone');
+    patch.phone = phone;
+  }
+  if (newPw) {
+    if (!pwOk(newPw)) fail('새 비밀번호는 영문, 숫자, 특수문자를 하나 이상 넣어 8자 이상으로 만드세요.', 'newPassword');
+    if (newPw !== b.newPassword2) fail('새 비밀번호 확인이 일치하지 않아요.', 'newPassword2');
+  }
+  if (patch.phone || newPw) {
+    const key = 'pw:' + u.id, a = attempts.get(key);
+    if (a && a.until > Date.now()) fail('비밀번호를 5번 틀려서 5분 동안 잠겼어요. 잠시 뒤 다시 시도하세요.', 'currentPassword', 429);
+    if (!b.currentPassword) fail('전화번호나 비밀번호를 바꾸려면 지금 비밀번호를 입력하세요.', 'currentPassword');
+    if (!(await checkPw(String(b.currentPassword), u.pw_hash))) {
+      const n = (a && !(a.until && a.until <= Date.now()) ? a.n : 0) + 1;
+      attempts.set(key, { n, until: n >= 5 ? Date.now() + 5 * 60000 : 0 });
+      fail('지금 비밀번호가 맞지 않아요.', 'currentPassword', 401);
+    }
+    attempts.delete(key);
+  }
+  if (newPw) patch.pw_hash = await hashPw(newPw);
+  if (!Object.keys(patch).length) fail('바뀐 내용이 없어요.');
+  const row = await patchUser(u.id, patch);
+  roleCache.delete(u.id);
+  const fresh = row || Object.assign({}, u, patch);
+  return { id: u.id, nickname: fresh.nickname, admin: isAdminPhone(fresh.phone), changed: Object.keys(patch).map(k => k === 'pw_hash' ? 'password' : k) };
+}
+
 const attempts = new Map(); // 로그인 실패 5번이면 5분 잠금
 export async function login(b) {
   if (ACCOUNTS_DISABLED) fail('회원 기능을 준비하고 있어요. 지금은 로그인 없이 게임을 할 수 있어요.', null, 503);

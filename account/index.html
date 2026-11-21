@@ -73,6 +73,9 @@ input.good { border-color: var(--ok); }
 .links { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
 .me { background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
 .me b { font-size: 20px; }
+.ph { font-family: var(--f-display); font-weight: 400; font-size: 22px; margin: 0; }
+details summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--amber); }
+.ok-note { color: var(--ok); }
 </style>
 </head>
 <body>
@@ -84,6 +87,30 @@ input.good { border-color: var(--ok); }
     <div class="links"><a href="/history/">내 경기 기록</a><a href="/">게임 하러 가기</a></div>
     <button class="btn" type="button" id="logoutBtn">로그아웃</button>
   </section>
+
+  <form id="profileForm" hidden novalidate>
+    <h2 class="ph">내 정보 수정</h2>
+    <div class="field"><label for="pfNick">닉네임</label>
+      <input type="text" id="pfNick" maxlength="10" autocomplete="nickname">
+      <p class="msg" id="pfNickMsg">한글·영문·숫자·밑줄(_)로 2~10자. 다른 사람과 겹칠 수 없어요.</p></div>
+    <div class="field"><label for="pfName">이름</label><input type="text" id="pfName" maxlength="20" autocomplete="name"><p class="msg" id="pfNameMsg"></p></div>
+    <div class="field"><label for="pfPhone">휴대폰 번호</label>
+      <input type="tel" id="pfPhone" inputmode="numeric" autocomplete="tel" maxlength="13">
+      <p class="msg" id="pfPhoneMsg">번호를 바꾸려면 아래에 지금 비밀번호를 입력해야 해요.</p></div>
+    <details id="pwBox"><summary>비밀번호 바꾸기</summary>
+      <div class="field" style="margin-top:10px"><label for="pfPw">새 비밀번호</label>
+        <div class="row"><input type="password" id="pfPw" autocomplete="new-password" maxlength="64"><button type="button" class="eye" data-eye="pfPw" aria-pressed="false">보기</button></div>
+        <ul class="rules" id="pfPwRules"><li data-r="en">영문</li><li data-r="num">숫자</li><li data-r="sp">특수문자</li><li data-r="len">8자 이상</li></ul></div>
+      <div class="field" style="margin-top:10px"><label for="pfPw2">새 비밀번호 확인</label>
+        <div class="row"><input type="password" id="pfPw2" autocomplete="new-password" maxlength="64"><button type="button" class="eye" data-eye="pfPw2" aria-pressed="false">보기</button></div>
+        <p class="msg" id="pfPw2Msg"></p></div>
+    </details>
+    <div class="field" id="curBox" hidden><label for="pfCur">지금 비밀번호</label>
+      <div class="row"><input type="password" id="pfCur" autocomplete="current-password" maxlength="64"><button type="button" class="eye" data-eye="pfCur" aria-pressed="false">보기</button></div>
+      <p class="msg">전화번호나 비밀번호를 바꿀 때만 확인해요.</p></div>
+    <p class="err" id="pfErr"></p>
+    <button class="btn primary" type="submit" id="pfBtn" disabled>저장하기</button>
+  </form>
 
   <div id="forms">
     <div class="tabs" role="tablist" aria-label="로그인 또는 회원가입">
@@ -244,6 +271,87 @@ $('loginForm').addEventListener('submit', async e => {
 });
 $('lgId').addEventListener('input', e => { if (/^\d[\d-]*$/.test(e.target.value)) e.target.value = fmtPhone(e.target.value); });
 
+
+/* 내 정보 수정 */
+let ORIG = null, pfNickOk = true, pfSeq = 0, pfTimer = null;
+const pfVals = () => ({ nickname: $('pfNick').value.trim(), name: $('pfName').value.trim(), phone: $('pfPhone').value.replace(/\D/g, ''), newPassword: $('pfPw').value, newPassword2: $('pfPw2').value, currentPassword: $('pfCur').value });
+function pfUpdate() {
+  if (!ORIG) return;
+  const v = pfVals();
+  const changed = v.nickname !== ORIG.nickname || v.name !== ORIG.name || v.phone !== ORIG.phone || !!v.newPassword;
+  $('curBox').hidden = !(v.phone !== ORIG.phone || v.newPassword);
+  $('pfBtn').disabled = !changed;
+}
+function loadProfile() {
+  api('/api/auth/profile').then(p => {
+    ORIG = { nickname: p.nickname, name: p.name, phone: p.phone };
+    $('pfNick').value = p.nickname; $('pfName').value = p.name; $('pfPhone').value = fmtPhone(p.phone);
+    $('profileForm').hidden = false; pfUpdate();
+  }).catch(() => {});
+}
+$('pfNick').addEventListener('input', () => {
+  clearTimeout(pfTimer); const n = $('pfNick').value.trim(); pfUpdate();
+  if (n === ORIG.nickname) { pfNickOk = true; setMsg('pfNickMsg', $('pfNick'), null); $('pfNickMsg').className = 'msg'; $('pfNickMsg').textContent = '지금 쓰는 닉네임이에요.'; $('pfNick').classList.remove('good', 'bad'); return; }
+  pfNickOk = false;
+  if (!NICK_RE.test(n)) { setMsg('pfNickMsg', $('pfNick'), false, '한글·영문·숫자·밑줄(_)로 2~10자만 쓸 수 있어요.'); return; }
+  $('pfNickMsg').textContent = '확인하는 중…'; $('pfNickMsg').className = 'msg';
+  const seq = ++pfSeq;
+  pfTimer = setTimeout(async () => {
+    try { const r = await api('/api/auth/nickname?n=' + encodeURIComponent(n)); if (seq !== pfSeq) return; pfNickOk = r.available; setMsg('pfNickMsg', $('pfNick'), r.available, r.available ? '사용할 수 있는 닉네임이에요.' : r.reason); }
+    catch { if (seq === pfSeq) $('pfNickMsg').textContent = '중복 확인을 못 했어요. 저장할 때 다시 확인해요.'; }
+  }, 350);
+});
+$('pfName').addEventListener('input', e => { pfUpdate(); const ok = /^[A-Za-z가-힣 ]{2,20}$/.test(e.target.value.trim()); setMsg('pfNameMsg', e.target, ok ? null : false, ok ? '' : '이름을 2~20자의 한글이나 영문으로 입력하세요.'); if (ok) $('pfNameMsg').textContent = ''; });
+$('pfPhone').addEventListener('input', e => {
+  const el = e.target; el.value = fmtPhone(el.value); pfUpdate();
+  const d = el.value.replace(/\D/g, ''), ok = /^01[016789]\d{7,8}$/.test(d);
+  if (d === ORIG.phone) { el.classList.remove('good', 'bad'); $('pfPhoneMsg').className = 'msg'; $('pfPhoneMsg').textContent = '번호를 바꾸려면 아래에 지금 비밀번호를 입력해야 해요.'; return; }
+  setMsg('pfPhoneMsg', el, d.length < 10 ? null : ok, ok ? '좋아요. 저장할 때 다른 계정과 겹치는지 확인해요.' : '휴대폰 번호를 정확히 입력하세요.');
+});
+function pfPwUpdate() {
+  pfUpdate();
+  const pw = $('pfPw').value, c = pwChecks(pw);
+  document.querySelectorAll('#pfPwRules li').forEach(li => li.classList.toggle('ok', c[li.dataset.r]));
+  const all = Object.values(c).every(Boolean);
+  $('pfPw').classList.toggle('good', !!pw && all); $('pfPw').classList.toggle('bad', !!pw && !all);
+  const p2 = $('pfPw2').value;
+  if (p2) setMsg('pfPw2Msg', $('pfPw2'), p2 === pw, p2 === pw ? '비밀번호가 같아요.' : '비밀번호가 서로 달라요.');
+  else { $('pfPw2').classList.remove('good', 'bad'); $('pfPw2Msg').textContent = ''; $('pfPw2Msg').className = 'msg'; }
+}
+$('pfPw').addEventListener('input', pfPwUpdate); $('pfPw2').addEventListener('input', pfPwUpdate);
+$('profileForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const v = pfVals(), err = $('pfErr'); err.textContent = ''; err.classList.remove('ok-note');
+  const local = !NICK_RE.test(v.nickname) ? ['닉네임은 한글·영문·숫자·밑줄(_)로 2~10자만 쓸 수 있어요.', 'pfNick']
+    : (v.nickname !== ORIG.nickname && !pfNickOk && $('pfNickMsg').classList.contains('bad')) ? [$('pfNickMsg').textContent, 'pfNick']
+    : !/^[A-Za-z가-힣 ]{2,20}$/.test(v.name) ? ['이름을 2~20자의 한글이나 영문으로 입력하세요.', 'pfName']
+    : !/^01[016789]\d{7,8}$/.test(v.phone) ? ['휴대폰 번호를 정확히 입력하세요. 예: 010-1234-5678', 'pfPhone']
+    : v.newPassword && !Object.values(pwChecks(v.newPassword)).every(Boolean) ? ['새 비밀번호는 영문, 숫자, 특수문자를 하나 이상 넣어 8자 이상으로 만드세요.', 'pfPw']
+    : v.newPassword && v.newPassword !== v.newPassword2 ? ['새 비밀번호 확인이 일치하지 않아요.', 'pfPw2']
+    : (v.phone !== ORIG.phone || v.newPassword) && !v.currentPassword ? ['지금 비밀번호를 입력하세요.', 'pfCur'] : null;
+  if (local) { err.textContent = local[0]; $(local[1]).focus(); return; }
+  const body = { nickname: v.nickname, name: v.name, phone: v.phone };
+  if (v.newPassword) { body.newPassword = v.newPassword; body.newPassword2 = v.newPassword2; }
+  if (v.phone !== ORIG.phone || v.newPassword) body.currentPassword = v.currentPassword;
+  $('pfBtn').disabled = true;
+  try {
+    const r = await api('/api/auth/profile', body);
+    ORIG = { nickname: v.nickname, name: v.name, phone: v.phone };
+    $('meName').textContent = r.user.nickname + '님';
+    ['pfPw', 'pfPw2', 'pfCur'].forEach(id => { $(id).value = ''; $(id).classList.remove('good', 'bad'); });
+    document.querySelectorAll('#pfPwRules li').forEach(li => li.classList.remove('ok')); $('pfPw2Msg').textContent = ''; $('pwBox').open = false;
+    ['pfNick', 'pfName', 'pfPhone'].forEach(id => $(id).classList.remove('good', 'bad'));
+    $('pfNickMsg').className = 'msg'; $('pfNickMsg').textContent = '지금 쓰는 닉네임이에요.';
+    const L = { nickname: '닉네임', name: '이름', phone: '전화번호', password: '비밀번호' };
+    const ch = (r.user.changed || []).map(k => L[k]); const last = ch[ch.length - 1] || '';
+    err.classList.add('ok-note'); err.textContent = ch.join(', ') + (/[임름]$/.test(last) ? '을' : '를') + ' 바꿨어요.';
+  } catch (ex) {
+    err.textContent = ex.message;
+    const map = { nickname: 'pfNick', name: 'pfName', phone: 'pfPhone', newPassword: 'pfPw', newPassword2: 'pfPw2', currentPassword: 'pfCur' };
+    if (map[ex.field]) $(map[ex.field]).focus();
+  } finally { pfUpdate(); }
+});
+$('pfCur').addEventListener('input', pfUpdate);
 /* 이미 로그인했으면 */
 $('logoutBtn').onclick = async () => { await api('/api/auth/logout', {}).catch(() => {}); location.reload(); };
 api('/api/auth/me').then(d => {
@@ -251,6 +359,7 @@ api('/api/auth/me').then(d => {
   $('forms').hidden = true; $('meBox').hidden = false;
   $('meName').textContent = d.user.nickname + '님';
   $('title').textContent = '내 계정';
+  loadProfile();
 }).catch(() => {});
 </script>
 </body>
