@@ -206,7 +206,7 @@ function recordRound(room) {
   for (const q of inRound) {
     if (!q.uid) continue;
     const rank = q.status === 'done' ? done.indexOf(q) + 1 : null;
-    const entry = { game: 'slither', mode: 'battle', level: null, size: r.n, diff: r.diff == null ? null : r.diff, result: q.status === 'done' ? 'solved' : 'gaveup', time: q.status === 'done' ? q.time : null, rank, total: inRound.length,
+    const entry = { game: 'slither', mode: 'battle', level: null, size: r.n, diff: r.diff == null ? null : r.diff, clues: r.clues, result: q.status === 'done' ? 'solved' : 'gaveup', time: q.status === 'done' ? q.time : null, rank, total: inRound.length,
       players: list.map(x => Object.assign({}, x, { me: x.name === q.name })) };
     try { finishHook(q.uid, entry); } catch (e) { console.error(e); }
   }

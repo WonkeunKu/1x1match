@@ -58,6 +58,8 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 .badge.win { background: var(--amber); color: #1a1405; }
 .badge.lose { color: var(--chalk-dim); }
 .item .g { font-weight: 700; }
+.item .r .again { font-family: var(--f-body); display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--amber); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.item .r .again:hover { border-color: var(--amber); }
 .dl { font-weight: 700; } .dl.d0 { color: var(--green); } .dl.d1 { color: var(--blue); } .dl.d2 { color: var(--amber); } .dl.d3 { color: var(--red); }
 .item .d { font-size: 13px; color: var(--chalk-dim); overflow: hidden; text-overflow: ellipsis; }
 .item .r { font-family: var(--f-mono); font-size: 18px; font-weight: 600; text-align: right; white-space: nowrap; }
@@ -154,11 +156,12 @@ function itemHtml(x) {
   if (x.game === 'slither') {
     const solved = x.result === 'solved';
     const badge = x.mode === 'battle' ? (solved ? `${x.rank}위` : '포기') : (solved ? '완료' : '포기');
+    const again = x.replay ? ' · 다시 푼 문제' : '';
     const win = x.mode === 'battle' ? x.rank === 1 : solved;
     const others = x.mode === 'battle' ? (x.players || []).filter(p => !p.me).map(p => `${esc(p.name)} ${p.status === 'done' ? tm(p.time) : '포기'}`).join(' · ') : '';
     return `<div class="item" style="--c:${g.c}"><span class="badge ${win ? 'win' : 'lose'}">${badge}</span>
-      <div>${head}${others ? `<div class="d">${others}</div>` : `<div class="d">${solved ? '정답을 맞혔어요' : '정답 보기로 확인'}</div>`}</div>
-      <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small></div></div>`;
+      <div>${head}${others ? `<div class="d">${others}</div>` : `<div class="d">${solved ? '정답을 맞혔어요' : '정답 보기로 확인'}${again}</div>`}</div>
+      <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small>${x.clues ? `<a class="again" href="/slither/?p=${x.size}.${encodeURIComponent(x.clues)}">다시 풀기</a>` : ''}</div></div>`;
   }
   if (x.game === 'wallgo' || x.game === 'wallgo1') {
     const others = (x.players || []).filter(p => !p.me).sort((a, b) => a.rank - b.rank).map(p => `${esc(p.name)}${p.ai ? '(AI)' : ''} ${p.score}칸`).join(' · ');

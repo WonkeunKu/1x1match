@@ -383,7 +383,8 @@ export function cleanClientEntry(e, isAdmin) {
     const result = ['solved', 'gaveup'].includes(e.result) ? e.result : null;
     if (!size || !result) fail('저장할 수 없는 기록이에요.');
     const diff = [0, 1, 2, 3].includes(e.diff) ? e.diff : null;
-    return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null, diff };
+    const clues = typeof e.clues === 'string' && e.clues.length === size * size && /^[.0-3]+$/.test(e.clues) ? e.clues : null; // 다시 풀기용 문제
+    return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null, diff, clues, replay: !!e.replay };
   }
   if ((e.game === 'wallgo' || e.game === 'wallgo1') && ['online', 'local'].includes(e.mode)) {
     const total = int(e.total, 2, 4);

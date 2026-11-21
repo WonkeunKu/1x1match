@@ -701,19 +701,28 @@ function renderWin(){
 }
 
 // ---------- solo ----------
+let replaying=false;
 async function startSolo(){
-  multi=null;$('strip').classList.add('hidden');
+  multi=null;replaying=false;$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
   const cl=await makePuzzle(size,newSeed());
   loadPuzzle(size,cl);$('cover').classList.add('hidden');startTimer();
 }
+// 경기 기록의 '다시 풀기': 주소 ?p=크기.문제 로 같은 문제를 다시 엶
+function startReplay(n,str){
+  multi=null;replaying=true;size=n;segSelect($('sizeSeg'),n);$('strip').classList.add('hidden');
+  show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
+  loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
+}
+(()=>{ const m=/^(5|7|10)\.([.0-3]+)$/.exec(new URLSearchParams(location.search).get('p')||'');
+  if(m&&m[2].length===m[1]*m[1]){ try{window.history.replaceState(null,'',location.pathname);}catch(e){} setTimeout(()=>startReplay(+m[1],m[2]),0); } })();
 $('soloBtn').onclick=startSolo;
 $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
 
 // 혼자 푼 결과는 로그인한 사람의 경기 기록에 저장 (대결 기록은 서버가 저장)
 function saveSolo(result){
-  const body={game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime)};
+  const body={game:'slither',mode:'solo',size:G.R,result,time:Math.round(finishTime),clues:clues.map(k=>k<0?'.':String(k)).join(''),replay:replaying};
   ratePromise.then(lv=>{ body.diff=lv; fetch('/api/history',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).catch(()=>{}); });
 }
 // ---------- 기록 대결 (서버 방) ----------
