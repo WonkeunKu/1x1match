@@ -94,7 +94,8 @@ const GAMES = [
   { id: 'auction', short: '경매', name: '연봉 블라인드 경매', c: 'var(--amber)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', admin: true, modes: [['solo', '혼자'], ['battle', '기록 대결']] },
-  { id: 'wallgo', short: '벽바둑', name: '벽바둑 Ⅱ', c: '#e7a0c8', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] }
+  { id: 'wallgo1', short: '벽바둑', name: '벽바둑', c: '#f0a35e', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] },
+  { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', admin: true, modes: [['online', '온라인'], ['local', '이 기기']] }
 ];
 const G_BY = Object.fromEntries(GAMES.map(g => [g.id, g]));
 let game = 'all', mode = 'all';
@@ -103,7 +104,7 @@ const modeText = x => {
   if (x.game === 'auction') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 4인';
   if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
   if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : '혼자 풀기') + ` · ${x.size}×${x.size}`;
-  if (x.game === 'wallgo') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
+  if (x.game === 'wallgo' || x.game === 'wallgo1') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
   return '';
 };
 function statCard(g, list) {
@@ -119,7 +120,7 @@ function statCard(g, list) {
     const ok = L.filter(x => x.result === 'solved');
     const best = [5, 7, 10].map(n => { const t = ok.filter(x => x.size === n).map(x => x.time); return t.length ? `${n}×${n} ${tm(Math.min(...t))}` : null; }).filter(Boolean);
     v = `${ok.length}번 풀이`; sub = (best.length ? '최고 ' + best.join(' · ') : `${L.length}판`) + (L.some(x => x.mode === 'battle') ? ` · 대결 1위 ${L.filter(x => x.mode === 'battle' && x.rank === 1).length}회` : '');
-  } else if (g.id === 'wallgo' && L.length) {
+  } else if ((g.id === 'wallgo' || g.id === 'wallgo1') && L.length) {
     v = `1위 ${L.filter(x => x.rank === 1).length}회`;
     sub = `${L.length}판 · 평균 ${(L.reduce((s, x) => s + x.rank, 0) / L.length).toFixed(1)}위 · 최고 ${Math.max(...L.map(x => x.score))}칸`;
   }
@@ -157,7 +158,7 @@ function itemHtml(x) {
       <div>${head}${others ? `<div class="d">${others}</div>` : `<div class="d">${solved ? '정답을 맞혔어요' : '정답 보기로 확인'}</div>`}</div>
       <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small></div></div>`;
   }
-  if (x.game === 'wallgo') {
+  if (x.game === 'wallgo' || x.game === 'wallgo1') {
     const others = (x.players || []).filter(p => !p.me).sort((a, b) => a.rank - b.rank).map(p => `${esc(p.name)}${p.ai ? '(AI)' : ''} ${p.score}칸`).join(' · ');
     return `<div class="item" style="--c:${g.c}"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
       <div>${head}<div class="d">${others}</div></div>

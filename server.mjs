@@ -30,7 +30,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'owner'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -214,7 +214,7 @@ createServer(async (req, res) => {
     if (!ok) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('페이지를 찾을 수 없어요.'); return; }
     if (path === '/owner') { res.writeHead(301, { location: '/owner/' }); res.end(); return; }
   }
-  const adminPage = ['/slither', '/wallgo', '/owner'].find(b => path === b || path.startsWith(b + '/'));
+  const adminPage = ['/slither', '/wallgo', '/wallgo1', '/owner'].find(b => path === b || path.startsWith(b + '/'));
   if (adminPage) {
     let admin = false;
     try { const u = await Accounts.refreshAdmin(Accounts.userFromReq(req)); admin = !!(u && u.admin); } catch (e) { console.error(e); }

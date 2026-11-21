@@ -250,11 +250,11 @@ export function cleanClientEntry(e, isAdmin) {
     if (!size || !result) fail('저장할 수 없는 기록이에요.');
     return { game: 'slither', mode: 'solo', level: null, size, result, time: result === 'solved' ? int(e.time, 0, 86400000) : null };
   }
-  if (e.game === 'wallgo' && ['online', 'local'].includes(e.mode)) {
+  if ((e.game === 'wallgo' || e.game === 'wallgo1') && ['online', 'local'].includes(e.mode)) {
     const total = int(e.total, 2, 4);
     const players = (Array.isArray(e.players) ? e.players : []).slice(0, 4).map(p => ({ name: nm(p && p.name), ai: !!(p && p.ai), score: int(p && p.score, 0, 49), rank: int(p && p.rank, 1, 4), me: !!(p && p.me) }));
     const rank = int(e.rank, 1, total);
-    return { game: 'wallgo', mode: e.mode, level: ['easy', 'normal', 'hard'].includes(e.level) ? e.level : null, result: rank === 1 ? 'win' : 'lose', rank, total, score: int(e.score, 0, 49), best: int(e.best, 0, 49), players };
+    return { game: e.game, mode: e.mode, level: ['easy', 'normal', 'hard'].includes(e.level) ? e.level : null, result: rank === 1 ? 'win' : 'lose', rank, total, score: int(e.score, 0, 49), best: int(e.best, 0, 49), players };
   }
   fail('저장할 수 없는 기록이에요.');
 }
