@@ -324,7 +324,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .mm-l { font-size: 22px; text-anchor: middle; fill: var(--chalk-dim); pointer-events: none; font-weight: 700; }
 .mm-w { stroke: var(--chalk); stroke-width: 9; stroke-linecap: round; pointer-events: none; } .mm-w.flash { stroke: var(--red); }
 .mm-p { stroke: #0b1a17; stroke-width: 3; pointer-events: none; } .mm-p.p0 { fill: var(--blue); } .mm-p.p1 { fill: var(--red); }
-.g-main { position: relative; }
+.g-main, .boardbox { position: relative; }
 .ready-ov { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(8,26,22,.86); border-radius: inherit; }
 .ready-box { display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 320px; }
 .ready-box b { font-family: var(--f-display); font-weight: 400; font-size: 26px; }
@@ -354,6 +354,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
     <div class="boardbox">
       <div class="status"><span class="dot" id="turnDot"></span><span id="turnName"></span><span class="msg" id="turnMsg"></span></div>
       <svg id="bc" viewBox="0 0 520 520" aria-label="바그찰 판"></svg>
+      <div class="ready-ov" id="baghReady"><div class="ready-box"><b>설정을 고르고 시작하세요</b><span>상대·내 진영·AI 난이도는 <span class="rw">오른쪽</span><span class="rn">아래</span> 설정 칸에서 바꿀 수 있어요.</span><button type="button" class="primary ready-go" id="baghGo">게임 시작</button></div></div>
     </div>
     <aside class="side">
       <div class="card">
@@ -614,7 +615,7 @@ function finish(title, sub) {
   $('endTitle').textContent = title; $('endSub').textContent = mine + sub; $('endOv').hidden = false;
 }
 function aiStep() {
-  if (over || humanTurn() || aiBusy) return;
+  if (waiting || over || humanTurn() || aiBusy) return;
   aiBusy = true; render();
   const t0 = performance.now();
   setTimeout(() => {
@@ -644,9 +645,11 @@ $('undoBtn').onclick = () => {
 function newGame() {
   Object.assign(cfg, pending);
   S = newState(); hist = []; seen = new Map([[key(S), 1]]); sel = null; last = null; over = null; aiBusy = false; log = [];
-  $('endOv').hidden = true; render(); setTimeout(aiStep, 300);
+  $('endOv').hidden = true; render(); if (!waiting) setTimeout(aiStep, 300);
 }
-$('newBtn').onclick = newGame; $('againBtn').onclick = newGame;
+let waiting = true; // 설정을 고르고 "게임 시작"을 눌러야 시작
+function startBagh() { waiting = false; const ov = $('baghReady'); if (ov) ov.remove(); newGame(); }
+$('baghGo').onclick = startBagh; $('newBtn').onclick = startBagh; $('againBtn').onclick = newGame;
 $('closeBtn').onclick = () => { $('endOv').hidden = true; };
 function seg(id, keyName, parse) {
   $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
@@ -674,7 +677,7 @@ function show(id) {
   $('pageEyebrow').textContent = `1x1 MATCH · ${folder} · 관리자 전용`;
   $('backLink').href = '/#' + back; $('backLink').textContent = '← ' + folder;
   $('baghView').hidden = !bagh; $('rulesBox').hidden = !bagh; $('gameView').hidden = bagh; $('gameRules').hidden = bagh;
-  if (bagh) { $('againBtn').onclick = newGame; $('closeBtn').onclick = () => { $('endOv').hidden = true; }; return; }
+  if (bagh) { $('againBtn').onclick = startBagh; $('closeBtn').onclick = () => { $('endOv').hidden = true; }; return; }
   const g = GAMES.find(x => x.id === id);
   $('gameRulesTitle').textContent = g.name + ' 규칙'; $('gameRulesBody').innerHTML = g.rules;
   cleanup = g.mount($('gameView'));
