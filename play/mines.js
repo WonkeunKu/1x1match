@@ -86,6 +86,7 @@
         d.innerHTML = (p ? '<small>AI</small>' : '<small>나</small>') + esc(text);
         box.appendChild(d); setTimeout(() => d.remove(), 1900);
       }
+      const pts = t => window.IS_OWNER ? t : ''; // 대표 계정 점검용: 기록에 점수 표시
       function move(p, to, declareNo) {
         const who = p ? 'AI' : '나';
         if (declareNo) { const b = G.bombs[p].find(x => x.no === declareNo && !x.used); if (b) { b.used = true; G.armed.push({ owner: p, cell: b.cell, no: b.no, left: 2, b }); G.log.push(`${who}: ${b.no}번 시한폭탄 발동!`); } }
@@ -94,23 +95,23 @@
         const mc = mineCount(to);
         if (mc) {
           G.score[p] -= 5; G.mines[0].delete(to); G.mines[1].delete(to);
-          txt += ` · 지뢰${mc > 1 ? ' 2개' : ''}!`; G.boom.push(to); pop(p, to, '지뢰! −5', 'bad');
+          txt += ` · 지뢰${mc > 1 ? ' 2개' : ''}!` + pts(' −5'); G.boom.push(to); pop(p, to, '지뢰! −5', 'bad');
           G.log.push(txt); G.obs.push({ cell: to, mine: true });
           G.pendingRespawn = p; render();
           if (p === 1) T.set(() => respawn(1, ZONE[1].filter(z => z !== G.pos[0])[0] ?? ZONE[1][0]), 700);
           return;
         }
         if (G.treasures.has(to)) {
-          const val = (cfg.mode === 2 ? [15, 20, 25] : [10, 15, 20])[G.found]; G.found++; G.treasures.delete(to); G.score[p] += val; txt += ' · 보물 발견!'; pop(p, to, '보물 +' + val, 'gold');
+          const val = (cfg.mode === 2 ? [15, 20, 25] : [10, 15, 20])[G.found]; G.found++; G.treasures.delete(to); G.score[p] += val; txt += ' · 보물 발견!' + pts(` +${val}`); pop(p, to, '보물 +' + val, 'gold');
         } else if (!G.scored.has(to)) {
-          const v = adjScore(to); G.scored.add(to); G.score[p] += v; G.obs.push({ cell: to, v }); pop(p, to, '+' + v, v ? 'good' : 'zero');
-        } else { txt += ' (이미 점수 받은 칸)'; pop(p, to, '+0', 'zero'); }
+          const v = adjScore(to); G.scored.add(to); G.score[p] += v; G.obs.push({ cell: to, v }); txt += pts(` +${v}`); pop(p, to, '+' + v, v ? 'good' : 'zero');
+        } else { txt += ' (이미 점수 받은 칸)' + pts(' +0'); pop(p, to, '+0', 'zero'); }
         G.log.push(txt); afterMove(p);
       }
       function respawn(p, cell) {
         G.pos[p] = cell; G.pendingRespawn = null;
         let txt = `${p ? 'AI' : '나'} 출발 구역 ${nm(cell)}로 돌아감`;
-        if (!G.scored.has(cell)) { const v = adjScore(cell); G.scored.add(cell); G.score[p] += v; G.obs.push({ cell, v }); pop(p, cell, '+' + v, v ? 'good' : 'zero'); }
+        if (!G.scored.has(cell)) { const v = adjScore(cell); G.scored.add(cell); G.score[p] += v; G.obs.push({ cell, v }); txt += pts(` +${v}`); pop(p, cell, '+' + v, v ? 'good' : 'zero'); }
         G.log.push(txt); afterMove(p);
       }
       function afterMove(p) {
@@ -124,7 +125,7 @@
         const area = [a.cell, ...NB8(a.cell)];
         G.log.push(`${a.owner ? 'AI' : '내'} ${a.no}번 시한폭탄 폭발 (${nm(a.cell)} 주변)`); G.boom.push(a.cell);
         for (const q of [0, 1]) if (area.includes(G.pos[q]) && !ZONE[q].includes(G.pos[q]) && G.pos[q] !== START[q]) {
-          G.score[q] -= 5; const z = ZONE[q].find(c => c !== G.pos[1 - q]) ?? ZONE[q][0]; G.pos[q] = z; G.log.push(`${q ? 'AI' : '나'} 폭발에 휘말려 ${nm(z)}로`); pop(q, a.cell, '폭발 −5', 'bad');
+          G.score[q] -= 5; const z = ZONE[q].find(c => c !== G.pos[1 - q]) ?? ZONE[q][0]; G.pos[q] = z; G.log.push(`${q ? 'AI' : '나'} 폭발에 휘말려${pts(' −5')} ${nm(z)}로`); pop(q, a.cell, '폭발 −5', 'bad');
         }
       }
       function finish() {

@@ -48,4 +48,7 @@
     show(); return false;
   }
   window.FreePlay = { ok, newId, show };
+  // 진행 기록은 대표 계정에게만 보여 줌 (게임이 맞게 돌아가는지 점검용). 다른 사람은 기억해야 하는 정보가 기록으로 새지 않게 숨김
+  window.IS_OWNER = false;
+  fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { if (d.user && d.user.owner) { window.IS_OWNER = true; document.documentElement.classList.add('is-owner'); document.dispatchEvent(new Event('owner-ready')); } }).catch(() => {});
 })();

@@ -9,7 +9,7 @@
 <link rel="icon" href="/icon-ball.svg?v=4" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon-ball-180.png?v=4">
 <title>벽바둑 Ⅱ · 1x1 MATCH</title>
-<script src="/freeplay.js?v=3"></script>
+<script src="/freeplay.js?v=4"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
@@ -96,6 +96,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 .pl .meta{font-size:12px;color:var(--muted)}
 .pl .sc{font-family:var(--f-mono);font-size:22px;font-weight:700;text-align:right}
 .pl .sc small{display:block;font-size:10px;font-weight:400;color:var(--muted)}
+html:not(.is-owner) .owner-only{display:none!important}
 #log{max-height:220px;overflow:auto;font-size:13px;line-height:1.6}
 #log div{border-bottom:1px dashed var(--line);padding:3px 0}
 h3{margin:0 0 10px;font-size:13px;color:var(--muted);font-weight:700}
@@ -189,7 +190,7 @@ h2{font-family:var(--f-display);font-weight:400;font-size:26px}
           <h3>플레이어</h3>
           <div id="players"></div>
         </div>
-        <div class="card" style="margin-bottom:14px">
+        <div class="card owner-only" style="margin-bottom:14px">
           <h3>기록</h3>
           <div id="log"></div>
         </div>
