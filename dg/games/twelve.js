@@ -12,6 +12,13 @@
     P: [[-1, 0]],
     Q: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0]]
   };
+  // 말 위에 갈 수 있는 방향을 작은 삼각형으로 표시 (말 주인 기준 위쪽이 앞)
+  const arrows = t => '<svg class="tw-dir" viewBox="0 0 100 100" aria-hidden="true">' + DIRS[t].map(([dr, dc]) => {
+    const L = Math.hypot(dr, dc), ux = dc / L, uy = dr / L, d = (dr && dc) ? 40 : 41;
+    const cx = 50 + ux * d, cy = 50 + uy * d, tip = 5.5, half = 5;
+    const p = [[cx + ux * tip, cy + uy * tip], [cx - ux * 2 - uy * half, cy - uy * 2 + ux * half], [cx - ux * 2 + uy * half, cy - uy * 2 - ux * half]];
+    return `<polygon points="${p.map(q => q.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`;
+  }).join('') + '</svg>';
   // 판: 칸마다 null 또는 {o:0|1, t}. 0은 아래쪽(나), 1은 위쪽. 0의 앞은 r-1
   function init() {
     const b = Array(W * H).fill(null);
@@ -168,10 +175,10 @@
         for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
           const i = r * W + c, x = S.b[i];
           const zone = r === 0 ? 'z1' : r === H - 1 ? 'z0' : '';
-          html += `<button type="button" class="tw-c ${zone} ${targets.includes(i) ? 'tg' : ''} ${sel && sel.i === i ? 'sel' : ''}" data-i="${i}">${x ? `<span class="tw-p o${x.o}">${NAME[x.t]}<small>${KNAME[x.t]}</small></span>` : ''}</button>`;
+          html += `<button type="button" class="tw-c ${zone} ${targets.includes(i) ? 'tg' : ''} ${sel && sel.i === i ? 'sel' : ''}" data-i="${i}">${x ? `<span class="tw-p o${x.o}">${arrows(x.t)}${NAME[x.t]}<small>${KNAME[x.t]}</small></span>` : ''}</button>`;
         }
         $('twB').innerHTML = html;
-        const hand = p => `<span class="muted">${who(p)} 잡은 말</span>` + (S.hand[p].length ? S.hand[p].map((k, n) => `<button type="button" class="tw-p o${p} small ${sel && sel.drop === k && sel.p === p ? 'sel' : ''}" data-drop="${k}" data-p="${p}">${NAME[k]}</button>`).join('') : '<span class="muted">없음</span>');
+        const hand = p => `<span class="muted">${who(p)} 잡은 말</span>` + (S.hand[p].length ? S.hand[p].map((k, n) => `<button type="button" class="tw-p o${p} small ${sel && sel.drop === k && sel.p === p ? 'sel' : ''}" data-drop="${k}" data-p="${p}">${arrows(k)}${NAME[k]}</button>`).join('') : '<span class="muted">없음</span>');
         $('twH0').innerHTML = hand(0); $('twH1').innerHTML = hand(1);
         $('twMsg').textContent = over ? '게임 끝' : busy ? 'AI 생각 중…' : `${who(S.turn)} 차례` + (S.kingIn[1 - S.turn] ? ` — ${who(1 - S.turn)} 왕이 끝줄에 있어요! 지금 잡지 못하면 져요` : '');
         $('twLog').innerHTML = log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
