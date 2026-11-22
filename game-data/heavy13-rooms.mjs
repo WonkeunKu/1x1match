@@ -138,6 +138,7 @@ function computeRanking(st){
 }
 
 /* ---------------- AI ---------------- */
+export const TOPW = { big: 0.35, unsafe: 0.15, w: 0.5, zero: 0.5, k: 3, n: 60, mix: 0.6 };
 function greedyColor(sums, cnt, v, chip){
   const cols = chip === 'W' ? COLORS : [chip];
   let best = null;
@@ -199,8 +200,10 @@ function aiDecide(st, pid){
   return {action: best.action, color: best.color};
 }
 
-function aiSubmit(st, pid, N){
-  N = N || 220;
+// lv: 0 기본, 1 최상 (남이 낼 카드를 '안전하고 큰 카드를 낼 사람'으로 더 그럴듯하게 짐작 + 더 많이 시뮬레이션)
+function aiSubmit(st, pid, N, lv){
+  const top = lv === 1 || (lv == null && st.opts && st.opts.aiLv === 1);
+  N = N || (top ? 700 : 220);
   const me = P(st, pid), n = st.players.length, info = standsInfo(st);
   const options = [];
   for (const card of me.cards) for (const chip of ['R','G','B','W']) if (me.chips[chip] > 0) options.push({card, chip});
@@ -209,14 +212,21 @@ function aiSubmit(st, pid, N){
   const pools = others.map(({p, i}) => {
     const list = []; let tot = 0;
     for (const card of p.cards) for (const chip of ['R','G','B','W']) if (p.chips[chip] > 0){
-      const w = p.chips[chip] * (chip === 'W' ? 1 : (info[chip].s + card < LIMIT ? 1 : 0.3));
+      let w;
+      if (top){
+        const safe = chip === 'W' ? COLORS.some(c => info[c].s + card < LIMIT) : info[chip].s + card < LIMIT;
+        w = p.chips[chip] * (safe ? 1 + card * TOPW.big : TOPW.unsafe) * (chip === 'W' ? TOPW.w : 1) * (card === 0 ? TOPW.zero : 1);
+      } else w = p.chips[chip] * (chip === 'W' ? 1 : (info[chip].s + card < LIMIT ? 1 : 0.3));
       tot += w; list.push({card, chip, cum: tot});
     }
     return {p, i, list, tot};
   });
+  // 최상: 상대마다 '내가 저 자리라면 낼 수'를 먼저 몇 개 구해 두고, 샘플의 상당수를 그 수로 채움
+  const guess = top ? pools.map(o => { const g = []; for (let k = 0; k < TOPW.k; k++) g.push(aiSubmit(st, o.p.id, TOPW.n, 0)); return g; }) : null;
   const samples = [];
   for (let k = 0; k < N; k++){
-    samples.push(pools.map(o => {
+    samples.push(pools.map((o, oi) => {
+      if (guess && Math.random() < TOPW.mix){ const g = guess[oi][randomInt(guess[oi].length)]; return {id: o.p.id, v: g.card, chip: g.chip, d: (o.i - st.startIdx + n) % n}; }
       const r = Math.random() * o.tot; const pick = o.list.find(x => x.cum >= r) || o.list[o.list.length - 1];
       return {id: o.p.id, v: pick.card, chip: pick.chip, d: (o.i - st.startIdx + n) % n};
     }));
@@ -295,7 +305,7 @@ function me(room, tok) { const m = memberOf(room, tok); if (!m) fail('이 방의
 const online = (room, pid) => [...room.clients].some(c => { const m = memberOf(room, c.token); return m && m.pid === pid; });
 
 export function createRoom(user, opts = {}) {
-  const room = { code: newCode(), members: [], host: null, settings: { count: 5, submitSec: 60, decideSec: 20 }, st: null, clients: new Set(), touched: now(), solo: !!opts.solo };
+  const room = { code: newCode(), members: [], host: null, settings: { count: 5, submitSec: 60, decideSec: 20, aiLv: 0 }, st: null, clients: new Set(), touched: now(), solo: !!opts.solo };
   rooms.set(room.code, room);
   const t = addMember(room, user);
   return { code: room.code, token: t };
@@ -338,7 +348,7 @@ function startGame(room) {
   while (seats.length < count) { let nm; do { nm = AI_NAMES[randomInt(AI_NAMES.length)]; } while (used.has(nm)); used.add(nm); seats.push({ id: pidNew(), name: nm, isAI: true }); }
   // 자리 순서를 섞음 (시계방향 순서)
   for (let i = seats.length - 1; i > 0; i--) { const j = randomInt(i + 1); [seats[i], seats[j]] = [seats[j], seats[i]]; }
-  room.st = createGame(seats, { submitSec: room.settings.submitSec, decideSec: room.settings.decideSec });
+  room.st = createGame(seats, { submitSec: room.settings.submitSec, decideSec: room.settings.decideSec, aiLv: room.settings.aiLv || 0 });
   clearInterval(room.ticker);
   room.ticker = setInterval(() => tick(room), 250);
 }
@@ -358,6 +368,7 @@ export function act(code, tok, body) {
     if ([5, 6, 7].includes(n)) s.count = n;
     if ([30, 60, 90, 120, 180].includes(a)) s.submitSec = a;
     if ([10, 20, 30, 60].includes(d)) s.decideSec = d;
+    if (body.aiLv !== undefined && [0, 1].includes(Number(body.aiLv))) s.aiLv = Number(body.aiLv); // 0 기본, 1 최상
   } else if (type === 'start') {
     if (!isHost) fail('방장만 시작할 수 있어요.');
     if (room.st && room.st.phase !== 'over') fail('이미 게임 중이에요.');
@@ -388,7 +399,7 @@ function onOver(room) {
   for (const m of room.members) {
     if (m.uid == null) continue;
     const mine = rk.find(r => r.id === m.pid); if (!mine) continue;
-    finishHook(m.uid, { game: 'heavy13', mode: room.solo ? 'ai' : 'online', level: null, result: mine.rank === 1 ? 'win' : 'lose', rank: mine.rank, total: N, penalty: mine.penalty,
+    finishHook(m.uid, { game: 'heavy13', mode: room.solo ? 'ai' : 'online', level: st.opts.aiLv === 1 ? 'top' : null, result: mine.rank === 1 ? 'win' : 'lose', rank: mine.rank, total: N, penalty: mine.penalty,
       players: rk.map(r => { const p = st.players.find(x => x.id === r.id); return { name: r.name, ai: !!(p && p.isAI), penalty: r.penalty, rank: r.rank, me: r.id === m.pid }; }) });
   }
 }

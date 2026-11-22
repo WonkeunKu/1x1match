@@ -190,7 +190,7 @@ const CV = { R: 'var(--R)', G: 'var(--G)', B: 'var(--B)' };
 const sumOf = a => a.reduce((s, x) => s + x.v, 0);
 const store = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} } };
 
-let ME = null, NAME = '', room = null, V = null, es = null, screen = 'menu', menuErr = '', soloCount = 5;
+let ME = null, NAME = '', room = null, V = null, es = null, screen = 'menu', menuErr = '', soloCount = 5, soloLv = 0;
 let ui = { card: null, chip: null, editing: false }, prev = null, localDeadline = 0, lastLog = 0;
 
 const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
@@ -277,6 +277,8 @@ function renderMenu() {
     <div class="box">
       <div class="label">혼자 AI와 연습</div>
       <div class="seg" id="soloSeg">${[5, 6, 7].map(n => `<button class="${n === soloCount ? 'on' : ''}" data-n="${n}">${n}인</button>`).join('')}</div>
+      <div class="label">AI 실력</div>
+      <div class="seg" id="soloLvSeg">${[[0, '기본'], [1, '최상 (고수용)']].map(([n, l]) => `<button class="${n === soloLv ? 'on' : ''}" data-n="${n}">${l}</button>`).join('')}</div>
       <button id="solo">AI와 바로 시작</button>
     </div>
     <div class="err" id="err">${esc(menuErr)}</div>
@@ -287,7 +289,8 @@ function renderMenu() {
   $('create').onclick = async () => { if (needName()) return; try { const r = await post('', {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('join').onclick = async () => { if (needName()) return; const c = $('code').value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) return err('4자리 코드를 입력하세요'); try { const r = await post(`/${c}/join`, {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('soloSeg').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; soloCount = +b.dataset.n; renderMenu(); };
-  $('solo').onclick = async () => { if (needName()) return; if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60 }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('soloLvSeg').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; soloLv = +b.dataset.n; renderMenu(); };
+  $('solo').onclick = async () => { if (needName()) return; if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60, aiLv: soloLv }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('rules').onclick = showRules;
 }
 function renderLobby() {
@@ -304,6 +307,7 @@ function renderLobby() {
     <div class="box"><div class="label">인원</div>${segH('count', [5, 6, 7], n => n + '인')}
       <div class="label">제출 제한 시간</div>${segH('submitSec', [30, 60, 90, 120, 180], n => n < 60 ? n + '초' : Math.floor(n / 60) + '분' + (n % 60 ? ' 30초' : ''))}
       <div class="label">배치·패스 결정 시간</div>${segH('decideSec', [10, 20, 30, 60], n => n + '초')}
+      <div class="label">AI 실력</div>${segH('aiLv', [0, 1], n => n ? '최상 (고수용)' : '기본')}
       ${v.host ? '<button class="btn-main" id="start">게임 시작</button>' : '<p class="mute" style="margin:0;text-align:center">방장이 시작하기를 기다리는 중…</p>'}</div>
     <button id="rules" style="justify-self:center;background:none;border:0;color:var(--dim);text-decoration:underline">게임 규칙 보기</button>`;
   document.querySelectorAll('.seg[data-key]').forEach(sg => sg.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || !v.host) return; act({ type: 'settings', [sg.dataset.key]: +b.dataset.v }); });
