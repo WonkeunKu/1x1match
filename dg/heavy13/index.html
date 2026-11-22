@@ -99,7 +99,6 @@ input { font: inherit; font-size: 16px; color: var(--text); background: var(--bg
 .stand { display: grid; justify-items: center; position: relative; }
 .stand .sum { font-family: var(--f-num); font-weight: 700; font-size: 20px; color: var(--text); margin-bottom: 4px; }
 .stand .sum small { font-size: 13px; color: var(--faint); }
-.stand.hot .sum { color: var(--danger); }
 .rocks { display: flex; flex-wrap: wrap-reverse; justify-content: center; align-content: flex-start; gap: 3px; width: 92%; min-height: 64px; padding-bottom: 2px; }
 .rock { width: 30px; height: 26px; border-radius: 9px 11px 8px 10px; background: radial-gradient(circle at 35% 30%, #fffdf6, #d9d3c2 70%); color: var(--stone-ink); display: grid; place-items: center; font-family: var(--f-num); font-weight: 700; font-size: 15px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.18), 0 2px 4px rgba(0,0,0,.4); border-bottom: 3px solid var(--o, #888); }
 .rock.new { animation: drop .45s cubic-bezier(.3,1.5,.5,1); }
@@ -328,11 +327,11 @@ function renderGame() {
     const s = g.stands[c], sum = sumOf(s), before = pgame ? pgame.stands[c].length : s.length;
     const bustNow = pgame && g.log.some(e => e.type === 'bust' && e.color === c && e.seq > (pgame.log.length ? pgame.log[pgame.log.length - 1].seq : 0));
     const rocks = s.map((x, k) => { const o = g.players.find(p => p.id === x.p); return `<span class="rock ${k >= before || bustNow ? 'new' : ''}" style="--o:${o ? o.hue : '#888'}" title="${esc(o ? o.name : '')}">${x.v}</span>`; }).join('');
-    return `<div class="stand ${sum >= 9 ? 'hot' : ''} ${bustNow ? 'bust' : ''}">
+    return `<div class="stand ${bustNow ? 'bust' : ''}">
       <div class="sum">${sum}<small> / 13</small></div>
       <div class="rocks">${rocks}</div>${atlas(c)}
       <div class="meter" style="--c:${CV[c]}"><i style="width:${Math.min(100, sum / 13 * 100)}%"></i></div>
-      <div class="safe">${s.length ? `${LIMIT - 1 - sum} 이하 안전 · 벌점 ${s.length}` : '비어 있음'}</div></div>`;
+      <div class="safe">${s.length ? `바위 ${s.length}개` : '비어 있음'}</div></div>`;
   };
   const sorted = g.players.slice().sort((a, b) => a.penalty - b.penalty || a.lastPenSeq - b.lastPenSeq);
   let rank = 0; const ranks = sorted.map((p, k) => { if (k === 0 || p.penalty !== sorted[k - 1].penalty || p.lastPenSeq !== sorted[k - 1].lastPenSeq) rank = k + 1; return { p, rank }; });
@@ -369,10 +368,7 @@ function panelHTML(v, mine) {
     for (const c of ['R', 'G', 'B']) for (let k = 0; k < 2; k++) chipSlots.push({ c, has: mine.chips[c] > k });
     chipSlots.push({ c: 'W', has: mine.chips.W > 0 });
     let pv = '';
-    if (ui.card != null && ui.chip) {
-      if (ui.chip === 'W') pv = '레인보우는 놓을 때 받침대 색을 골라요 (가장 먼저 놓음)';
-      else { const s = g.stands[ui.chip], sum = sumOf(s), bust = sum + ui.card >= LIMIT; pv = `지금 ${CN[ui.chip]} ${sum} + ${ui.card} = ${sum + ui.card} → ${bust ? `<span class="bad">무너지면 벌점 ${s.length}</span>` : '<span class="good">안전</span>'} <span style="opacity:.7">(다른 사람이 먼저 올리면 바뀌어요)</span>`; }
-    }
+    if (ui.card != null && ui.chip) pv = ui.chip === 'W' ? `레인보우 · ${ui.card} — 올릴 때 받침대 색을 골라요` : `${CN[ui.chip]} 받침대에 ${ui.card}`;
     return `<div class="cards">${[0, 1, 2, 3, 4, 5, 6].map(n => `<button class="card ${ui.card === n ? 'sel' : ''}" data-card="${n}" ${mine.cards.includes(n) ? '' : 'disabled'} aria-label="바위 ${n}"><span>${n}</span></button>`).join('')}</div>
       <div class="chips">${chipSlots.map((x, k) => `<button class="chip ${x.c} ${ui.chip === x.c && firstSlot(chipSlots, x.c) === k ? 'sel' : ''}" style="--c:${CV[x.c] || ''}" data-chip="${x.c}" ${x.has ? '' : 'disabled'} aria-label="${CN[x.c]} 칩"></button>`).join('')}</div>
       <div class="preview">${pv}</div>
@@ -384,7 +380,7 @@ function panelHTML(v, mine) {
     if (pl.cur !== v.me) return orderStrip();
     const sub = g.subs[v.me], cols = sub.chip === 'W' ? COLORS : [sub.chip];
     const opts = cols.map(c => { const s = g.stands[c], sum = sumOf(s), bust = sum + sub.card >= LIMIT;
-      return `<button class="opt" data-place="${c}">${cdot(c)}<span class="tx">${CN[c]}에 ${sub.card} 올리기<small class="${bust ? 'bad' : 'good'}">${sum} + ${sub.card} = ${sum + sub.card} → ${bust ? `무너짐, 벌점 ${s.length}` : '안전'}</small></span></button>`; }).join('');
+      return `<button class="opt" data-place="${c}">${cdot(c)}<span class="tx">${CN[c]}에 ${sub.card} 올리기</span></button>`; }).join('');
     const pass = pl.stage === 'main' ? `<button class="opt" data-pass="1"><span style="font-size:18px">⏭</span><span class="tx">패스<small>다른 사람이 다 올린 뒤, 패스한 순서의 역순으로 마지막에 올려요</small></span></button>` : '';
     return `<div class="opts">${opts}${pass}</div>${orderStrip()}`;
   }
