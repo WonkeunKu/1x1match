@@ -216,9 +216,10 @@ html:not(.is-owner) .card:has(> .log), html:not(.is-owner) .log { display: none 
 .tw-c { aspect-ratio: 1; padding: 0; border-radius: 10px; background: var(--board-2); display: grid; place-items: center; }
 .tw-c.z0 { background: rgba(111,196,234,.16); } .tw-c.z1 { background: rgba(232,96,74,.16); }
 .tw-c.tg { box-shadow: inset 0 0 0 3px var(--amber); } .tw-c.sel { box-shadow: inset 0 0 0 3px var(--green); }
-.tw-p { width: 78%; aspect-ratio: 1; border-radius: 10px; display: grid; place-items: center; align-content: center; font-family: var(--f-display); font-size: clamp(22px, 6vw, 34px); line-height: 1; border: 2px solid rgba(0,0,0,.35); }
+.tw-p { position: relative; width: 78%; aspect-ratio: 1; border-radius: 10px; display: grid; place-items: center; align-content: center; font-family: var(--f-display); font-size: clamp(22px, 6vw, 34px); line-height: 1; border: 2px solid rgba(0,0,0,.35); }
 .tw-p small { font-family: var(--f-body); font-size: 10px; font-weight: 700; opacity: .75; margin-top: 2px; }
 .tw-p.o0 { background: #d8ecf6; color: #0d3a52; } .tw-p.o1 { background: #f6d8d0; color: #6a1d10; transform: rotate(180deg); }
+.tw-dir { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: currentColor; opacity: .8; }
 button.tw-p.small { width: 44px; height: 44px; padding: 0; font-size: 20px; }
 button.tw-p.sel { box-shadow: 0 0 0 3px var(--amber); }
 /* 컬러턴 */
@@ -400,6 +401,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 <script src="/play/horse.js?v=11"></script>
 <script src="/play/mines.js?v=11"></script>
 <script src="/play/dinner.js?v=11"></script>
+<script src="/play/twelve.js?v=12"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);

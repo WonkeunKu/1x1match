@@ -193,7 +193,7 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <span class="fmeta"><b>6</b>개 게임 <span class="go">열기 →</span></span>
     </a>
     <a class="folder fgn" href="#genius" id="geniusFolder">
-      <span class="ftag">FOLDER 05<span class="lockchip gnchip" id="geniusChip">공개 예정</span></span>
+      <span class="ftag">FOLDER 05<span class="lockchip gnchip" id="geniusChip">1개 공개</span></span>
       <h2>더 지니어스</h2>
       <p><span class="pl">더 지니어스 데스매치의 1:1 게임. 십이장기, 결! 합!, 인디언 포커, 흑과 백, 기억의 미로.</span><span class="ps">더 지니어스 데스매치의 1:1 게임 5가지.</span></p>
       <span class="fmeta"><b>5</b>개 게임 <span class="go">열기 →</span></span>
@@ -281,9 +281,9 @@ footer { font-size: 13px; color: var(--chalk-dim); }
   </section>
 
   <section class="fview" id="view-genius" hidden>
-    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>더 지니어스</h2><span class="fcount">5개 게임 · 공개 예정</span></div>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>더 지니어스</h2><span class="fcount">5개 게임 · 1개 공개</span></div>
     <div class="games" id="geniusGames">
-      <div class="gw soon"><a class="game gen" data-href="dg/#twelve" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 장기</span><h2>십이장기</h2><p>3×4 판의 작은 장기. 잡은 말은 내 말로 다시 놓을 수 있고, 왕을 잡거나 상대 진영에 왕이 버티면 이겨요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">한 화면 2인</span></div><span class="go">장기 두러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw"><a class="game gen" href="play/#twelve"><span class="tag">시즌1 데스매치 · 장기</span><h2>십이장기</h2><p>3×4 판의 작은 장기. 잡은 말은 내 말로 다시 놓을 수 있고, 왕을 잡거나 상대 진영에 왕이 버티면 이겨요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">한 화면 2인</span></div><span class="go">장기 두러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game gen" data-href="dg/#gyulhap" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 실시간</span><h2>결! 합!</h2><p>그림 9장에서 모양·색·배경이 모두 같거나 모두 다른 3장을 찾아 "합"! 더 없으면 "결"!</p><div class="chips"><span class="chip">AI 실시간 대결</span><span class="chip">10라운드</span></div><span class="go">합 찾으러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game gen" data-href="dg/#indian" aria-disabled="true" tabindex="-1"><span class="tag">시즌1·2 데스매치 · 베팅</span><h2>인디언 포커</h2><p>내 카드는 이마에 붙여 나만 못 봐요. 상대 카드와 상대 반응을 보고 베팅해요. 홀덤 규칙도 골라요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">포커·홀덤</span></div><span class="go">카드 붙이러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game gen" data-href="dg/#blackwhite" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 추리</span><h2>흑과 백</h2><p>0~8 타일을 하나씩 내서 큰 숫자가 이겨요. 숫자는 공개되지 않고 색과 승패만 알려줘요.</p><div class="chips"><span class="chip">AI 난이도 3단계</span><span class="chip">9라운드</span></div><span class="go">타일 내러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
@@ -318,7 +318,7 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
     // 대표·관리자는 공개 전 게임도 열 수 있음
     if (d.user.admin || d.user.owner) {
       document.querySelectorAll('.gw.soon').forEach(w => { const a = w.querySelector('a.game'); a.href = a.dataset.href; a.removeAttribute('aria-disabled'); a.removeAttribute('tabindex'); w.classList.remove('soon'); const t = a.querySelector('.tag'); t.insertAdjacentHTML('beforeend', '<span class="lockchip">관리자 전용</span>'); });
-      for (const c of ['bloodChip', 'geniusChip']) document.getElementById(c).textContent = '관리자 전용';
+      for (const c of ['bloodChip']) document.getElementById(c).textContent = '관리자 전용';
       document.querySelectorAll('.fview .fcount').forEach(c => { c.textContent = c.textContent.replace('공개 예정', '관리자 전용'); });
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
