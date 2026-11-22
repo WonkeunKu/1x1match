@@ -34,7 +34,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13', 'play', 'pv.js'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13', 'play', 'pv.js', 'support'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -95,7 +95,7 @@ const auctionApi = roomApi(Rooms, '/api/auction');
 // 접속 기기를 짧게 (예: 'iPhone · Safari') — 대표 계정의 접속 기록용
 function pageName(p) {
   if (p === '/' || p === '/index.html') return '홈';
-  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/heavy13', '무거운 13'], ['/play', '데스게임 공개 게임'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
+  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/heavy13', '무거운 13'], ['/play', '데스게임 공개 게임'], ['/history', '경기 기록'], ['/account', '로그인·계정'], ['/support', '고객 문의']];
   const m = map.find(([k]) => p === k || p.startsWith(k + '/'));
   return m ? m[1] : null;
 }
@@ -106,6 +106,8 @@ function deviceOf(ua) {
   return os + ' · ' + br;
 }
 // 회원가입·로그인·경기 기록
+const inqHits = new Map();
+setInterval(() => inqHits.clear(), 60 * 60 * 1000).unref();
 async function authApi(req, res, path, url) {
   const secure = req.headers['x-forwarded-proto'] === 'https';
   const send = (code, obj, cookie) => {
@@ -124,6 +126,10 @@ async function authApi(req, res, path, url) {
       if (!(await Accounts.isOwner(user))) return send(404, { error: '없는 주소예요.' });
       return send(200, await Accounts.ownerOverview());
     }
+    if (path === '/api/owner/inquiries' && req.method === 'GET') {
+      if (!(await Accounts.isOwner(user))) return send(404, { error: '없는 주소예요.' });
+      return send(200, { list: await Accounts.listInquiries() });
+    }
     if (path === '/api/auth/profile' && req.method === 'GET') return send(200, await Accounts.getProfile(user));
     if (path === '/api/auth/nickname' && req.method === 'GET') return send(200, await Accounts.nicknameAvailable(url.searchParams.get('n')));
     if (path === '/api/history' && req.method === 'GET') {
@@ -134,6 +140,17 @@ async function authApi(req, res, path, url) {
     if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
     body.device = deviceOf(req.headers['user-agent']);
+    const im = /^\/api\/owner\/inquiries\/(\d+)$/.exec(path);
+    if (im) { if (!(await Accounts.isOwner(user))) return send(404, { error: '없는 주소예요.' }); return send(200, await Accounts.setInquiryDone(im[1], body.done)); }
+    if (path === '/api/inquiry') { // 고객 문의 남기기 (누구나). 같은 브라우저·주소에서 10분에 5개까지
+      if (body.website) return send(200, { ok: true }); // 자동 입력 프로그램용 함정 칸
+      const vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1] || null;
+      const key = vid || Geo.clientIp(req), t = Date.now();
+      const hits = (inqHits.get(key) || []).filter(x => t - x < 10 * 60 * 1000);
+      if (hits.length >= 5) return send(429, { error: '잠시 뒤에 다시 남겨 주세요.' });
+      hits.push(t); inqHits.set(key, hits);
+      return send(200, await Accounts.createInquiry(user, body, vid));
+    }
     if (path === '/api/pv' && req.method === 'POST') { // 방문자 집계 (화면에서 스크립트가 보냄). 브라우저 번호(vid)로 하루 한 번씩
       const ua = req.headers['user-agent'] || '';
       const page = pageName(String(body.path || ''));
@@ -270,7 +287,7 @@ createServer(async (req, res) => {
     try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level, Accounts.userFromReq(req))); }
     catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
   }
-  if (path.startsWith('/api/auth/') || path === '/api/history' || path === '/api/free' || path === '/api/pv' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
+  if (path.startsWith('/api/auth/') || path === '/api/history' || path === '/api/free' || path === '/api/pv' || path === '/api/inquiry' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);

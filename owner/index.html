@@ -110,6 +110,18 @@ td.num, th.num { text-align: right; font-family: var(--f-mono); }
   .ev { grid-template-columns: 1fr auto; }
   .ev .when { grid-column: 1 / -1; }
 }
+.inq { display: grid; gap: 10px; }
+.inqf { justify-self: start; }
+.iq { background: var(--slot); border: 1px solid var(--line); border-left: 4px solid var(--amber); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.iq.is-done { border-left-color: var(--line); opacity: .7; }
+.ih { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13px; }
+.ih .dim { color: var(--chalk-dim); font-size: 12px; }
+.iq .cat { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--board-2); color: var(--amber); }
+.iq .cat.c-불편·오류 { color: var(--red); } .iq .cat.c-제안 { color: var(--green); } .iq .cat.c-기타 { color: var(--chalk-dim); }
+.it { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14.5px; }
+.if { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.if .ib { margin-left: auto; border: 1px solid var(--line); background: var(--board-2); color: var(--chalk); border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 13px; }
+#inqN:not(:empty) { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--red); color: #fff; font-size: 11px; line-height: 18px; text-align: center; margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -122,6 +134,7 @@ td.num, th.num { text-align: right; font-family: var(--f-mono); }
       <button type="button" data-t="users" aria-pressed="true">회원 목록</button>
       <button type="button" data-t="events" aria-pressed="false">접속 기록</button>
       <button type="button" data-t="visitors" aria-pressed="false">방문자</button>
+      <button type="button" data-t="inq" aria-pressed="false">고객 문의 <span id="inqN"></span></button>
     </div>
     <span class="sp"></span>
     <input id="q" type="search" placeholder="닉네임·이름·전화번호 검색" autocomplete="off" aria-label="검색">
@@ -137,6 +150,7 @@ td.num, th.num { text-align: right; font-family: var(--f-mono); }
   </table></div></section>
   <section class="panel" id="eventsView" hidden></section>
   <section id="visitorsView" class="vis" hidden></section>
+  <section id="inqView" class="inq" hidden></section>
   <p class="note">이 페이지는 대표 계정(010-7334-3125)으로 로그인했을 때만 열려요. 회원의 이름과 전화번호가 보이니 화면을 다른 사람에게 보여 줄 때 주의하세요. 접속 기록은 로그인할 때와, 로그인한 채로 다시 들어올 때(3시간에 한 번) 남아요.</p>
 </div>
 <script>
@@ -222,10 +236,33 @@ function renderVisitors() {
     <div class="box"><h3>최근 방문</h3><div class="vlist">${rec}</div></div>
     <p class="note">같은 브라우저는 하루에 한 사람으로 세요. 브라우저를 바꾸거나 시크릿 창으로 들어오면 다른 사람으로 세어질 수 있어요. 이름·전화번호 같은 개인정보와 인터넷 주소(IP)는 저장하지 않고, 짐작한 지역 이름만 남겨요.</p>`;
 }
+let INQ = [], inqFilter = 'open';
+function inqBadge() { const n = INQ.filter(x => !x.done).length; $('inqN').textContent = n ? n : ''; }
+function renderInq() {
+  const q = $('q').value.trim().toLowerCase();
+  const list = INQ.filter(x => (inqFilter === 'all' || (inqFilter === 'open' ? !x.done : x.done)) && match(q, (x.text || '').toLowerCase(), (x.nick || '').toLowerCase(), (x.contact || '').toLowerCase(), x.cat));
+  const open = INQ.filter(x => !x.done).length;
+  const fb = (k, l) => `<button type="button" data-f="${k}" aria-pressed="${inqFilter === k}">${l}</button>`;
+  $('inqView').innerHTML = `<div class="tabs inqf" role="group" aria-label="문의 걸러 보기">${fb('open', `처리 전 ${open}`)}${fb('done', `처리 완료 ${INQ.length - open}`)}${fb('all', `전체 ${INQ.length}`)}</div>` +
+    (list.length ? list.map(x => `<article class="iq ${x.done ? 'is-done' : ''}">
+      <div class="ih"><span class="cat c-${esc(x.cat)}">${esc(x.cat)}</span><b>${x.nick ? esc(x.nick) : '비회원'}</b><span class="dim">${dt(x.at)}${x.device ? ' · ' + esc(x.device) : ''}${x.page ? ' · ' + esc(x.page) : ''}</span></div>
+      <p class="it">${esc(x.text)}</p>
+      <div class="if">${x.contact ? `<span>연락처 <b class="mono">${esc(x.contact)}</b></span>` : '<span class="dim">연락처 없음</span>'}<button type="button" class="ib" data-id="${x.id}" data-done="${x.done ? 0 : 1}">${x.done ? '처리 전으로' : x.contact ? '처리 완료 (연락처 지움)' : '처리 완료'}</button></div>
+    </article>`).join('') : `<div class="panel"><div class="empty">${INQ.length ? '해당하는 문의가 없어요' : '아직 들어온 문의가 없어요'}</div></div>`) +
+    `<p class="note">고객 문의 페이지(/support/)에 남긴 글이에요. 대표 계정만 볼 수 있어요. 처리 완료로 바꾸면 남긴 사람의 연락처는 지워져요 (문의 페이지에 그렇게 안내돼 있어요). 답변을 마친 뒤에 바꾸세요.</p>`;
+}
+$('inqView').addEventListener('click', async e => {
+  const f = e.target.closest('[data-f]'); if (f) { inqFilter = f.dataset.f; renderInq(); return; }
+  const b = e.target.closest('.ib'); if (!b) return;
+  b.disabled = true;
+  try { const r = await fetch('/api/owner/inquiries/' + b.dataset.id, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ done: b.dataset.done === '1' }) }); if (!r.ok) throw 0;
+    const x = INQ.find(y => String(y.id) === b.dataset.id); if (x) { x.done = b.dataset.done === '1'; if (x.done) x.contact = ''; } inqBadge(); renderInq(); }
+  catch { b.disabled = false; b.textContent = '실패 · 다시 누르기'; }
+});
 function render() {
-  $('usersView').hidden = tab !== 'users'; $('eventsView').hidden = tab !== 'events'; $('visitorsView').hidden = tab !== 'visitors';
+  $('usersView').hidden = tab !== 'users'; $('eventsView').hidden = tab !== 'events'; $('visitorsView').hidden = tab !== 'visitors'; $('inqView').hidden = tab !== 'inq';
   $('sort').hidden = tab !== 'users'; $('q').hidden = tab === 'visitors';
-  if (tab === 'users') renderUsers(); else if (tab === 'events') renderEvents(); else renderVisitors();
+  if (tab === 'users') renderUsers(); else if (tab === 'events') renderEvents(); else if (tab === 'inq') renderInq(); else renderVisitors();
 }
 document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; tab = b.dataset.t; document.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); render(); });
 $('q').addEventListener('input', render);
@@ -236,6 +273,8 @@ async function load() {
     if (!r.ok) throw new Error('불러오지 못했어요');
     D = await r.json();
     $('msg').textContent = `${new Date().toLocaleString('ko-KR')} 기준 · 새로고침하면 최신으로 바뀌어요`;
+    try { const ri = await fetch('/api/owner/inquiries', { cache: 'no-store' }); if (ri.ok) INQ = (await ri.json()).list || []; } catch (e) {}
+    inqBadge(); if (location.hash === '#inq') { tab = 'inq'; document.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.t === 'inq'))); }
     stats(); render();
   } catch (e) { $('msg').textContent = '정보를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.'; }
 }

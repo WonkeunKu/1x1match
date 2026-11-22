@@ -31,7 +31,7 @@ const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 // 대표 계정: 회원 목록·접속 기록을 볼 수 있음
 const OWNER_PHONES = (process.env.OWNER_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
 const isOwnerPhone = p => OWNER_PHONES.includes(phoneDigits(p));
-const EVENT_GAMES = ['_login', '_visit', '_pv', '_free', '_chal', '_chalrec']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
+const EVENT_GAMES = ['_login', '_visit', '_pv', '_free', '_chal', '_chalrec', '_inq']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -352,6 +352,36 @@ export async function freePlay(vid, game, playId) {
     } else { const db = await fdb(); db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row)); await fsave(); }
   } catch (e) { console.error('free play log failed', e.message); }
   return { ok: true, first: true };
+}
+
+/* ---------- 고객 문의: 누구나 남길 수 있고, 대표 계정만 봄. match_history 에 '_inq' 로 저장 ---------- */
+const INQ_CATS = ['문의', '불편·오류', '제안', '기타'];
+export async function createInquiry(user, b, vid) {
+  const cat = INQ_CATS.includes(b.cat) ? b.cat : '기타';
+  const text = String(b.text || '').replace(/\r/g, '').trim().slice(0, 2000);
+  const contact = String(b.contact || '').trim().slice(0, 80);
+  if (text.length < 5) fail('내용을 5자 이상 적어 주세요.');
+  const row = { user_id: user ? Number(user.id) : null, game: '_inq', mode: 'event', level: null,
+    result: { cat, text, contact, nick: user ? user.nickname : null, vid: vid || null, device: b.device || '', page: String(b.page || '').slice(0, 120), done: false } };
+  if (usingSupabase) {
+    if (!row.user_id) row.user_id = await visitorUserId();
+    await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' });
+  } else { const db = await fdb(); db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row)); await fsave(); }
+  return { ok: true };
+}
+export async function listInquiries() {
+  const rows = usingSupabase ? await sb('match_history?select=id,result,played_at&game=eq._inq&order=played_at.desc&limit=500')
+    : (await fdb()).history.filter(h => h.game === '_inq').sort((a, b) => b.id - a.id).slice(0, 500);
+  return rows.map(r => Object.assign({ id: r.id, at: r.played_at }, r.result));
+}
+export async function setInquiryDone(id, done) {
+  id = Number(id); if (!Number.isInteger(id)) fail('잘못된 문의예요.');
+  if (usingSupabase) {
+    const rows = await sb(`match_history?select=result&id=eq.${id}&game=eq._inq&limit=1`);
+    if (!rows[0]) fail('문의를 찾을 수 없어요.');
+    await sb(`match_history?id=eq.${id}&game=eq._inq`, { method: 'PATCH', body: { result: Object.assign({}, rows[0].result, { done: !!done }, done ? { contact: '' } : {}) }, prefer: 'return=minimal' });
+  } else { const db = await fdb(); const h = db.history.find(x => x.id === id && x.game === '_inq'); if (!h) fail('문의를 찾을 수 없어요.'); h.result.done = !!done; if (done) h.result.contact = ''; await fsave(); }
+  return { ok: true };
 }
 
 async function visitorSummary(byId) {
