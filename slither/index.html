@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>슬리더링크 · 1x1 MATCH</title>
+<script src="/freeplay.js?v=3"></script>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico?v=3" sizes="any">
 <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
@@ -108,6 +109,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
 .d0{color:var(--green)}.d1{color:var(--blue)}.d2{color:var(--amber)}.d3{color:var(--red)}
 .diff.d0,.diff.d1,.diff.d2,.diff.d3{background:var(--slot)}
 #sizeInfo b{font-weight:700}
+.zoombtn{position:absolute;top:14px;right:14px;z-index:2;padding:5px 10px;font-size:12px;border-radius:999px;background:rgba(7,24,21,.88)}
 .board-cover{position:absolute;inset:0;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--chalk-dim);font-size:15px}
 .results{margin:4px 0 10px;text-align:left}
 #winBtns{display:grid;gap:0}
@@ -140,6 +142,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
         <button data-n="5">5×5</button>
         <button data-n="7" class="sel">7×7</button>
         <button data-n="10">10×10</button>
+        <button data-n="15">15×15</button>
       </div>
       <button class="primary full" id="soloBtn">퍼즐 풀기</button>
     </div>
@@ -175,6 +178,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
         <button data-n="5">5×5</button>
         <button data-n="7">7×7</button>
         <button data-n="10">10×10</button>
+        <button data-n="15">15×15</button>
       </div>
       <button class="primary full" id="startBtn">시작</button>
       <div class="err" id="roomErr"></div>
@@ -199,6 +203,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
     </div>
     <div class="board-wrap">
       <svg id="board"></svg>
+      <button type="button" class="zoombtn" id="zoomOut" hidden>전체 보기</button>
       <div class="board-cover hidden" id="cover">문제 만드는 중…</div>
     </div>
     <div class="info"><span id="sizeInfo"></span><span>탭: 표시 · 드래그: 선 긋기 · <button type="button" class="rb-inline" data-rules>규칙</button></span></div>
@@ -449,7 +454,7 @@ const nick = () => ($('nick').value.trim() || '플레이어').slice(0,10);
 
 function show(id){for(const s of ['home','room','game'])$(s).classList.toggle('hidden',s!==id);}
 function segSelect(seg,n){for(const b of seg.querySelectorAll('button'))b.classList.toggle('sel',+b.dataset.n===n);}
-$('sizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;segSelect($('sizeSeg'),size);};
+$('sizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;segSelect($('sizeSeg'),size);if(size===15)loadBank();};
 
 // ---------- generator (worker with fallback) ----------
 let worker=null;
@@ -461,18 +466,34 @@ try{
 // 난이도 계산은 별도 worker에서 (10×10은 1초 남짓 걸림). 판을 불러올 때 시작해 두고 끝나면 공개
 let rateWorker=null, rateJob=0, diff=null;
 try{ rateWorker=new Worker(URL.createObjectURL(new Blob([[makeGeom,rateDifficulty].map(f=>f.toString()).join('\n')+'\nonmessage=e=>{const r=rateDifficulty(makeGeom(e.data.n,e.data.n),e.data.clues);postMessage({id:e.data.id,r});};'],{type:'text/javascript'}))); }catch(e){ rateWorker=null; }
-const DIFF_T={5:[7,12],7:[19,41],10:[65,100]};
+const DIFF_T={5:[7,12],7:[19,41],10:[65,100],15:[96,128]};
 const DIFF_NAME=['쉬움','보통','어려움','매우 어려움'];
 function diffLevel(n,r){ if(!r||r.lv<0) return null; if(r.lv===3) return 3; const sc=r.t1+4*r.t2, t=DIFF_T[n]||DIFF_T[7]; return sc<=t[0]?0:sc<=t[1]?1:2; }
 const rateWait={}; let ratePromise=Promise.resolve(null);
 if(rateWorker) rateWorker.onmessage=e=>{ const f=rateWait[e.data.id]; delete rateWait[e.data.id]; if(f) f(e.data.r); };
+// 15×15는 휴대폰에서 문제를 만드는 데 10~20초 걸려서, 미리 만들어 둔 문제(난이도 포함)를 먼저 씀
+let bankP=null;
+function loadBank(){ if(!bankP) bankP=fetch('bank15.json?v=1').then(r=>r.ok?r.json():[]).catch(()=>[]); return bankP; }
+async function bankPick(){
+  const b=await loadBank(); if(!b.length) return null;
+  let played=[]; try{played=JSON.parse(store.get('sl_b15')||'[]');}catch(e){}
+  const free=[]; for(let i=0;i<b.length;i++) if(!played.includes(i)) free.push(i);
+  if(!free.length) return null; // 다 풀었으면 새로 만듦
+  const i=free[Math.floor(Math.random()*free.length)]; played.push(i); store.set('sl_b15',JSON.stringify(played));
+  return Array.from(b[i].c,ch=>ch==='.'?-1:+ch);
+}
+async function getPuzzle(n){
+  if(n===15){ const c=await bankPick(); if(c) return c; $('cover').textContent='문제 만드는 중… 큰 판이라 조금 걸려요'; }
+  return makePuzzle(n,newSeed());
+}
 function startRate(n,cl){
   const id=++rateJob; diff=null;
   // 이 문제의 난이도(0~3)로 끝나는 약속. 기록 저장은 이걸 기다렸다가 함께 보냄
   ratePromise=new Promise(res=>{
-    const done=r=>{ const lv=diffLevel(n,r); res(lv); if(id!==rateJob) return; diff=lv; showDiff(); if(multi&&multi.code) api('act',{type:'diff',lv}).catch(()=>{}); };
-    if(rateWorker){ rateWait[id]=done; rateWorker.postMessage({id,n,clues:Array.from(cl)}); }
-    else setTimeout(()=>done(rateDifficulty(makeGeom(n,n),cl)),50);
+    const done=r=>{ const lv=r&&r.bank!=null?r.bank:diffLevel(n,r); res(lv); if(id!==rateJob) return; diff=lv; showDiff(); if(multi&&multi.code) api('act',{type:'diff',lv}).catch(()=>{}); };
+    const compute=()=>{ if(rateWorker){ rateWait[id]=done; rateWorker.postMessage({id,n,clues:Array.from(cl)}); } else setTimeout(()=>done(rateDifficulty(makeGeom(n,n),cl)),50); };
+    if(n===15){ const key=cl.map(k=>k<0?'.':String(k)).join(''); loadBank().then(b=>{ const hit=b.find(x=>x.c===key); if(hit) done({bank:hit.d}); else compute(); }); }
+    else compute();
   });
 }
 function diffHtml(){ return diff==null?'<span class="diff">난이도 계산 중…</span>':`<span class="diff d${diff}">난이도 · ${DIFF_NAME[diff]}</span>`; }
@@ -487,7 +508,7 @@ function makePuzzle(n,seed){
     const id=++reqId;
     const fallback=()=>setTimeout(()=>res(generatePuzzle(n,n,seed).clues),30);
     if(!worker)return fallback();
-    const t=setTimeout(()=>{worker.onmessage=null;fallback();},15000);
+    const t=setTimeout(()=>{worker.onmessage=null;fallback();},n>=15?120000:15000);
     worker.onmessage=e=>{if(e.data.id!==id)return;clearTimeout(t);res(e.data.clues);};
     worker.onerror=()=>{clearTimeout(t);worker=null;fallback();};
     worker.postMessage({id,n,seed});
@@ -499,14 +520,14 @@ const newSeed=()=> (Math.random()*4294967295)>>>0;
 const S=40, PAD=22;
 function loadPuzzle(n,cl){
   gaveUp=false;resetReveal();G=makeGeom(n,n); clues=cl; lines=new Int8Array(G.E); history=[];
-  $('sizeInfo').textContent=`${n}×${n}`;
+  $('sizeInfo').textContent=`${n}×${n}`+(n>=10&&matchMedia('(pointer:coarse)').matches?' · 두 손가락으로 확대':'');
   startRate(n,cl);
   drawBoard();
 }
 function px(c){return PAD+c*S;}
 function drawBoard(){
   const n=G.R, W=PAD*2+n*S;
-  const svg=$('board'); svg.setAttribute('viewBox',`0 0 ${W} ${W}`);
+  const svg=$('board'); VB=null; svg.setAttribute('viewBox',`0 0 ${W} ${W}`); $('zoomOut').hidden=true;
   const fs = n>=10?22:24;
   let h='';
   // edges
@@ -565,15 +586,33 @@ function setEdge(e,v){
   if(lines[e]===v)return;
   batch.push([e,lines[e]]);lines[e]=v;paintEdge(e);
 }
+// 두 손가락으로 확대·이동 (큰 판용). 손가락 두 개가 닿으면 긋던 선은 취소
+let VB=null, pinch=null, pinchLock=false; const ptrs=new Map();
+const fullW=()=>PAD*2+G.R*S;
+function setVB(v){ const W=fullW(); v.w=Math.min(W,Math.max(W/3,v.w)); v.x=Math.min(W-v.w,Math.max(0,v.x)); v.y=Math.min(W-v.w,Math.max(0,v.y));
+  VB=v.w>=W-0.5?null:v; svg.setAttribute('viewBox',VB?`${VB.x} ${VB.y} ${VB.w} ${VB.w}`:`0 0 ${W} ${W}`); $('zoomOut').hidden=!VB; }
+function svgAt(cx,cy,v){ const r=svg.getBoundingClientRect(); return {x:v.x+(cx-r.left)/r.width*v.w, y:v.y+(cy-r.top)/r.height*v.w, fx:(cx-r.left)/r.width, fy:(cy-r.top)/r.height}; }
+$('zoomOut').onclick=()=>{ if(G) setVB({x:0,y:0,w:fullW()}); };
+svg.addEventListener('wheel',ev=>{ if(!G||!ev.ctrlKey)return; ev.preventDefault(); const v=VB||{x:0,y:0,w:fullW()}; const p=svgAt(ev.clientX,ev.clientY,v); const w=v.w*Math.exp(ev.deltaY*0.01); setVB({w,x:p.x-p.fx*w,y:p.y-p.fy*w}); },{passive:false});
 svg.addEventListener('pointerdown',ev=>{
+  if(ev.pointerType==='touch'){ ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    if(ptrs.size>=2&&G){ ev.preventDefault();
+      if(drag&&batch){ for(let i=batch.length-1;i>=0;i--){lines[batch[i][0]]=batch[i][1];paintEdge(batch[i][0]);} updateClues(); }
+      drag=null;batch=null;pinchLock=true;
+      const [a,b]=[...ptrs.values()], v=VB||{x:0,y:0,w:fullW()}, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      pinch={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,v0:{...v},p0:svgAt(mx,my,v)}; return; }
+    if(pinchLock) return; }
   if(!playing||finished)return;
-  ev.preventDefault();svg.setPointerCapture(ev.pointerId);
+  ev.preventDefault();try{svg.setPointerCapture(ev.pointerId);}catch(e){}
   const g=toGrid(ev);
   const vr=Math.round(g.y),vc=Math.round(g.x);
   drag={sx:ev.clientX,sy:ev.clientY,g0:g,moved:false,lastV:(vr>=0&&vr<=G.R&&vc>=0&&vc<=G.C)?vr*(G.C+1)+vc:-1,val:null};
   batch=[];
 });
 svg.addEventListener('pointermove',ev=>{
+  if(ptrs.has(ev.pointerId)) ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(pinch&&ptrs.size>=2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const w=pinch.v0.w*pinch.d0/d, r=svg.getBoundingClientRect(); setVB({w,x:pinch.p0.x-(mx-r.left)/r.width*w,y:pinch.p0.y-(my-r.top)/r.height*w}); return; }
   if(!drag)return;
   if(!drag.moved&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)<10)return;
   drag.moved=true;
@@ -592,6 +631,8 @@ svg.addEventListener('pointermove',ev=>{
   drag.lastV=v;
 });
 function endDrag(ev){
+  if(ev&&ptrs.has(ev.pointerId)){ ptrs.delete(ev.pointerId); if(ptrs.size<2) pinch=null; }
+  if(pinchLock){ if(!ptrs.size) pinchLock=false; drag=null; batch=null; return; }
   if(!drag)return;
   if(!drag.moved){
     const e=nearestEdge(drag.g0.x,drag.g0.y);
@@ -633,14 +674,18 @@ function check(){
 
 // ---------- reveal answer ----------
 let gaveUp=false, revealArm=0;
-function resetReveal(){revealArm=0;$('revealBtn').textContent='정답 보기';$('revealBtn').classList.remove('primary');$('revealBtn').disabled=false;}
+function resetReveal(){revealArm=0;revealBusy=false;$('revealBtn').textContent='정답 보기';$('revealBtn').classList.remove('primary');$('revealBtn').disabled=false;}
 $('revealBtn').onclick=()=>{
   if(finished){showWin();return;}
   if(!playing)return;
   if(!revealArm){revealArm=1;$('revealBtn').textContent='한 번 더 누르면 정답 공개 (기록 없음)';$('revealBtn').classList.add('primary');
     setTimeout(()=>{if(revealArm&&!finished)resetReveal();},3000);return;}
-  const r=solveCount(G,clues,1,5e6);
-  if(!r.solution)return;
+  if(revealBusy)return; revealBusy=true; $('revealBtn').textContent='정답 찾는 중…'; $('revealBtn').disabled=true;
+  const g0=G;
+  solveAsync(G.R,clues).then(sol=>{ revealBusy=false; $('revealBtn').disabled=false;
+  if(G!==g0||finished)return;
+  if(!sol){resetReveal();return;}
+  const r={solution:sol};
   finished=true;gaveUp=true;finishTime=performance.now()-startTs;stopTimer();
   for(let e=0;e<G.E;e++)lines[e]=r.solution[e]?1:0;
   refresh();
@@ -648,7 +693,13 @@ $('revealBtn').onclick=()=>{
   $('revealBtn').textContent='결과 창 열기';$('revealBtn').classList.remove('primary');revealArm=0;
   if(multi)api('act',{type:'giveup'}).catch(()=>{}); else saveSolo('gaveup');
   setTimeout(showWin,1200);
+  });
 };
+// 정답 찾기도 별도 worker에서 (15×15는 몇 초 걸려 화면이 멈추지 않게)
+let solveWorker=null, revealBusy=false, solveJob=0; const solveWait={};
+try{ solveWorker=new Worker(URL.createObjectURL(new Blob([[makeGeom,solveCount].map(f=>f.toString()).join('\n')+'\nonmessage=e=>{const r=solveCount(makeGeom(e.data.n,e.data.n),e.data.clues,1,5e6);postMessage({id:e.data.id,sol:r.solution?Array.from(r.solution):null});};'],{type:'text/javascript'}))); solveWorker.onmessage=e=>{const f=solveWait[e.data.id];delete solveWait[e.data.id];if(f)f(e.data.sol);}; }catch(e){ solveWorker=null; }
+function solveAsync(n,cl){ return new Promise(res=>{ const fb=()=>setTimeout(()=>{const r=solveCount(makeGeom(n,n),cl,1,5e6);res(r.solution||null);},30);
+  if(!solveWorker) return fb(); const id=++solveJob; solveWait[id]=res; solveWorker.onerror=()=>{solveWorker=null;delete solveWait[id];fb();}; solveWorker.postMessage({id,n,clues:Array.from(cl)}); }); }
 
 // ---------- win overlay ----------
 function showWin(){
@@ -707,7 +758,7 @@ async function startSolo(){
   multi=null;replaying=false;$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
-  const cl=await makePuzzle(size,newSeed());
+  const cl=await getPuzzle(size);
   loadPuzzle(size,cl);$('cover').classList.add('hidden');startTimer();
 }
 // 경기 기록의 '다시 풀기': 주소 ?p=크기.문제 로 같은 문제를 다시 엶
@@ -717,7 +768,7 @@ async function startReplay(n,str){
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
 }
-(()=>{ const m=/^(5|7|10)\.([.0-3]+)$/.exec(new URLSearchParams(location.search).get('p')||'');
+(()=>{ const m=/^(5|7|10|15)\.([.0-3]+)$/.exec(new URLSearchParams(location.search).get('p')||'');
   if(m&&m[2].length===m[1]*m[1]){ try{window.history.replaceState(null,'',location.pathname);}catch(e){} setTimeout(()=>startReplay(+m[1],m[2]),0); } })();
 $('soloBtn').onclick=startSolo;
 $('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
@@ -797,7 +848,7 @@ async function hostStartRound(){
   $('roomErr').textContent='';
   show('game');$('strip').classList.remove('hidden');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
-  const cl=await makePuzzle(n,newSeed());
+  const cl=await getPuzzle(n);
   if(!multi)return;
   try{await api('act',{type:'start',n,clues:cl.map(k=>k<0?'.':String(k)).join('')});}
   catch(e){show('room');$('roomErr').textContent=e.message;}
@@ -835,7 +886,6 @@ try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.cod
 
 })();
 </script>
-<script src="/freeplay.js?v=2"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>

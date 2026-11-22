@@ -122,7 +122,7 @@ function statCard(g, list) {
     v = `${w}승 ${l}패${d ? ` ${d}무` : ''}`; sub = `${L.length}판 · 승률 ${Math.round(w / L.length * 100)}%`;
   } else if (g.id === 'slither' && L.length) {
     const ok = L.filter(x => x.result === 'solved');
-    const best = [5, 7, 10].map(n => { const t = ok.filter(x => x.size === n).map(x => x.time); return t.length ? `${n}×${n} ${tm(Math.min(...t))}` : null; }).filter(Boolean);
+    const best = [5, 7, 10, 15].map(n => { const t = ok.filter(x => x.size === n).map(x => x.time); return t.length ? `${n}×${n} ${tm(Math.min(...t))}` : null; }).filter(Boolean);
     v = `${ok.length}번 풀이`; sub = (best.length ? '최고 ' + best.join(' · ') : `${L.length}판`) + (L.some(x => x.mode === 'battle') ? ` · 대결 1위 ${L.filter(x => x.mode === 'battle' && x.rank === 1).length}회` : '');
   } else if ((g.id === 'wallgo' || g.id === 'wallgo1') && L.length) {
     v = `1위 ${L.filter(x => x.rank === 1).length}회`;

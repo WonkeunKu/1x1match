@@ -413,7 +413,7 @@ export function cleanClientEntry(e, isAdmin) {
     return { game: 'bw', mode: 'ai', level: ['low', 'mid', 'high'].includes(e.level) ? e.level : 'mid', result, myWins: n(e.myWins), oppWins: n(e.oppWins), opponent: 'AI', innings: n(e.innings) };
   }
   if (e.game === 'slither' && e.mode === 'solo') {
-    const size = [5, 7, 10].includes(Number(e.size)) ? Number(e.size) : null;
+    const size = [5, 7, 10, 15].includes(Number(e.size)) ? Number(e.size) : null;
     const result = ['solved', 'gaveup'].includes(e.result) ? e.result : null;
     if (!size || !result) fail('저장할 수 없는 기록이에요.');
     const diff = [0, 1, 2, 3].includes(e.diff) ? e.diff : null;

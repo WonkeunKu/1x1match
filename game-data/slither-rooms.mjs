@@ -5,7 +5,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 const MAX_PLAYERS = 8;
 const COUNTDOWN_MS = 3500;
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000;
-const SIZES = [5, 7, 10];
+const SIZES = [5, 7, 10, 15];
 const rooms = new Map();
 const now = () => Date.now();
 
