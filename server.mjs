@@ -33,7 +33,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
