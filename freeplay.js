@@ -1,4 +1,4 @@
-// 비회원 무료 1판: 게임마다 한 판은 로그인 없이, 그다음부터는 로그인·회원가입 안내
+// 비회원 체험 1판: 게임마다 한 판은 로그인 없이, 그다음부터는 로그인·회원가입 안내
 // 사용: if (!(await FreePlay.ok('slither', FreePlay.newId()))) return;
 // 친구 방에 초대받아 들어가는 건 여기를 거치지 않으므로 언제나 가능.
 (function () {
@@ -21,10 +21,10 @@
     addCss(); if (document.querySelector('.fp-ov')) return;
     const ov = document.createElement('div'); ov.className = 'fp-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
     ov.innerHTML = `<div class="fp-box">
-      <h2>무료 한 판을 다 했어요</h2>
-      <p>로그인하지 않으면 게임마다 한 판씩만 해 볼 수 있어요. 로그인하면 계속 플레이하고 경기 기록도 남아요.</p>
+      <h2>계속하려면 로그인해 주세요</h2>
+      <p>로그인하지 않으면 게임마다 한 판씩만 해 볼 수 있어요. 로그인하면 계속 플레이하고 경기 기록도 남아요. 회원가입은 돈이 들지 않고 1분이면 끝나요.</p>
       <a class="fp-login" href="/account/?next=${back()}">로그인하고 계속하기</a>
-      <a class="fp-join" href="/account/?tab=signup&next=${back()}">회원가입 (1분)</a>
+      <a class="fp-join" href="/account/?tab=signup&next=${back()}">회원가입</a>
       <button type="button" class="fp-close">닫기</button>
       <p style="font-size:12px">친구가 보낸 방 링크로 들어가는 건 로그인 없이도 돼요.</p></div>`;
     ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.fp-close')) ov.remove(); });
@@ -33,7 +33,7 @@
   }
   function toast() {
     addCss(); const t = document.createElement('div'); t.className = 'fp-toast';
-    t.innerHTML = `로그인하지 않으면 게임마다 한 판씩 무료예요<a href="/account/?next=${back()}">로그인</a>`;
+    t.innerHTML = `로그인 없이는 게임마다 한 판씩 해 볼 수 있어요<a href="/account/?next=${back()}">로그인</a>`;
     document.body.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 4500);
   }
   async function ok(game, play) {
