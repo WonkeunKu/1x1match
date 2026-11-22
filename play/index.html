@@ -181,6 +181,14 @@ svg#bc { display: block; width: 100%; max-width: min(560px, calc(100vh - 220px))
 .marmed { fill: rgba(232,96,74,.12); stroke: var(--red); stroke-dasharray: 5 4; pointer-events: none; }
 .mp { stroke: #0b1a17; stroke-width: 3; pointer-events: none; } .mp.p0 { fill: var(--blue); } .mp.p1 { fill: var(--red); }
 .mpl { font-size: 12px; font-weight: 700; text-anchor: middle; fill: #fff; pointer-events: none; }
+.mwrap { position: relative; }
+.mpops { position: absolute; inset: 0; pointer-events: none; }
+.mpop { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; font-family: var(--f-display); font-size: clamp(30px, 9vw, 48px); line-height: 1; color: var(--green); text-shadow: 0 2px 0 #0b1a17, 0 0 18px rgba(0,0,0,.6); animation: mpop 1.9s ease-out forwards; white-space: nowrap; }
+.mpop small { font-family: var(--f-body); font-weight: 700; font-size: 13px; color: var(--chalk); background: var(--blue); border-radius: 999px; padding: 1px 8px; margin-bottom: 4px; text-shadow: none; }
+.mpop.ai small { background: var(--red); }
+.mpop.bad { color: var(--red); } .mpop.gold { color: var(--amber); } .mpop.zero { color: var(--chalk-dim); }
+@keyframes mpop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 22% { transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; transform: translate(-50%, -70%); } 100% { opacity: 0; transform: translate(-50%, -95%); } }
+@media (prefers-reduced-motion: reduce) { .mpop { animation: none; } }
 .mc.zone0 { fill: #2f5566; } .mc.zone1 { fill: #5a3a3a; }
 #mActs { flex-wrap: wrap; } #mActs button { flex: 1 1 auto; }
 /* 기억의 만찬 */
