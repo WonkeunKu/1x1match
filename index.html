@@ -132,6 +132,26 @@ a.folder p { margin: 0; color: var(--chalk-dim); font-size: 15px; word-break: ke
 .back:hover { border-color: var(--amber); color: var(--amber); }
 footer { font-size: 13px; color: var(--chalk-dim); }
 @media (prefers-reduced-motion: reduce) { a.game { transition: none; } }
+/* 휴대폰: 폴더 5개가 스크롤 없이 한 화면에 보이도록 머리말과 폴더 카드를 줄임 (그림 타일·설명은 숨기고 이름·개수만) */
+@media (max-width: 639px) {
+  .wrap { padding-block: 18px 20px; gap: 18px; }
+  header { gap: 4px; }
+  h1 { font-size: 44px; }
+  .lede { font-size: 14px; line-height: 1.45; }
+  .histbtn { margin-top: 4px; font-size: 14px; padding: 7px 14px; }
+  .folders { gap: 12px; }
+  a.folder { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 10px 16px 12px; border-top-width: 3px; }
+  a.folder::before { left: 14px; top: -7px; width: 56px; height: 8px; border-radius: 6px 6px 0 0; }
+  a.folder .ftag { grid-column: 1 / -1; font-size: 11px; min-height: 20px; }
+  a.folder .ftag .lockchip { font-size: 11px; padding: 1px 8px; }
+  a.folder .fstack, a.folder p { display: none; }
+  a.folder h2 { font-size: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  a.folder .fmeta { gap: 3px; font-size: 13px; }
+  a.folder .fmeta b { font-size: 18px; }
+  a.folder .fmeta .go { margin-left: 10px; font-size: 14px; }
+  footer { font-size: 12px; }
+}
+@media (max-width: 639px) and (max-height: 640px) { .lede { display: none; } }
 </style>
 </head>
 <body>
