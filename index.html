@@ -187,7 +187,7 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <span class="fmeta"><b>7</b>개 게임 <span class="go">열기 →</span></span>
     </a>
     <a class="folder fbl" href="#blood" id="bloodFolder">
-      <span class="ftag">FOLDER 04<span class="lockchip blchip" id="bloodChip">공개 예정</span></span>
+      <span class="ftag">FOLDER 04<span class="lockchip blchip" id="bloodChip">1개 공개</span></span>
       <h2>피의 게임</h2>
       <p><span class="pl">피의 게임 데스매치의 1:1 게임. 컬러턴, 시크릿 다이스, 미스터리 넘버, 블라인드 베팅, 수식미로, 정글 메이즈.</span><span class="ps">피의 게임 데스매치의 1:1 게임 6가지.</span></p>
       <span class="fmeta"><b>6</b>개 게임 <span class="go">열기 →</span></span>
@@ -269,9 +269,9 @@ footer { font-size: 13px; color: var(--chalk-dim); }
   </section>
 
   <section class="fview" id="view-blood" hidden>
-    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>피의 게임</h2><span class="fcount">6개 게임 · 공개 예정</span></div>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>피의 게임</h2><span class="fcount">6개 게임 · 1개 공개</span></div>
     <div class="games" id="bloodGames">
-      <div class="gw soon"><a class="game bld" data-href="dg/#colorturn" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 추상전략</span><h2>컬러턴</h2><p>6×6 판에 흑백 칩을 두고 옮겨 같은 색 4개를 한 줄로 만들어요. 줄마다 숨은 지뢰 칸에 들어가면 칩 색이 뒤집혀요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">숨은 지뢰</span></div><span class="go">칩 옮기러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw"><a class="game bld" href="play/#colorturn"><span class="tag">시즌2 데스매치 · 추상전략</span><h2>컬러턴</h2><p>6×6 판에 흑백 칩을 두고 옮겨 같은 색 4개를 한 줄로 만들어요. 줄마다 숨은 지뢰 칸에 들어가면 칩 색이 뒤집혀요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">숨은 지뢰</span></div><span class="go">칩 옮기러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game bld" data-href="dg/#secretdice" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 족보</span><h2>시크릿 다이스</h2><p>공용 주사위를 고정하고, 각자 몰래 고른 눈을 더해 족보를 채워요. 상대 족보를 막는 눈을 고르는 수싸움.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">12라운드</span></div><span class="go">주사위 굴리러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game bld" data-href="dg/#mysterynum" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 암기</span><h2>미스터리 넘버</h2><p>1~10 숫자 블록 40개 더미에서 다음 블록을 맞히거나 가져가요. 버려진 블록을 외워 확률을 읽어야 해요.</p><div class="chips"><span class="chip">AI 기억력 3단계</span><span class="chip">암기</span></div><span class="go">숫자 맞히러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
       <div class="gw soon"><a class="game bld" data-href="dg/#blindbet" aria-disabled="true" tabindex="-1"><span class="tag">시즌3 데스매치 · 베팅</span><h2>블라인드 베팅</h2><p>상대에게만 보이는 블라인드 카드와 내가 고른 오픈 카드를 더해 칩을 걸어요. 2라운드 10턴, 칩 30개.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">레이즈·콜·폴드</span></div><span class="go">칩 걸러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
@@ -318,7 +318,6 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
     // 대표·관리자는 공개 전 게임도 열 수 있음
     if (d.user.admin || d.user.owner) {
       document.querySelectorAll('.gw.soon').forEach(w => { const a = w.querySelector('a.game'); a.href = a.dataset.href; a.removeAttribute('aria-disabled'); a.removeAttribute('tabindex'); w.classList.remove('soon'); const t = a.querySelector('.tag'); t.insertAdjacentHTML('beforeend', '<span class="lockchip">관리자 전용</span>'); });
-      for (const c of ['bloodChip']) document.getElementById(c).textContent = '관리자 전용';
       document.querySelectorAll('.fview .fcount').forEach(c => { c.textContent = c.textContent.replace('공개 예정', '관리자 전용'); });
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
