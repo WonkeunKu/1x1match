@@ -109,7 +109,7 @@
         $('mmLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
       $('mmB').addEventListener('click', e => { const el = e.target.closest('[data-i]'); if (!el || !G || G.over || G.turn !== 0) return; const i = +el.dataset.i; if (NB(G.pos[0]).includes(i)) step(0, i); });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

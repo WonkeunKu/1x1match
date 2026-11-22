@@ -104,7 +104,7 @@
         $('mnSeen').innerHTML = cfg.show ? `<div class="mn-seen">버려진 블록: ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<span>${n}<b>×${cnt[n]}</b></span>`).join('')}</div>` : '';
         $('mnLog').innerHTML = (cfg.show || G.over ? G.log : G.log.slice(-3)).slice().reverse().map(x => `<span>${esc(x)}</span>`).join('') + (!cfg.show && !G.over && G.log.length > 3 ? '<span class="muted">(지난 기록은 가려져요 — 외워 두세요)</span>' : '');
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

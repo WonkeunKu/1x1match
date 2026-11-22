@@ -204,7 +204,7 @@
         if (G.sel != null) { const m = slides(s, s.turn).find(x => x.f === G.sel && x.t === i); if (m) { if (needsRemove(s, s.turn)) { G.pendMove = m; render(); } else commit(m, null); return; } }
         G.sel = null; render();
       });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

@@ -163,7 +163,7 @@
         const a = e.target.closest('[data-push]'); if (a && G.phase === 'push') return push(PUSHES[+a.dataset.push]);
         const c = e.target.closest('[data-cell]'); if (c && G.phase === 'move') return endMove(+c.dataset.cell);
       });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

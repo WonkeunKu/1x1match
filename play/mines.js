@@ -225,7 +225,7 @@
         if (G.pendingRespawn === 0) { if (ZONE[0].includes(i) && i !== G.pos[1]) respawn(0, i); return; }
         if (G.turn === 0 && G.pendingRespawn == null && legal(0).includes(i)) { const d = G.declare; G.declare = null; move(0, i, d); }
       });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

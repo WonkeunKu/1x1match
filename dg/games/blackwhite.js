@@ -104,7 +104,7 @@
         $('bwMsg').textContent = G.over ? '게임 끝 — AI가 낸 숫자를 공개해요' : !t ? '' : t.first === 0 && t.a == null ? '내가 선이에요. 낼 타일을 고르세요' : t.first === 1 && t.a == null ? 'AI가 고르는 중…' : t.b == null && t.first === 1 ? `AI가 ${col(t.a) === 'black' ? '검정' : '흰색'} 타일을 냈어요. 맞받아칠 타일을 고르세요` : '판정 중…';
         $('bwHist').innerHTML = G.hist.length ? `<table><tr><th>라운드</th>${G.hist.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr><tr><td>나</td>${G.hist.map(x => `<td><span class="dot ${col(x.me)}"></span>${x.me}</td>`).join('')}</tr><tr><td>AI</td>${G.hist.map(x => `<td><span class="dot ${col(x.ai)}"></span>${G.over ? x.ai : ''}</td>`).join('')}</tr><tr><td>결과</td>${G.hist.map(x => `<td>${x.r === 0 ? '승' : x.r === 1 ? '패' : '무'}</td>`).join('')}</tr></table>` : '';
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

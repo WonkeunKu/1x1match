@@ -27,6 +27,15 @@
     document.getElementById('againBtn').onclick = () => { ov.hidden = true; again && again(); };
     document.getElementById('closeBtn').onclick = () => { ov.hidden = true; };
   };
+  // 처음 열면 바로 시작하지 않고, 설정을 고른 뒤 '게임 시작'을 누르게 함. 옆 칸의 '새 게임'을 눌러도 시작돼요.
+  LAB.beforeStart = null; // 공개 페이지에서 비회원 한 판 확인용
+  LAB.ready = (root, start) => {
+    const main = root.querySelector('.g-main'); if (!main) { start(); return; }
+    const ov = LAB.h(`<div class="ready-ov"><div class="ready-box"><b>설정을 고르고 시작하세요</b><span>AI 난이도나 규칙은 <span class="rw">오른쪽</span><span class="rn">아래</span> 설정 칸에서 바꿀 수 있어요.</span><button type="button" class="primary ready-go">게임 시작</button></div></div>`);
+    main.appendChild(ov);
+    root.querySelectorAll('.g-side button.primary').forEach(b => b.addEventListener('click', () => ov.remove()));
+    ov.querySelector('.ready-go').onclick = async () => { if (LAB.beforeStart && !(await LAB.beforeStart())) return; ov.remove(); start(); };
+  };
   // 게임마다 정리할 타이머 모음
   LAB.timers = () => {
     const ids = new Set();

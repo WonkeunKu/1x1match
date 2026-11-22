@@ -186,7 +186,7 @@
         if (sel) { const m = moves(S).find(m => m.t === i && (sel.drop ? m.drop === sel.drop : m.f === sel.i)); if (m) return play(m); }
         sel = x && x.o === S.turn ? (sel && sel.i === i ? null : { i }) : null; render();
       });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

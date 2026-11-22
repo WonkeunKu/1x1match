@@ -180,7 +180,7 @@
         if (G.sel != null) { const m = moves(G.b, G.turn).find(x => x.f === G.sel && x.t === i); if (m) return play(m); }
         G.sel = null; render();
       });
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

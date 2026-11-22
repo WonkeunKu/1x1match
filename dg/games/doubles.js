@@ -215,7 +215,7 @@
         $('dpTable').innerHTML = tb;
         $('dpLog').innerHTML = G.log.length ? G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('') : '<span>아직 승부가 없어요</span>';
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

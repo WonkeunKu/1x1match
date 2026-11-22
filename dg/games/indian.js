@@ -124,7 +124,7 @@
         $('ipSeen').innerHTML = `<div class="mn-seen">이번 덱에서 나온 카드: ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<span>${n}<b>×${cnt[n]}</b></span>`).join('')}</div>`;
         $('ipLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

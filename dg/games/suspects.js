@@ -145,7 +145,7 @@
         $('sFound').innerHTML = G.found.length ? G.found.map(k => `<span><b>${G.foundBy[k] ? 'AI' : '나'}</b> ${k.split('-').map(x => +x + 1).join('·')}번</span>`).join('') : '<span>아직 없어요</span>';
         $('sLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('') || '<span>—</span>';
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

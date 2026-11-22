@@ -91,7 +91,7 @@
         $('ghFound').innerHTML = f.length ? f.map(([k, p]) => `<span><b>${p === 2 ? 'AI' : '나'}</b> ${[...k].map(x => +x + 1).join('·')}</span>`).join('') : '<span>아직 없어요</span>';
         $('ghLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

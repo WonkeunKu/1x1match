@@ -137,7 +137,7 @@
         $('dMsg').textContent = msg;
         $('dLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });

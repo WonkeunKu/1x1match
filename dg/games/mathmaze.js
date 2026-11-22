@@ -134,7 +134,7 @@
         $('mzMsg').textContent = G.over ? '게임 끝' : G.phase === 'memo' ? '숫자와 위치를 외우세요. 곧 알파벳으로 바뀌어요.' : G.msg || (G.lock === 1 ? 'AI의 기회예요…' : '출발 칸부터 이어지는 칸을 눌러 길을 만드세요 (마지막 칸을 다시 누르면 취소)');
         $('mzLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      start();
+      LAB.ready(root, start); // 설정을 고르고 "게임 시작"을 눌러야 시작
       return () => T.clear();
     }
   });
