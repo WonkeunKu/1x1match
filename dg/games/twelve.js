@@ -139,7 +139,7 @@
       $('twOpp').appendChild(seg([['ai', 'AI'], ['local', '한 화면 2인']], 'ai', v => pend.opp = v));
       $('twLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('twNew').onclick = start;
-      $('twUndo').onclick = () => { if (!hist.length || busy || over) return; do { const x = hist.pop(); S = x.s; log.length = x.l; } while (hist.length && cfg.opp === 'ai' && S.turn !== 0); sel = null; render(); };
+      $('twUndo').onclick = () => { if (!hist.length || busy || over) return; do { const x = hist.pop(); S = x.s; log.length = x.l; } while (hist.length && cfg.opp === 'ai' && S.turn !== 0); sel = null; render(); aiMaybe(); };
       const who = p => cfg.opp === 'ai' ? (p === 0 ? '나' : 'AI') : (p === 0 ? '초록' : '주황');
       const human = () => !over && !busy && (cfg.opp === 'local' || S.turn === 0);
       function start() { T.clear(); Object.assign(cfg, pend); S = init(); first = rnd(2); S.turn = first; sel = null; over = false; log = [`${who(first)} 선`]; hist = []; busy = false; render(); aiMaybe(); }
@@ -151,6 +151,7 @@
         log.push(m.drop ? `${who(p)}: ${KNAME[m.drop]} 놓기 → ${cellName(m.t)}` : `${who(p)}: ${KNAME[xt]}${xt === 'P' && x.t === 'Q' ? '(후로 승격)' : ''} ${cellName(m.f)}→${cellName(m.t)}${cap ? ' · ' + KNAME[cap.t] + ' 잡음' : ''}`);
         sel = null;
         if (w != null) { over = true; render(); return T.set(() => LAB.end(cfg.opp === 'ai' ? (w === 0 ? '승리' : '패배') : who(w) + ' 승리', cap && cap.t === 'K' ? '왕을 잡았어요' : '왕이 상대 끝줄에서 버텼어요', start), 500); }
+        if (hist.length >= 200) { over = true; render(); return LAB.end('무승부', '200수가 지나도록 승부가 나지 않았어요', start); }
         if (!moves(S).length) { over = true; render(); return LAB.end(cfg.opp === 'ai' ? (S.turn === 0 ? '패배' : '승리') : who(1 - S.turn) + ' 승리', '둘 수 있는 수가 없어요', start); }
         render(); aiMaybe();
       }

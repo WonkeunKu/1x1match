@@ -49,20 +49,20 @@
       function nextRound() {
         T.clear(); G.round++;
         if (G.round > ROUNDS) { if (G.score[0] === G.score[1]) { G.log.push('— 동점! 연장 라운드 —'); G.round = ROUNDS; G.ot = true; } else return finish(); }
-        G.cards = shuffle(DECK.slice()).slice(0, 9); G.all = haps(G.cards); G.found = {}; G.sel = []; G.last = Date.now(); G.msg = `${G.round}라운드 시작 — 합을 찾아보세요`;
+        G.wait = false; G.cards = shuffle(DECK.slice()).slice(0, 9); G.all = haps(G.cards); G.found = {}; G.sel = []; G.last = Date.now(); G.msg = `${G.round}라운드 시작 — 합을 찾아보세요`;
         render(); scheduleAI(); T.every(tick, 300);
       }
       function tick() { if (G.over) return; if (Date.now() - G.last > 90000) { G.log.push(`${G.round}R: 90초 동안 아무도 외치지 않아 종료`); return nextRound(); } render(true); }
       function scheduleAI() { const b = [[11000, 9000], [6500, 5500], [3200, 2800]][lv]; T.set(aiAct, b[0] + Math.random() * b[1]); }
       function aiAct() {
-        if (G.over) return;
+        if (G.over || G.wait) return;
         const left = G.all.filter(s => !G.found[key(s)]);
         if (!left.length) { if (Math.random() < [.6, .85, 1][lv]) return gyul(1); return scheduleAI(); }
         if (Math.random() < [.15, .06, .015][lv]) { const a = shuffle([...Array(9).keys()]).slice(0, 3); if (!isHap(...a.map(i => G.cards[i]))) return call(1, a); }
         call(1, left[rnd(left.length)]);
       }
       function call(p, s) {
-        if (G.over) return;
+        if (G.over || G.wait) return;
         G.last = Date.now(); const k = key(s), ok = isHap(...s.map(i => G.cards[i])), nm = s.map(i => i + 1).sort().join('·');
         let t;
         if (ok && !G.found[k]) { G.found[k] = p + 1; G.score[p]++; t = `${who(p)}: 합! ${nm} +1`; }
@@ -71,9 +71,9 @@
         render(); if (p === 1) scheduleAI();
       }
       function gyul(p) {
-        if (G.over) return;
+        if (G.over || G.wait) return;
         G.last = Date.now(); const left = G.all.filter(s => !G.found[key(s)]).length;
-        if (!left) { G.score[p] += 3; G.log.push(`${G.round}R ${who(p)}: 결! 정답 +3`); G.msg = `${who(p)} 결! 정답 +3`; render(); T.clear(); T.set(nextRound, 2000); }
+        if (!left) { G.score[p] += 3; G.log.push(`${G.round}R ${who(p)}: 결! 정답 +3`); G.msg = `${who(p)} 결! 정답 +3`; G.wait = true; G.sel = []; render(); T.clear(); T.set(nextRound, 2000); }
         else { G.score[p]--; G.log.push(`${G.round}R ${who(p)}: 결! 틀림 −1 (남은 합 ${left}개)`); G.msg = `${who(p)} 결! 틀림 −1`; render(); if (p === 1) scheduleAI(); }
       }
       function finish() { G.over = true; T.clear(); render(); LAB.end(G.score[0] > G.score[1] ? '승리' : '패배', `최종 ${G.score[0]} : ${G.score[1]}`, start); }
@@ -84,7 +84,7 @@
         if (light) return;
         $('ghGrid').innerHTML = G.cards.map((c, i) => `<button type="button" class="gh-t ${G.sel.includes(i) ? 'sel' : ''}" data-i="${i}" title="${SH[c[0]]} · ${CO[c[1]]} · ${BG[c[2]]}"><b>${i + 1}</b>${tile(c)}</button>`).join('');
         $('ghGrid').querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const i = +b.dataset.i, k = G.sel.indexOf(i); if (k >= 0) G.sel.splice(k, 1); else if (G.sel.length < 3) G.sel.push(i); render(); });
-        $('ghHap').disabled = G.sel.length !== 3 || G.over;
+        $('ghHap').disabled = G.sel.length !== 3 || G.over || G.wait; $('ghGyul').disabled = G.over || G.wait;
         $('ghHap').textContent = G.sel.length === 3 ? `합! (${G.sel.map(i => i + 1).sort().join('·')})` : `합! (${G.sel.length}/3)`;
         $('ghMsg').textContent = G.msg || '';
         const f = Object.entries(G.found);

@@ -136,7 +136,7 @@
         const i = +el.dataset.i, acts = actions(G, 0);
         if (G.sel != null) { const a = acts.find(a => a.k === 'm' && a.from === G.sel && a.to === i); if (a) return doAct(a); if (i === G.sel) { G.sel = null; return render(); } }
         if (G.board[i] && acts.some(a => a.k === 'm' && a.from === i)) { G.sel = i; return render(); }
-        const pa = acts.find(a => a.k === 'p' && a.to === i); if (pa && G.sel == null) return doAct(pa);
+        const pa = acts.find(a => a.k === 'p' && a.to === i); if (pa) return doAct(pa);
         G.sel = null; render();
       });
       start();

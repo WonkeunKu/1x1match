@@ -41,13 +41,13 @@
       function start() {
         T.clear(); cfg = { ...pend };
         const pile = shuffle(Array.from({ length: 40 }, (_, i) => i % 10 + 1));
-        G = { pile, hand: [pile.splice(0, 5), pile.splice(0, 5)], score: [0, 0], seen: [], aiSeen: [], turn: rnd(2), log: [], over: false, sums: null, streak: false };
+        G = { pile, hand: [pile.splice(0, 5), pile.splice(0, 5)], score: [0, 0], seen: [], aiSeen: [], turn: rnd(2), log: [], over: false, sums: null, streak: false, notIn: [new Set(), new Set()] };
         G.log.push(`선: ${G.turn === 0 ? '나' : 'AI'}`);
         render(); next();
       }
       const who = p => p ? 'AI' : '나';
       function remember(n) { G.seen.push(n); G.aiSeen.push(Math.random() < [0.75, 0.93, 1][cfg.lv] ? n : (rnd(10) + 1)); }
-      function refill(p, k) { let added = 0; while (k-- > 0 && G.pile.length) { G.hand[p].push(G.pile.pop()); added++; } checkPile(); return added; }
+      function refill(p, k) { if (k > 0 && G.pile.length) G.notIn[p].clear(); let added = 0; while (k-- > 0 && G.pile.length) { G.hand[p].push(G.pile.pop()); added++; } checkPile(); return added; }
       function checkPile() { if (!G.pile.length && !G.sums) { G.sums = [G.hand[0].reduce((a, b) => a + b, 0), G.hand[1].reduce((a, b) => a + b, 0)]; G.log.push(`집사 블록 소진! 앞 블록 합계 — 나 ${G.sums[0]}, AI ${G.sums[1]}`); } }
       function guess(n) {
         const p = G.turn, q = 1 - p, k = G.hand[q].filter(x => x === n).length;
@@ -57,7 +57,7 @@
           if (!G.hand[q].length) { G.score[p] += 2; t += ' · 전부 맞혀 보너스 +2'; }
           refill(q, k); G.log.push(t); G.streak = true;
           if (endCheck()) return; render(); if (p === 1) T.set(aiTurn, 900);
-        } else { G.log.push(`${who(p)}: ${n} → 없음`); endTurn(); }
+        } else { G.notIn[q].add(n); G.log.push(`${who(p)}: ${n} → 없음`); endTurn(); }
       }
       function addBlock() { const p = G.turn; if (!G.pile.length) return; refill(1 - p, 1); G.log.push(`${who(p)}: ${who(1 - p)} 앞에 블록 추가`); endTurn(); }
       function endTurn() { G.streak = false; if (endCheck()) return; G.turn = 1 - G.turn; render(); next(); }
@@ -77,6 +77,7 @@
         const hsz = G.hand[0].length; let best = 1, bp = -1;
         for (let n = 1; n <= 10; n++) {
           let pr = U ? 1 - comb(U - unseen[n], hsz) / comb(U, hsz) : 0;
+          if (G.notIn[0].has(n)) pr = -1; // 방금 불러서 없다고 확인된 숫자
           if (G.sums && !G.pile.length) pr = unseen[n] ? Math.min(1, pr * 1.4) : 0;
           pr += (Math.random() - .5) * (cfg.lv === 0 ? .25 : .05);
           if (pr > bp) { bp = pr; best = n; }

@@ -85,6 +85,8 @@
           if (G.got[p] >= 4) { G.over = true; G.log.push(`${who(p)}: 출발점 도착!`); render(); return T.set(() => LAB.end(p === 0 ? '승리' : '패배', `${who(p)}가 목표물 4개를 모으고 먼저 돌아왔어요`, start), 500); }
           G.log.push(`${who(p)}: ${SYM[G.order[p][G.got[p]]][2]} 획득 (${G.got[p] + 1}/4)`); G.got[p]++;
         }
+        G.turns = (G.turns || 0) + 1;
+        if (G.turns >= 200) { G.over = true; render(); return LAB.end('무승부', '100번씩 두도록 승부가 나지 않았어요', start); }
         G.turn = 1 - p; G.phase = 'push'; render(); aiMaybe();
       }
       function aiMaybe() {
@@ -92,8 +94,10 @@
         G.busy = true; render();
         T.set(() => {
           const lv = cfg.lv; let best = null, bv = -1e9;
+          const look = [.45, .8, 1][lv]; // 쉬움·보통은 일부 수만 살펴봄
           for (const p of PUSHES) {
             if (isReverse(p, G.last)) continue;
+            if (best && Math.random() > look) continue;
             let m = G.spare.m;
             for (let r = 0; r < 4; r++, m = rot(m)) {
               const st = { t: G.t.slice(), spare: { ...G.spare, m }, pos: G.pos.slice() };

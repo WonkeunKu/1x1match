@@ -33,7 +33,7 @@
       <li>12라운드. 라운드마다 두 사람이 번갈아 <b>주 플레이어</b>가 돼요.</li>
       <li>집사가 주사위 3개를 굴리면, 주 플레이어가 그중 <b>1개 이상을 고정</b>해요. 3개 고정은 게임 중 한 번만.</li>
       <li>남은 주사위는 두 사람이 나눠 가지고, 각자 <b>원하는 눈을 몰래 정해 동시에 공개</b>해요. 1개 고정: 주 2개·상대 2개 / 2개 고정: 주 1개·상대 2개 / 3개 고정: 주 1개·상대 1개.</li>
-      <li>주 플레이어는 5개 눈으로 점수표 한 칸을 채워요. 맞는 칸이 없으면 아무 칸에 0점.</li>
+      <li>주 플레이어는 5개 눈으로 점수표 한 칸을 채워요. 조건이 안 맞는 칸을 고르면 그 칸은 0점이에요.</li>
       <li>점수표: 1~6번(그 눈의 합), 총합, 2·3 다이스 20, 4연속 20, 5연속 30, 4 다이스 20, 5 다이스 40 또는 조커(다른 조합 점수로 대신). 연속은 6 다음에 1도 이어져요.</li>
       <li>상대가 내 족보를 막으려고 눈을 정한다는 게 핵심이에요. 12칸을 다 채운 뒤 합계가 높은 쪽이 이겨요.</li>
     </ul>`,
@@ -135,16 +135,15 @@
         if (G.over) msg = '게임 끝';
         else if (G.phase === 'fix') { if (m === 0) { const ok = G.fixed.length >= 1 && (G.fixed.length < 3 || G.fix3[0]); btns = `<button type="button" class="primary" id="sdFix" ${ok ? '' : 'disabled'}>${G.fixed.length}개 고정하기</button>`; msg = '고정할 주사위를 누르세요 (1개 이상' + (G.fix3[0] ? ', 3개 고정은 한 번만' : ', 3개 고정은 이미 씀') + ')'; } else msg = 'AI가 고정할 주사위를 고르는 중…'; }
         else if (G.phase === 'pick') { btns = `<button type="button" class="primary" id="sdGo">이 눈으로 공개</button>`; msg = m === 0 ? '내 족보를 만들 눈을 정하세요. 상대는 막으려고 해요.' : 'AI의 족보를 막을 눈을 정하세요.'; }
-        else if (G.phase === 'cat') msg = m === 0 ? '채울 칸을 점수표에서 고르세요' : 'AI가 칸을 고르는 중…';
+        else if (G.phase === 'cat') msg = m === 0 ? '채울 칸을 점수표에서 고르세요 (회색 0은 조건이 안 맞는 칸이에요)' : 'AI가 칸을 고르는 중…';
         $('sdBtns').innerHTML = btns; $('sdMsg').textContent = msg;
         const fx = $('sdFix'); if (fx) fx.onclick = confirmFix;
         const go = $('sdGo'); if (go) go.onclick = revealNow;
         const canFill = G.phase === 'cat' && m === 0;
-        const anyValid = canFill && CATS.some(([k]) => G.card[0][k] == null && score(k, G.reveal) != null);
         $('sdCard').innerHTML = `<tr><th>칸</th><th>나</th><th>AI</th></tr>` + CATS.map(([k, label]) => {
           const mine = G.card[0][k], ai = G.card[1][k];
           let cell = mine != null ? mine : '';
-          if (canFill && mine == null) { const s = score(k, G.reveal); if (s != null || !anyValid) cell = `<button type="button" class="sd-fill" data-cat="${k}">${s ?? 0}</button>`; }
+          if (canFill && mine == null) { const s = score(k, G.reveal); cell = `<button type="button" class="sd-fill ${s == null ? 'zero' : ''}" data-cat="${k}" title="${s == null ? '조건이 안 맞아 0점으로 채워요' : ''}">${s ?? 0}</button>`; }
           return `<tr><td>${label}</td><td>${cell}</td><td>${ai != null ? ai : ''}</td></tr>`;
         }).join('') + `<tr class="tot"><td>합계</td><td>${total(G.card[0])}</td><td>${total(G.card[1])}</td></tr>`;
         $('sdCard').querySelectorAll('[data-cat]').forEach(b => b.onclick = () => fill(b.dataset.cat));

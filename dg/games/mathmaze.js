@@ -68,7 +68,7 @@
       }
       function tick() { T.set(() => { if (!G.over) { render(true); tick(); } }, 250); }
       function nextQ() {
-        G.qn++; G.inRound++; G.q = makeProblem(G.nums); G.path = [G.q.s]; G.lock = null; G.qStart = Date.now();
+        G.qn++; G.inRound++; G.q = makeProblem(G.nums); G.path = [G.q.s]; G.lock = null; G.qStart = Date.now(); G.revealPath = null;
         G.msg = ''; render(); scheduleAI();
       }
       function scheduleAI(exclusive) {
@@ -90,16 +90,16 @@
         const ok = valid(path), who = p ? 'AI' : '나';
         const pathTxt = path.map(i => L[i]).join('-');
         if (ok) {
-          G.score[p]++; G.log.push(`${G.qn}번 ${who}: ${pathTxt} 정답 +1`); G.msg = `${who} 정답! (${pathTxt})`;
+          G.score[p]++; G.log.push(`${G.qn}번 ${who}: ${pathTxt} 정답 +1`); G.msg = `${who} 정답! (${pathTxt})`; G.revealPath = path.slice();
           G.phase = 'reveal'; clearTimeout(G.aiTimer); render();
           return T.set(afterQ, 2500);
         }
         G.log.push(`${G.qn}번 ${who}: ${pathTxt} 오답`); G.msg = `${who} 오답 — ${p ? '나' : 'AI'}에게 30초 기회`;
-        if (G.lock != null) { G.msg += ''; G.log.push('두 사람 모두 틀려 아무도 점수를 얻지 못했어요'); G.phase = 'reveal'; render(); return T.set(afterQ, 2500); }
+        if (G.lock != null) { G.log.push('두 사람 모두 틀려 아무도 점수를 얻지 못했어요'); G.msg = `두 사람 모두 오답 — 정답 예: ${G.q.sample.map(i => L[i]).join('-')}`; G.revealPath = G.q.sample.slice(); G.phase = 'reveal'; render(); return T.set(afterQ, 3000); }
         G.lock = 1 - p; G.lockUntil = Date.now() + 30000; if (p === 0) G.path = [G.q.s];
         render();
         if (G.lock === 1) scheduleAI(true);
-        T.set(() => { if (G.phase === 'q' && G.lock === 1 - p && Date.now() >= G.lockUntil - 50) { G.log.push('30초가 지나 아무도 점수를 얻지 못했어요'); G.phase = 'reveal'; render(); T.set(afterQ, 2000); } }, 30000);
+        T.set(() => { if (G.phase === 'q' && G.lock === 1 - p && Date.now() >= G.lockUntil - 50) { G.log.push('30초가 지나 아무도 점수를 얻지 못했어요'); G.msg = `시간 초과 — 정답 예: ${G.q.sample.map(i => L[i]).join('-')}`; G.revealPath = G.q.sample.slice(); G.phase = 'reveal'; render(); T.set(afterQ, 3000); } }, 30000);
       }
       function afterQ() {
         if (G.score[0] >= 3 || G.score[1] >= 3 || G.qn >= 5) return finish();
@@ -113,13 +113,14 @@
         const now = Date.now();
         $('mzTimer').textContent = G.phase === 'memo' ? `외우기 ${Math.max(0, Math.ceil((G.until - now) / 1000))}초` : G.lock != null && G.phase === 'q' ? `${G.lock === 0 ? '내' : 'AI'} 독점 기회 ${Math.max(0, Math.ceil((G.lockUntil - now) / 1000))}초` : G.phase === 'q' ? `${Math.floor((now - G.qStart) / 1000)}초 경과` : '';
         if (light) return;
-        const showNums = G.phase === 'memo' || G.phase === 'reveal' || G.over;
+        const showAll = G.phase === 'memo' || G.over; // 문제 사이에는 정답 길의 숫자만 보여 줌
+        const showNum = i => showAll || (G.phase === 'reveal' && G.revealPath && G.revealPath.includes(i));
         $('mzQ').innerHTML = G.phase === 'memo' ? '<b>숫자를 외우세요</b>' : G.q ? `<span>출발 <b>${L[G.q.s]}</b></span><span>도착 <b>${L[G.q.e]}</b></span><span>정답 값 <b>${G.q.target}</b></span>` : '';
         const can = G.phase === 'q' && G.lock !== 1;
         $('mzB').innerHTML = Array.from({ length: 16 }, (_, i) => {
           const inPath = G.path.indexOf(i);
-          const cls = [G.q && i === G.q.s && G.phase !== 'memo' ? 'start' : '', G.q && i === G.q.e && G.phase !== 'memo' ? 'end' : '', inPath >= 0 && G.phase === 'q' ? 'on' : ''].join(' ');
-          return `<button type="button" class="mz-c ${cls}" data-i="${i}" ${can ? '' : 'disabled'}><small>${L[i]}</small><b>${showNums ? G.nums[i] : ''}</b>${inPath >= 0 && G.phase === 'q' ? `<i>${inPath + 1}</i>` : ''}</button>`;
+          const cls = [G.q && i === G.q.s && G.phase !== 'memo' ? 'start' : '', G.q && i === G.q.e && G.phase !== 'memo' ? 'end' : '', (inPath >= 0 && G.phase === 'q') || (G.phase === 'reveal' && G.revealPath && G.revealPath.includes(i)) ? 'on' : ''].join(' ');
+          return `<button type="button" class="mz-c ${cls}" data-i="${i}" ${can ? '' : 'disabled'}><small>${L[i]}</small><b>${showNum(i) ? G.nums[i] : ''}</b>${inPath >= 0 && G.phase === 'q' ? `<i>${inPath + 1}</i>` : ''}</button>`;
         }).join('');
         $('mzB').querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
           const i = +b.dataset.i, last = G.path[G.path.length - 1];

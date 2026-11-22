@@ -86,8 +86,8 @@
       function render() {
         $('mmTurn').textContent = G.over ? '게임 끝' : `${who(G.turn)} 차례`;
         $('mmSteps').textContent = G.over ? '' : `${G.steps}/${G.limit}칸 · 더블 찬스 나 ${G.dbl[0] ? '남음' : '씀'} / AI ${G.dbl[1] ? '남음' : '씀'}`;
-        $('mmMe').textContent = G.pos[0] === START ? '출발' : `${Math.abs(Math.floor(G.pos[0] / N) - 0) + Math.abs(G.pos[0] % N - 6)}칸 남음`;
-        $('mmAi').textContent = G.pos[1] === START ? '출발' : `${Math.abs(Math.floor(G.pos[1] / N) - 0) + Math.abs(G.pos[1] % N - 6)}칸 남음`;
+        $('mmMe').textContent = G.pos[0] === START ? '출발' : `도착까지 ${Math.abs(Math.floor(G.pos[0] / N) - 0) + Math.abs(G.pos[0] % N - 6)}칸+`;
+        $('mmAi').textContent = G.pos[1] === START ? '출발' : `도착까지 ${Math.abs(Math.floor(G.pos[1] / N) - 0) + Math.abs(G.pos[1] % N - 6)}칸+`;
         const my = !G.over && G.turn === 0;
         const nb = my ? NB(G.pos[0]) : [];
         let s = '';
