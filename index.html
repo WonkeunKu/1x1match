@@ -109,6 +109,10 @@ a.folder.fdg { --fc: #e8604a; }
 .lockchip.dgchip { background: #e8604a; color: #2a0b06; }
 a.game.dp.bagh { border-top-color: #f0a35e; } a.game.dp.bagh .go { color: #f0a35e; }
 a.game.dgm { border-top-color: #e8604a; } a.game.dgm .go { color: #e8604a; }
+a.folder.fbl { --fc: #c23b5a; } a.folder.fgn { --fc: #6fc4ea; }
+.lockchip.blchip { background: #c23b5a; color: #fff0f3; } .lockchip.gnchip { background: #6fc4ea; color: #06222e; }
+a.game.bld { border-top-color: #c23b5a; } a.game.bld .go { color: #e9738e; }
+a.game.gen { border-top-color: #6fc4ea; } a.game.gen .go { color: #6fc4ea; }
 /* 공개 전 게임: 대표·관리자가 아니면 흐리게, 누를 수 없음 */
 .gw.soon a.game { filter: blur(1.5px) grayscale(.6); opacity: .45; pointer-events: none; cursor: default; user-select: none; }
 .gw.soon .soonchip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 15px; color: var(--chalk); background: rgba(7,24,21,.85); border: 1px solid var(--line); border-radius: 999px; padding: 8px 18px; white-space: nowrap; pointer-events: none; }
@@ -165,6 +169,20 @@ footer { font-size: 13px; color: var(--chalk-dim); }
       <h2>데스게임</h2>
       <p>넷플릭스 데스게임의 1:1 두뇌 게임. 더블스 플랜, 용의자들, 말 달리자, 지각 변동, 위치 콤보, 망각의 지뢰, 기억의 만찬.</p>
       <span class="fmeta"><b>7</b>개 게임 <span class="go">열기 →</span></span>
+    </a>
+    <a class="folder fbl" href="#blood" id="bloodFolder">
+      <span class="ftag">FOLDER 04<span class="lockchip blchip" id="bloodChip">공개 예정</span></span>
+      <span class="fstack" aria-hidden="true"><i>칩</i><i>주사위</i><i>베팅</i><i>미로</i></span>
+      <h2>피의 게임</h2>
+      <p>피의 게임 데스매치의 1:1 게임. 컬러턴, 시크릿 다이스, 미스터리 넘버, 블라인드 베팅, 수식미로, 정글 메이즈.</p>
+      <span class="fmeta"><b>6</b>개 게임 <span class="go">열기 →</span></span>
+    </a>
+    <a class="folder fgn" href="#genius" id="geniusFolder">
+      <span class="ftag">FOLDER 05<span class="lockchip gnchip" id="geniusChip">공개 예정</span></span>
+      <span class="fstack" aria-hidden="true"><i>장기</i><i>합</i><i>포커</i><i>흑백</i></span>
+      <h2>더 지니어스</h2>
+      <p>더 지니어스 데스매치의 1:1 게임. 십이장기, 결! 합!, 인디언 포커, 흑과 백, 기억의 미로.</p>
+      <span class="fmeta"><b>5</b>개 게임 <span class="go">열기 →</span></span>
     </a>
   </section>
 
@@ -229,18 +247,41 @@ footer { font-size: 13px; color: var(--chalk-dim); }
     </div>
   </section>
 
+  <section class="fview" id="view-blood" hidden>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>피의 게임</h2><span class="fcount">6개 게임 · 공개 예정</span></div>
+    <div class="games" id="bloodGames">
+      <div class="gw soon"><a class="game bld" data-href="dg/#colorturn" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 추상전략</span><h2>컬러턴</h2><p>6×6 판에 흑백 칩을 두고 옮겨 같은 색 4개를 한 줄로 만들어요. 줄마다 숨은 지뢰 칸에 들어가면 칩 색이 뒤집혀요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">숨은 지뢰</span></div><span class="go">칩 옮기러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game bld" data-href="dg/#secretdice" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 족보</span><h2>시크릿 다이스</h2><p>공용 주사위를 고정하고, 각자 몰래 고른 눈을 더해 족보를 채워요. 상대 족보를 막는 눈을 고르는 수싸움.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">12라운드</span></div><span class="go">주사위 굴리러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game bld" data-href="dg/#mysterynum" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 암기</span><h2>미스터리 넘버</h2><p>1~10 숫자 블록 40개 더미에서 다음 블록을 맞히거나 가져가요. 버려진 블록을 외워 확률을 읽어야 해요.</p><div class="chips"><span class="chip">AI 기억력 3단계</span><span class="chip">암기</span></div><span class="go">숫자 맞히러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game bld" data-href="dg/#blindbet" aria-disabled="true" tabindex="-1"><span class="tag">시즌3 데스매치 · 베팅</span><h2>블라인드 베팅</h2><p>상대에게만 보이는 블라인드 카드와 내가 고른 오픈 카드를 더해 칩을 걸어요. 2라운드 10턴, 칩 30개.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">레이즈·콜·폴드</span></div><span class="go">칩 걸러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game bld" data-href="dg/#mathmaze" aria-disabled="true" tabindex="-1"><span class="tag">시즌3 데스매치 · 암기</span><h2>수식미로</h2><p>4×4 숫자를 1분 동안 외운 뒤, 지나간 숫자 합이 정답 값이 되는 길을 먼저 찾아요.</p><div class="chips"><span class="chip">AI 속도 3단계</span><span class="chip">외우는 시간 조절</span></div><span class="go">길 찾으러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game bld" data-href="dg/#jungle" aria-disabled="true" tabindex="-1"><span class="tag">시즌2 데스매치 · 미로</span><h2>정글 메이즈</h2><p>줄을 밀어 미로를 바꾸고, 내 순서대로 표식 4개를 모은 뒤 집으로 먼저 돌아오면 이겨요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">움직이는 미로</span></div><span class="go">정글로 들어가기 →</span></a><span class="soonchip">공개 예정</span></div>
+    </div>
+  </section>
+
+  <section class="fview" id="view-genius" hidden>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>더 지니어스</h2><span class="fcount">5개 게임 · 공개 예정</span></div>
+    <div class="games" id="geniusGames">
+      <div class="gw soon"><a class="game gen" data-href="dg/#twelve" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 장기</span><h2>십이장기</h2><p>3×4 판의 작은 장기. 잡은 말은 내 말로 다시 놓을 수 있고, 왕을 잡거나 상대 진영에 왕이 버티면 이겨요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">한 화면 2인</span></div><span class="go">장기 두러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game gen" data-href="dg/#gyulhap" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 실시간</span><h2>결! 합!</h2><p>그림 9장에서 모양·색·배경이 모두 같거나 모두 다른 3장을 찾아 "합"! 더 없으면 "결"!</p><div class="chips"><span class="chip">AI 실시간 대결</span><span class="chip">10라운드</span></div><span class="go">합 찾으러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game gen" data-href="dg/#indian" aria-disabled="true" tabindex="-1"><span class="tag">시즌1·2 데스매치 · 베팅</span><h2>인디언 포커</h2><p>내 카드는 이마에 붙여 나만 못 봐요. 상대 카드와 상대 반응을 보고 베팅해요. 홀덤 규칙도 골라요.</p><div class="chips"><span class="chip">AI 대전</span><span class="chip">포커·홀덤</span></div><span class="go">카드 붙이러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game gen" data-href="dg/#blackwhite" aria-disabled="true" tabindex="-1"><span class="tag">시즌1 데스매치 · 추리</span><h2>흑과 백</h2><p>0~8 타일을 하나씩 내서 큰 숫자가 이겨요. 숫자는 공개되지 않고 색과 승패만 알려줘요.</p><div class="chips"><span class="chip">AI 난이도 3단계</span><span class="chip">9라운드</span></div><span class="go">타일 내러 가기 →</span></a><span class="soonchip">공개 예정</span></div>
+      <div class="gw soon"><a class="game gen" data-href="dg/#memmaze" aria-disabled="true" tabindex="-1"><span class="tag">시즌3 데스매치 · 암기</span><h2>기억의 미로</h2><p>보이지 않는 벽 32개가 숨은 7×7 미로. 벽에 부딪히면 출발점으로! 먼저 도착점에 닿으면 이겨요.</p><div class="chips"><span class="chip">AI 기억력 3단계</span><span class="chip">더블 찬스</span></div><span class="go">미로 들어가기 →</span></a><span class="soonchip">공개 예정</span></div>
+    </div>
+  </section>
+
   <footer>Rallypick · 기록 출처: KBO 공식 기록실</footer>
 </div>
 <script>
-// 홈: 폴더 목록 ↔ 폴더 안 게임 목록 (#baseball, #devils)
+// 홈: 폴더 목록 ↔ 폴더 안 게임 목록 (#baseball, #devils, #deathgame, #blood, #genius)
 function route() {
   const h = location.hash.replace('#', '');
   const devilsOk = !document.getElementById('devilsFolder').classList.contains('locked');
-  const view = h === 'baseball' ? 'baseball' : (h === 'devils' && devilsOk) ? 'devils' : h === 'deathgame' ? 'deathgame' : '';
+  const view = h === 'baseball' ? 'baseball' : (h === 'devils' && devilsOk) ? 'devils' : ['deathgame', 'blood', 'genius'].includes(h) ? h : '';
   document.getElementById('folders').hidden = !!view;
   document.getElementById('view-baseball').hidden = view !== 'baseball';
   document.getElementById('view-devils').hidden = view !== 'devils';
-  document.getElementById('view-deathgame').hidden = view !== 'deathgame';
+  for (const v of ['deathgame', 'blood', 'genius']) document.getElementById('view-' + v).hidden = view !== v;
 }
 document.getElementById('devilsFolder').addEventListener('click', e => { if (e.currentTarget.classList.contains('locked')) e.preventDefault(); });
 document.querySelector('.homelogo').addEventListener('click', e => { if (location.pathname === '/') { e.preventDefault(); history.pushState(null, '', '/'); route(); window.scrollTo(0, 0); } });
@@ -256,7 +297,8 @@ fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {
     // 대표·관리자는 공개 전 게임도 열 수 있음
     if (d.user.admin || d.user.owner) {
       document.querySelectorAll('.gw.soon').forEach(w => { const a = w.querySelector('a.game'); a.href = a.dataset.href; a.removeAttribute('aria-disabled'); a.removeAttribute('tabindex'); w.classList.remove('soon'); const t = a.querySelector('.tag'); t.insertAdjacentHTML('beforeend', '<span class="lockchip">관리자 전용</span>'); });
-      document.getElementById('deathChip').textContent = '관리자 전용';
+      for (const c of ['deathChip', 'bloodChip', 'geniusChip']) document.getElementById(c).textContent = '관리자 전용';
+      document.querySelectorAll('.fview .fcount').forEach(c => { c.textContent = c.textContent.replace('공개 예정', '관리자 전용'); });
     }
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };
   }
