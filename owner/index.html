@@ -205,7 +205,7 @@ function renderVisitors() {
   const bars = days.map(d => `<div class="col" title="${d.day} · ${d.all}명 (비회원 ${d.guest} · 회원 ${d.member})"><span class="seg g" style="height:${d.guest / mx * 88}%"></span><span class="seg m" style="height:${d.member / mx * 88}%"></span><span class="n" style="bottom:${Math.min(d.all / mx * 88, 88) + 2}%">${d.all || ''}</span></div>`).join('');
   const labels = days.map(d => `<span>${+d.day.slice(8)}</span>`).join('');
   const hb = (list, total) => list.length ? list.map(x => `<div class="hb"><span>${esc(x.name)}</span><span class="track"><span class="fill" style="width:${x.count / Math.max(1, list[0].count) * 100}%"></span></span><span class="c">${x.count}명</span></div>`).join('') : '<p class="muted">아직 기록이 없어요</p>';
-  const rec = V.recent.length ? V.recent.map(r => `<div class="ev"><span class="when">${short(r.at)}</span><span><b>${r.nickname ? esc(r.nickname) : '비회원'}</b> <span class="dim">${esc(r.page || '')} · ${esc(r.device || '기기 정보 없음')}</span></span><span class="kind ${r.nickname ? 'login' : ''}">${r.nickname ? '회원' : '비회원'}</span></div>`).join('') : '<p class="muted">아직 기록이 없어요</p>';
+  const rec = V.recent.length ? V.recent.map(r => `<div class="ev"><span class="when">${short(r.at)}</span><span><b>${r.nickname ? esc(r.nickname) : '비회원'}</b> <span class="dim">${esc(r.page || '')} · ${esc(r.device || '기기 정보 없음')}${r.region ? ' · ' + esc(r.region) : ''}</span></span><span class="kind ${r.nickname ? 'login' : ''}">${r.nickname ? '회원' : '비회원'}</span></div>`).join('') : '<p class="muted">아직 기록이 없어요</p>';
   $('visitorsView').innerHTML = `
     <section class="stats">
       <div class="stat" style="--c:var(--green)"><span class="t">오늘 방문자</span><span class="v">${V.today.all}명</span><span class="s">비회원 ${V.today.guest} · 회원 ${V.today.member}</span></div>
@@ -218,8 +218,9 @@ function renderVisitors() {
       <div class="box"><h3>많이 들어간 곳 (7일, 사람 수)</h3>${hb(V.pages)}</div>
       <div class="box"><h3>기기 (7일, 사람 수)</h3>${hb(V.devices)}</div>
     </div>
+    <div class="box"><h3>지역 (7일, 사람 수)</h3>${hb(V.regions || [])}<p class="muted" style="margin:8px 0 0;font-size:12px">인터넷 주소로 짐작한 대략적인 지역이에요. 휴대폰 데이터로 들어오면 실제 위치와 상관없이 서울·경기로 잡히는 경우가 많아요. 지역 기능을 만든 뒤 방문부터 보여요. 지역 정보: <a href="https://db-ip.com" target="_blank" rel="noopener" style="color:inherit">IP Geolocation by DB-IP</a></p></div>
     <div class="box"><h3>최근 방문</h3><div class="vlist">${rec}</div></div>
-    <p class="note">같은 브라우저는 하루에 한 사람으로 세요. 브라우저를 바꾸거나 시크릿 창으로 들어오면 다른 사람으로 세어질 수 있어요. 이름·전화번호 같은 개인정보는 저장하지 않아요.</p>`;
+    <p class="note">같은 브라우저는 하루에 한 사람으로 세요. 브라우저를 바꾸거나 시크릿 창으로 들어오면 다른 사람으로 세어질 수 있어요. 이름·전화번호 같은 개인정보와 인터넷 주소(IP)는 저장하지 않고, 짐작한 지역 이름만 남겨요.</p>`;
 }
 function render() {
   $('usersView').hidden = tab !== 'users'; $('eventsView').hidden = tab !== 'events'; $('visitorsView').hidden = tab !== 'visitors';

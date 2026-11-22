@@ -302,14 +302,14 @@ async function visitorUserId() {
   visitorUid = u ? u.id : (await insertUser({ nickname: VISITOR_NICK, name: '방문자 집계', phone: '00000000000', pw_hash: '!' })).id;
   return visitorUid;
 }
-export async function logPageView(vid, user, page, device) {
+export async function logPageView(vid, user, page, device, region) {
   if (ACCOUNTS_DISABLED || !vid || !page) return;
   const day = kstDay(Date.now());
   if (day !== pvDay) { pvSeen.clear(); pvDay = day; }
   const key = vid + '|' + page;
   if (pvSeen.has(key)) return;
   pvSeen.add(key);
-  const row = { user_id: user ? user.id : null, game: '_pv', mode: 'event', level: null, result: { vid: String(vid).slice(0, 40), page, device: cleanDevice(device), member: !!user } };
+  const row = { user_id: user ? user.id : null, game: '_pv', mode: 'event', level: null, result: { vid: String(vid).slice(0, 40), page, device: cleanDevice(device), member: !!user, region: String(region || '').slice(0, 40) } };
   if (usingSupabase) {
     if (!row.user_id && visitorUid) row.user_id = visitorUid;
     try { await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); }
@@ -361,7 +361,7 @@ async function visitorSummary(byId) {
   else rows = (await fdb()).history.filter(x => x.game === '_pv' && x.played_at >= since).sort((a, b) => b.id - a.id);
   const now = Date.now(), today = kstDay(now), week = kstDay(now - 6 * 864e5);
   const days = new Map(); // day -> {all:Set, guest:Set, member:Set}
-  const pages = new Map(), devices = new Map(), weekAll = new Set(), weekGuest = new Set();
+  const pages = new Map(), devices = new Map(), regions = new Map(), weekAll = new Set(), weekGuest = new Set();
   for (const r of rows) {
     const x = r.result || {}; const d = kstDay(Date.parse(r.played_at));
     if (!days.has(d)) days.set(d, { all: new Set(), guest: new Set(), member: new Set() });
@@ -371,6 +371,7 @@ async function visitorSummary(byId) {
       if (!pages.has(x.page)) pages.set(x.page, new Set()); pages.get(x.page).add(x.vid);
       const dv = (x.device || '기타').split(' · ')[0];
       if (!devices.has(dv)) devices.set(dv, new Set()); devices.get(dv).add(x.vid);
+      if (x.region !== undefined) { const rg = x.region || '알 수 없음'; if (!regions.has(rg)) regions.set(rg, new Set()); regions.get(rg).add(x.vid); }
     }
   }
   const dayList = [];
@@ -384,8 +385,8 @@ async function visitorSummary(byId) {
   return {
     today: { all: T ? T.all.size : 0, guest: T ? T.guest.size : 0, member: T ? T.member.size : 0 },
     week: { all: weekAll.size, guest: weekGuest.size },
-    days: dayList, pages: top(pages), devices: top(devices),
-    recent: rows.slice(0, 150).map(r => ({ at: r.played_at, page: r.result && r.result.page, device: r.result && r.result.device, nickname: r.result && r.result.member && byId.get(r.user_id) ? byId.get(r.user_id).nickname : null }))
+    days: dayList, pages: top(pages), devices: top(devices), regions: top(regions),
+    recent: rows.slice(0, 150).map(r => ({ at: r.played_at, page: r.result && r.result.page, device: r.result && r.result.device, region: r.result && r.result.region, nickname: r.result && r.result.member && byId.get(r.user_id) ? byId.get(r.user_id).nickname : null }))
   };
 }
 

@@ -9,6 +9,7 @@ import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
 import * as SlitherRooms from './game-data/slither-rooms.mjs';
 import * as H13 from './game-data/heavy13-rooms.mjs';
+import * as Geo from './game-data/geo.mjs';
 H13.setFinishHook((uid, entry) => Accounts.addHistory(uid, entry).catch(e => console.error('heavy13 history', e.message)));
 import * as Relay from './game-data/relay.mjs';
 import * as Accounts from './game-data/accounts.mjs';
@@ -139,7 +140,7 @@ async function authApi(req, res, path, url) {
       if (!page || /bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|curl|wget|python|node-fetch|headless|lighthouse|uptime|monitor|pingdom/i.test(ua)) return send(200, { ok: true });
       let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1], cookie;
       if (!vid) { vid = randomBytes(12).toString('hex'); cookie = `vid=${vid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${secure ? '; Secure' : ''}`; }
-      Accounts.logPageView(vid, user, page, deviceOf(ua)).catch(e => console.error('pv log failed', e.message));
+      Accounts.logPageView(vid, user, page, deviceOf(ua), Geo.regionOf(Geo.clientIp(req))).catch(e => console.error('pv log failed', e.message));
       return send(200, { ok: true }, cookie);
     }
     if (path === '/api/free') { // 비회원 무료 1판 확인
