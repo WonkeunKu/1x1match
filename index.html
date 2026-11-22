@@ -64,13 +64,13 @@ a.game {
   border-radius: 10px; padding: 22px 22px 20px; min-width: 0;
   transition: transform 0.15s, border-color 0.15s;
 }
-a.game.bw { border-top-color: #6fc4ea; }
+a.game.bw { border-top-color: var(--amber); }
 a.game.online { border-top-color: var(--amber); }
 a.game.online .go { color: var(--amber); }
 .gw { position: relative; display: grid; min-width: 0; }
 .rl { position: absolute; top: 16px; right: 16px; font-size: 13px; font-weight: 700; color: var(--chalk); text-decoration: none; background: var(--board-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
 .rl:hover, .rl:focus-visible { border-color: var(--amber); color: var(--amber); }
-a.game:hover { transform: translateY(-3px); border-color: var(--chalk-dim); }
+a.game:hover { transform: translateY(-3px); border-right-color: var(--chalk-dim); border-bottom-color: var(--chalk-dim); border-left-color: var(--chalk-dim); }
 a.game:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
 .tag { padding-right: 76px; font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); letter-spacing: 0.08em; }
 .game h2 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 0; word-break: keep-all; }
@@ -78,17 +78,13 @@ a.game:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--board-2); border: 1px solid var(--line); }
 .go { font-weight: 700; color: var(--amber); }
-a.game.bw .go { color: #6fc4ea; }
-a.game.ai { border-top-color: #f28f74; }
-a.game.ai .go { color: #f28f74; }
-a.game.bwai { border-top-color: #a9d774; }
-a.game.bwai .go { color: #a9d774; }
+a.game.bw .go { color: var(--amber); }
+a.game.ai { border-top-color: var(--amber); }
+a.game.ai .go { color: var(--amber); }
+a.game.bwai { border-top-color: var(--amber); }
+a.game.bwai .go { color: var(--amber); }
 a.game.dp { border-top-color: #b8a6f2; }
 a.game.dp .go { color: #b8a6f2; }
-a.game.dp.wall { border-top-color: #e7a0c8; }
-a.game.dp.wall1 { border-top-color: #f0a35e; }
-a.game.dp.wall1 .go { color: #f0a35e; }
-a.game.dp.wall .go { color: #e7a0c8; }
 .lockchip { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
 .demo { display: flex; gap: 6px; }
 .demo i { display: grid; place-items: center; width: 34px; height: 40px; border-radius: 6px; font-style: normal; font-family: var(--f-display); font-size: 15px; }
@@ -107,7 +103,6 @@ a.folder.fb { --fc: var(--amber); }
 a.folder.fd { --fc: #b8a6f2; }
 a.folder.fdg { --fc: #e8604a; }
 .lockchip.dgchip { background: #e8604a; color: #2a0b06; }
-a.game.dp.bagh { border-top-color: #f0a35e; } a.game.dp.bagh .go { color: #f0a35e; }
 a.game.dgm { border-top-color: #e8604a; } a.game.dgm .go { color: #e8604a; }
 a.folder.fbl { --fc: #c23b5a; } a.folder.fgn { --fc: #6fc4ea; }
 .lockchip.blchip { background: #c23b5a; color: #fff0f3; } .lockchip.gnchip { background: #6fc4ea; color: #06222e; }
