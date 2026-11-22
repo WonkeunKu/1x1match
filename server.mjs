@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
 import * as SlitherRooms from './game-data/slither-rooms.mjs';
+import * as H13 from './game-data/heavy13-rooms.mjs';
 import * as Relay from './game-data/relay.mjs';
 import * as Accounts from './game-data/accounts.mjs';
 
@@ -194,6 +195,28 @@ async function slitherApi(req, res, path, url) {
   }
 }
 
+// 무거운 13 온라인 방 (공개 전: 대표·관리자만)
+async function h13Api(req, res, path, url) {
+  let user = null;
+  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
+  if (!user || !(user.admin || user.owner)) return json(res, 404, { error: '없는 주소예요.' });
+  const m = path.match(/^\/api\/h13\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|events|leave))?$/);
+  if (!m) return json(res, 404, { error: '없는 주소예요.' });
+  const [, code, op] = m;
+  try {
+    if (req.method === 'GET' && code && op === 'events') return H13.subscribe(code, url.searchParams.get('token'), res);
+    if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
+    const body = await readJson(req);
+    if (!code && !op) return json(res, 200, H13.createRoom(user, { solo: !!body.solo }));
+    if (op === 'join') return json(res, 200, H13.joinRoom(code, body.token, user));
+    if (op === 'leave') { H13.leaveRoom(code, body.token); return json(res, 200, { ok: true }); }
+    if (op === 'act') { H13.act(code, body.token, body); return json(res, 200, { ok: true }); }
+    return json(res, 404, { error: '없는 주소예요.' });
+  } catch (e) {
+    return e instanceof H13.GameError ? json(res, 400, { error: e.message }) : (console.error(e), json(res, 500, { error: '서버 오류가 났어요.' }));
+  }
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   const path = url.pathname;
@@ -205,6 +228,7 @@ createServer(async (req, res) => {
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);
+  if (path.startsWith('/api/h13/')) return h13Api(req, res, path, url);
   if (path.startsWith('/api/wallgo/')) return wallgoApi(req, res, path, url);
   if (path === '/api/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
