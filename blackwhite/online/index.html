@@ -321,11 +321,11 @@ function renderEntry(msg) {
       : '친구에게 방 코드나 링크를 보내서 같이 해요.';
   });
   cb.onclick = async () => {
-    try { const r = await post(`${API}/rooms`, { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
+    try { if (!(await FreePlay.ok('blackwhite-online', FreePlay.newId()))) return; const r = await post(`${API}/rooms`, { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
     catch (e) { showErr(e); }
   };
   document.getElementById('quickBtn').onclick = async () => {
-    try { const r = await post(`${API}/quick`, { name: nameOf() }); enter(r.code, r.token); }
+    try { if (!(await FreePlay.ok('blackwhite-online', FreePlay.newId()))) return; const r = await post(`${API}/quick`, { name: nameOf() }); enter(r.code, r.token); }
     catch (e) { showErr(e); }
   };
   const list = document.getElementById('roomList');
@@ -502,7 +502,7 @@ app.addEventListener('click', e => {
   const a = b.dataset.a;
   if (a === 'play') act({ type: 'play', card: +b.dataset.id });
   else if (a === 'start') act({ type: 'start' });
-  else if (a === 'restart') post(`${API}/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); });
+  else if (a === 'restart') FreePlay.ok('blackwhite-online', FreePlay.newId()).then(ok => ok && post(`${API}/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); }));
   else if (a === 'leave') { post(`${API}/rooms/${code}/leave`, { token }).catch(() => {}); leaveToEntry(); }
 });
 setInterval(() => {
@@ -513,6 +513,7 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
+<script src="/freeplay.js?v=1"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>

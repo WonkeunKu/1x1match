@@ -703,6 +703,7 @@ function renderWin(){
 // ---------- solo ----------
 let replaying=false;
 async function startSolo(){
+  if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
   multi=null;replaying=false;$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
@@ -710,7 +711,8 @@ async function startSolo(){
   loadPuzzle(size,cl);$('cover').classList.add('hidden');startTimer();
 }
 // 경기 기록의 '다시 풀기': 주소 ?p=크기.문제 로 같은 문제를 다시 엶
-function startReplay(n,str){
+async function startReplay(n,str){
+  if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
   multi=null;replaying=true;size=n;segSelect($('sizeSeg'),n);$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
@@ -789,6 +791,7 @@ function renderStrip(){
   }
 }
 async function hostStartRound(){
+  if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
   if(!multi)return;
   const n=multi.view?multi.view.size:7;
   $('roomErr').textContent='';
@@ -832,6 +835,7 @@ try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.cod
 
 })();
 </script>
+<script src="/freeplay.js?v=1"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>

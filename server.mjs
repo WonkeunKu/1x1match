@@ -31,7 +31,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -131,6 +131,12 @@ async function authApi(req, res, path, url) {
     if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
     body.device = deviceOf(req.headers['user-agent']);
+    if (path === '/api/free') { // 비회원 무료 1판 확인
+      if (user) return send(200, { ok: true, member: true });
+      let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1], cookie;
+      if (!vid) { vid = randomBytes(12).toString('hex'); cookie = `vid=${vid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${secure ? '; Secure' : ''}`; }
+      return send(200, await Accounts.freePlay(vid, String(body.game || ''), body.play), cookie);
+    }
     if (path === '/api/auth/signup') { const u = await Accounts.signup(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/login') { const u = await Accounts.login(body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
     if (path === '/api/auth/profile') { const u = await Accounts.updateProfile(user, body); return send(200, { user: u }, Accounts.sessionCookie(u, secure)); }
@@ -195,7 +201,7 @@ createServer(async (req, res) => {
     try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level, Accounts.userFromReq(req))); }
     catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
   }
-  if (path.startsWith('/api/auth/') || path === '/api/history' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
+  if (path.startsWith('/api/auth/') || path === '/api/history' || path === '/api/free' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);

@@ -281,6 +281,7 @@ function renderAiEntry(msg) {
       const n = document.getElementById('nm').value.trim();
       if (!n) throw new Error('이름을 입력하세요.');
       store.set('auction-online:name', n); store.set('auction-ai:level', level);
+      if (!(await FreePlay.ok('auction-ai', FreePlay.newId()))) return;
       const r = await post('/api/auction/ai', { name: n, level });
       enter(r.code, r.token);
     } catch (e) { document.getElementById('err').textContent = e.message; }
@@ -342,11 +343,11 @@ function renderEntry(msg) {
         : '친구에게 방 코드나 링크를 보내서 같이 해요.';
     });
     cb.onclick = async () => {
-      try { const r = await post('/api/auction/rooms', { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
+      try { if (!(await FreePlay.ok('auction', FreePlay.newId()))) return; const r = await post('/api/auction/rooms', { name: nameOf(), public: vis === 'public' }); enter(r.code, r.token); }
       catch (e) { showErr(e); }
     };
     document.getElementById('quickBtn').onclick = async () => {
-      try { const r = await post('/api/auction/quick', { name: nameOf() }); enter(r.code, r.token); }
+      try { if (!(await FreePlay.ok('auction', FreePlay.newId()))) return; const r = await post('/api/auction/quick', { name: nameOf() }); enter(r.code, r.token); }
       catch (e) { showErr(e); }
     };
     const list = document.getElementById('roomList');
@@ -557,7 +558,7 @@ app.addEventListener('click', e => {
     history.replaceState(null, '', location.pathname); code = ''; token = null;
     renderEntry(); return;
   }
-  if (a === 'restart') { post(`/api/auction/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); }); return; }
+  if (a === 'restart') { FreePlay.ok(V && V.ai ? 'auction-ai' : 'auction', FreePlay.newId()).then(ok => ok && post(`/api/auction/rooms/${code}/restart`, { token }).catch(err => { errMsg = err.message; render(); })); return; }
 });
 app.addEventListener('input', e => { if (e.target.id === 'bidIn') bidDraft = parseInt(e.target.value, 10) || null; });
 app.addEventListener('change', e => { if (e.target.id === 'trMine' || e.target.id === 'trTheirs') trDraft[e.target.id] = e.target.value; });
@@ -579,6 +580,7 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
+<script src="/freeplay.js?v=1"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>

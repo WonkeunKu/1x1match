@@ -586,9 +586,13 @@ function canPick(p) {
   if (S.mode === 'ai' && p === AI) return false;
   return p === S.lead || S.pend[S.lead] !== null;
 }
-document.getElementById('hands').addEventListener('click', e => {
+document.getElementById('hands').addEventListener('click', async e => {
   const t = e.target.closest('.pickable'); if (!t) return;
   const p = +t.dataset.p; if (!canPick(p)) return;
+  // 비회원 무료 1판: 경기마다 번호(gid)를 붙여 같은 경기는 이어서 할 수 있게
+  if (!S.gid) { S.gid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); save(); }
+  if (!(await FreePlay.ok('blackwhite', S.gid))) return;
+  if (!canPick(p)) return;
   commit(); S.pend[p] = +t.dataset.id; save(); render();
 });
 
@@ -723,6 +727,7 @@ window.addEventListener('resize', fitStage);
 fitStage();
 </script>
 
+<script src="/freeplay.js?v=1"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>

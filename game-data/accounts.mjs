@@ -31,7 +31,7 @@ const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 // 대표 계정: 회원 목록·접속 기록을 볼 수 있음
 const OWNER_PHONES = (process.env.OWNER_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
 const isOwnerPhone = p => OWNER_PHONES.includes(phoneDigits(p));
-const EVENT_GAMES = ['_login', '_visit', '_pv']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
+const EVENT_GAMES = ['_login', '_visit', '_pv', '_free']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -320,6 +320,40 @@ export async function logPageView(vid, user, page, device) {
   db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row));
   await fsave();
 }
+/* ---------- 비회원 무료 1판 (게임마다) ----------
+   비회원은 브라우저 번호(vid)마다 게임별로 한 판(playId 하나)만 무료. 같은 판을 이어서 하는 건 계속 허용.
+   기록은 match_history 에 '_free' 로 남김 (개인정보 없음). */
+export const FREE_GAMES = ['auction', 'auction-ai', 'blackwhite', 'blackwhite-online', 'slither', 'wallgo1', 'wallgo'];
+const freeCache = new Map(); // vid|game -> playId
+export async function freePlay(vid, game, playId) {
+  if (ACCOUNTS_DISABLED) return { ok: true };
+  if (!FREE_GAMES.includes(game)) return { ok: true };
+  vid = String(vid).slice(0, 40); playId = String(playId || '').slice(0, 40) || 'x';
+  const key = vid + '|' + game;
+  let used = freeCache.get(key);
+  if (used === undefined) {
+    if (usingSupabase) {
+      const rows = await sb(`match_history?select=result&game=eq._free&result->>vid=eq.${encodeURIComponent(vid)}&result->>game=eq.${encodeURIComponent(game)}&limit=1`);
+      used = rows[0] ? rows[0].result.play : null;
+    } else {
+      const r = (await fdb()).history.find(x => x.game === '_free' && x.result && x.result.vid === vid && x.result.game === game);
+      used = r ? r.result.play : null;
+    }
+    if (used) freeCache.set(key, used);
+  }
+  if (used) return { ok: used === playId, first: false };
+  freeCache.set(key, playId);
+  const row = { user_id: null, game: '_free', mode: 'event', level: null, result: { vid, game, play: playId } };
+  try {
+    if (usingSupabase) {
+      if (visitorUid) row.user_id = visitorUid;
+      try { await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); }
+      catch (e) { if (row.user_id) throw e; row.user_id = await visitorUserId(); await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); }
+    } else { const db = await fdb(); db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row)); await fsave(); }
+  } catch (e) { console.error('free play log failed', e.message); }
+  return { ok: true, first: true };
+}
+
 async function visitorSummary(byId) {
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   let rows;

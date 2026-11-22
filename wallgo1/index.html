@@ -877,8 +877,8 @@ $('#seats').addEventListener('click',e=>{ const b=e.target.closest('[data-seat]'
   renameAI(); hostChanged(); });
 $('#seats').addEventListener('change',e=>{ const i=e.target.dataset.rename; if(i==null) return; G.seats[+i].name=e.target.value.trim().slice(0,12)||('플레이어 '+(+i+1)); });
 $('#players').addEventListener('click',e=>{ const b=e.target.closest('[data-toai]'); if(!b||!Net.isHost) return; const s=G.seats[+b.dataset.toai]; s.kind='ai'; s.name=s.name+' (AI)'; s.cid=null; aiBusy=false; hostChanged(); });
-$('#btnStart').onclick=()=>hostStart();
-$('#btnAgain').onclick=()=>{ $('#resultModal').classList.add('hidden'); hostStart(); };
+$('#btnStart').onclick=async()=>{ if(!(await FreePlay.ok('wallgo1',FreePlay.newId()))) return; hostStart(); };
+$('#btnAgain').onclick=async()=>{ $('#resultModal').classList.add('hidden'); if(!(await FreePlay.ok('wallgo1',FreePlay.newId()))) return; hostStart(); };
 $('#btnCloseRes').onclick=()=>$('#resultModal').classList.add('hidden');
 $('#btnToLobby').onclick=()=>{ if(!Net.isHost) return; const seats=G.seats.map(x=>({...x})).map(x=>Net.mode!=='local'&&x.kind==='ai'?{kind:'open',name:''}:x); const opts=G.opts, spect=G.spect||[]; G={phase:'lobby',opts,seats,spect,log:[],turnNo:0}; ui.sel=null; hostChanged(); };
 function leave(){ try{ netSend({t:'bye'}); }catch(e){} try{ Net.es&&Net.es.close(); Net.es=null; }catch(e){} try{ Net.group&&Net.group.leave&&Net.group.leave(); }catch(e){} try{ Net.peer&&Net.peer.destroy(); }catch(e){}
@@ -933,6 +933,7 @@ detectNet().then(k=>{
 });
 render();
 </script>
+<script src="/freeplay.js?v=1"></script>
 <script src="/rules.js?v=15" defer></script>
 </body>
 </html>
