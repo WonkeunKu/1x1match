@@ -374,6 +374,10 @@ async function visitorSummary(byId) {
     }
   }
   const dayList = [];
+  // 같은 날 로그인 전(비회원)과 후(회원)로 둘 다 잡힌 사람은 회원으로만 셈
+  const memberWeek = new Set();
+  for (const [d, D] of days) { for (const v of D.member) D.guest.delete(v); if (d >= week) for (const v of D.member) memberWeek.add(v); }
+  for (const v of memberWeek) weekGuest.delete(v);
   for (let i = 0; i < 14; i++) { const d = kstDay(now - i * 864e5), D = days.get(d); dayList.push({ day: d, all: D ? D.all.size : 0, guest: D ? D.guest.size : 0, member: D ? D.member.size : 0 }); }
   const T = days.get(today);
   const top = m => [...m].map(([k, v]) => ({ name: k, count: v.size })).sort((a, b) => b.count - a.count);

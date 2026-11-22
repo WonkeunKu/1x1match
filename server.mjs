@@ -33,7 +33,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13', 'play'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13', 'play', 'pv.js'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -133,6 +133,15 @@ async function authApi(req, res, path, url) {
     if (req.method !== 'POST') return send(405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
     body.device = deviceOf(req.headers['user-agent']);
+    if (path === '/api/pv' && req.method === 'POST') { // 방문자 집계 (화면에서 스크립트가 보냄). 브라우저 번호(vid)로 하루 한 번씩
+      const ua = req.headers['user-agent'] || '';
+      const page = pageName(String(body.path || ''));
+      if (!page || /bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|curl|wget|python|node-fetch|headless|lighthouse|uptime|monitor|pingdom/i.test(ua)) return send(200, { ok: true });
+      let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1], cookie;
+      if (!vid) { vid = randomBytes(12).toString('hex'); cookie = `vid=${vid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${secure ? '; Secure' : ''}`; }
+      Accounts.logPageView(vid, user, page, deviceOf(ua)).catch(e => console.error('pv log failed', e.message));
+      return send(200, { ok: true }, cookie);
+    }
     if (path === '/api/free') { // 비회원 무료 1판 확인
       if (user) return send(200, { ok: true, member: true });
       let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1], cookie;
@@ -259,7 +268,7 @@ createServer(async (req, res) => {
     try { const b = await readJson(req); return json(res, 200, Rooms.createAiRoom(b.name, b.level, Accounts.userFromReq(req))); }
     catch (e) { return json(res, e instanceof Rooms.GameError ? 400 : 500, { error: e.message }); }
   }
-  if (path.startsWith('/api/auth/') || path === '/api/history' || path === '/api/free' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
+  if (path.startsWith('/api/auth/') || path === '/api/history' || path === '/api/free' || path === '/api/pv' || path.startsWith('/api/owner/')) return authApi(req, res, path, url);
   if (path.startsWith('/api/auction/')) return auctionApi(req, res, path, url);
   if (path.startsWith('/api/bw/')) return bwApi(req, res, path, url);
   if (path.startsWith('/api/slither/')) return slitherApi(req, res, path, url);
@@ -314,16 +323,6 @@ createServer(async (req, res) => {
     etag
   };
   if (!adminPage && req.headers['if-none-match'] === etag) { res.writeHead(304, headers); res.end(); return; }
-  // 방문자 집계: 게임 페이지를 열 때마다 브라우저 번호(vid)로 하루 한 번씩 셈 (회원 관리 > 방문자)
-  if (extname(file) === '.html' && req.method === 'GET' && !adminPage) {
-    const ua = req.headers['user-agent'] || '';
-    const page = pageName(path);
-    if (page && !/bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|curl|wget|python|node-fetch|headless/i.test(ua)) {
-      let vid = (/(?:^|;\s*)vid=([A-Za-z0-9]{16,40})/.exec(req.headers.cookie || '') || [])[1];
-      if (!vid) { vid = randomBytes(12).toString('hex'); headers['set-cookie'] = `vid=${vid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''}`; }
-      Accounts.logPageView(vid, Accounts.userFromReq(req), page, deviceOf(ua)).catch(e => console.error('pv log failed', e.message));
-    }
-  }
   res.writeHead(200, headers);
   res.end(body);
 }).listen(PORT, HOST, () => {
