@@ -174,9 +174,43 @@ async function wallgoApi(req, res, path, url) {
 }
 
 // 슬리더링크 기록 대결 (로그인한 사람)
+// 슬리더링크 도전장: 시작 시각은 서버가 기억했다가 정답을 확인할 때 시간을 잼 (서버가 다시 켜지면 진행 중이던 도전은 무효)
+const chalStarts = new Map(); // token -> { code, uid, n, clues, startAt }
+setInterval(() => { const t = Date.now(); for (const [k, v] of chalStarts) if (t - v.startAt > 6 * 3600 * 1000) chalStarts.delete(k); }, 30 * 60 * 1000).unref();
+async function chalApi(req, res, path, url, user) {
+  const m = path.match(/^\/api\/slither\/chal(?:\/([A-Za-z0-9]{5}))?(?:\/(start|finish|giveup))?$/);
+  if (!m) return json(res, 404, { error: '없는 주소예요.' });
+  const code = m[1] && m[1].toUpperCase(), op = m[2];
+  if (!code && req.method === 'POST') return json(res, 200, await Accounts.createChallenge(user, await readJson(req)));
+  if (code && !op && req.method === 'GET') return json(res, 200, await Accounts.challengeBoard(code, user));
+  if (req.method !== 'POST' || !code) return json(res, 405, { error: '잘못된 요청이에요.' });
+  const body = await readJson(req);
+  if (op === 'start') {
+    const c = await Accounts.getChallenge(code);
+    const token = randomBytes(12).toString('hex');
+    chalStarts.set(token, { code: c.code, uid: user ? user.id : null, n: c.n, clues: c.clues, startAt: Date.now() });
+    return json(res, 200, { token, n: c.n, clues: c.clues });
+  }
+  const s = chalStarts.get(String(body.token || ''));
+  if (!s || s.code !== code) return json(res, 400, { error: '시작 기록이 없어요. 처음부터 다시 도전해 주세요.' });
+  let status, time = null;
+  if (op === 'finish') {
+    const lines = Array.from(String(body.lines || ''), ch => ch === '1');
+    if (!SlitherRooms.isSolved(s.n, Array.from(s.clues, ch => ch === '.' ? -1 : +ch), lines)) return json(res, 400, { error: '아직 정답이 아니에요.' });
+    status = 'solved'; time = Date.now() - s.startAt;
+  } else status = 'gaveup';
+  chalStarts.delete(String(body.token));
+  const recorded = user ? await Accounts.recordChallenge(user, code, status, time) : false;
+  const board = await Accounts.challengeBoard(code, user, true);
+  return json(res, 200, { status, time, recorded, board });
+}
 async function slitherApi(req, res, path, url) {
   let user = null;
   try { user = Accounts.userFromReq(req); } catch (e) { console.error(e); }
+  if (path.startsWith('/api/slither/chal')) {
+    try { return await chalApi(req, res, path, url, user); }
+    catch (e) { if (e instanceof Accounts.AuthError) return json(res, e.status, { error: e.message }); console.error(e); return json(res, 500, { error: '서버 오류가 났어요.' }); }
+  }
   if (!user) return json(res, 401, { error: '로그인하면 기록 대결을 할 수 있어요.' });
   const m = path.match(/^\/api\/slither\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|events|leave))?$/);
   if (!m) return json(res, 404, { error: '없는 주소예요.' });

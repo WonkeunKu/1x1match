@@ -2,7 +2,7 @@
 // - 운영: Supabase(PostgreSQL)의 match_users / match_history 테이블 (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 필요)
 // - 환경변수가 없으면(내 컴퓨터에서 개발할 때) data/accounts.json 파일에 저장 — 서버가 다시 시작되면 사라질 수 있음
 // - 비밀번호는 scrypt로 해시해서만 저장하고, 로그인은 서명한 쿠키(sid)로 유지
-import { scrypt as _scrypt, randomBytes, timingSafeEqual, createHmac, createHash } from 'node:crypto';
+import { scrypt as _scrypt, randomBytes, randomInt, timingSafeEqual, createHmac, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ const isAdminPhone = p => ADMIN_PHONES.includes(phoneDigits(p));
 // 대표 계정: 회원 목록·접속 기록을 볼 수 있음
 const OWNER_PHONES = (process.env.OWNER_PHONES || '01073343125').split(',').map(phoneDigits).filter(Boolean);
 const isOwnerPhone = p => OWNER_PHONES.includes(phoneDigits(p));
-const EVENT_GAMES = ['_login', '_visit', '_pv', '_free']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
+const EVENT_GAMES = ['_login', '_visit', '_pv', '_free', '_chal', '_chalrec']; // match_history 에 같이 저장하는 접속 기록 (경기 기록 목록에서는 뺌)
 
 /* ---------- storage ---------- */
 async function sb(path, opts = {}) {
@@ -383,6 +383,80 @@ async function visitorSummary(byId) {
     days: dayList, pages: top(pages), devices: top(devices),
     recent: rows.slice(0, 150).map(r => ({ at: r.played_at, page: r.result && r.result.page, device: r.result && r.result.device, nickname: r.result && r.result.member && byId.get(r.user_id) ? byId.get(r.user_id).nickname : null }))
   };
+}
+
+/* ---------- 슬리더링크 도전장 ----------
+   혼자 푼 판을 링크로 공유하면, 누구든 같은 판을 풀어 그 판 순위표에 기록을 남김(한 사람당 첫 기록만).
+   판: match_history '_chal' (출제자 user_id), 기록: '_chalrec' (도전자 user_id). 시간은 서버가 시작~정답 확인까지 잼. */
+const CHAL_SIZES = [5, 7, 10, 15];
+const chalCache = new Map();
+const CHAL_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+async function historyRows(game, code) {
+  if (usingSupabase) return sb(`match_history?select=user_id,result,played_at&game=eq.${game}&result->>code=eq.${encodeURIComponent(code)}&order=played_at.asc&limit=2000`);
+  return (await fdb()).history.filter(h => h.game === game && h.result && h.result.code === code).sort((a, b) => a.id - b.id);
+}
+async function insertRow(row) {
+  if (usingSupabase) { await sb('match_history', { method: 'POST', body: row, prefer: 'return=minimal' }); return; }
+  const db = await fdb(); db.history.push(Object.assign({ id: ++db.seq, played_at: new Date().toISOString() }, row)); await fsave();
+}
+async function namesOf(ids) {
+  ids = [...new Set(ids.filter(Boolean).map(Number))];
+  const out = new Map(); if (!ids.length) return out;
+  if (usingSupabase) { for (const u of await sb(`match_users?select=id,nickname&id=in.(${ids.join(',')})`)) out.set(u.id, u.nickname); }
+  else for (const u of (await fdb()).users) if (ids.includes(u.id)) out.set(u.id, u.nickname);
+  return out;
+}
+export async function getChallenge(code) {
+  code = String(code || '').toUpperCase();
+  if (!/^[A-Z0-9]{5}$/.test(code)) fail('없는 도전장이에요.');
+  if (chalCache.has(code)) return chalCache.get(code);
+  const r = (await historyRows('_chal', code))[0];
+  if (!r) fail('없는 도전장이에요. 링크를 확인하세요.');
+  const c = { code, n: r.result.n, clues: r.result.clues, diff: r.result.diff, creator: r.user_id, at: Date.parse(r.played_at) };
+  chalCache.set(code, c); return c;
+}
+export async function createChallenge(user, b) {
+  if (!user) fail('로그인하면 도전장을 보낼 수 있어요.');
+  const n = Number(b.n), clues = String(b.clues || '');
+  if (!CHAL_SIZES.includes(n) || clues.length !== n * n || !/^[.0-3]+$/.test(clues)) fail('공유할 수 없는 판이에요.');
+  // 같은 사람이 같은 판을 또 공유하면 원래 링크를 돌려줌
+  for (const c of chalCache.values()) if (c.creator === user.id && c.clues === clues) return { code: c.code };
+  if (usingSupabase) {
+    const old = await sb(`match_history?select=result&game=eq._chal&user_id=eq.${Number(user.id)}&result->>clues=eq.${clues.replace(/\./g, '%2E')}&limit=1`).catch(() => []);
+    if (old[0]) return { code: old[0].result.code };
+  } else { const old = (await fdb()).history.find(h => h.game === '_chal' && h.user_id === user.id && h.result.clues === clues); if (old) return { code: old.result.code }; }
+  let code;
+  for (let k = 0; k < 20; k++) { code = Array.from({ length: 5 }, () => CHAL_ABC[randomInt(CHAL_ABC.length)]).join(''); if (!(await historyRows('_chal', code)).length) break; }
+  const diff = [0, 1, 2, 3].includes(b.diff) ? b.diff : null;
+  await insertRow({ user_id: user.id, game: '_chal', mode: 'event', level: null, result: { code, n, clues, diff } });
+  chalCache.set(code, { code, n, clues, diff, creator: user.id, at: Date.now() });
+  // 출제자 본인 기록(혼자 풀 때 잰 시간)
+  const status = b.result === 'solved' ? 'solved' : 'gaveup';
+  const time = status === 'solved' ? Math.max(0, Math.min(86400000, Math.floor(Number(b.time) || 0))) : null;
+  await insertRow({ user_id: user.id, game: '_chalrec', mode: 'event', level: null, result: { code, status, time } });
+  return { code };
+}
+export async function challengeBoard(code, user, reveal) {
+  const c = await getChallenge(code);
+  const rows = await historyRows('_chalrec', c.code);
+  const first = new Map();
+  for (const r of rows) if (!first.has(r.user_id)) first.set(r.user_id, { uid: r.user_id, status: r.result.status, time: r.result.time, at: Date.parse(r.played_at) });
+  const names = await namesOf([...first.keys(), c.creator]);
+  const recs = [...first.values()].sort((a, b) => (a.status === 'solved' ? 0 : 1) - (b.status === 'solved' ? 0 : 1) || (a.time ?? 0) - (b.time ?? 0) || a.at - b.at);
+  let rank = 0;
+  const list = recs.map(r => ({ name: names.get(r.uid) || '탈퇴한 회원', status: r.status, time: r.time, rank: r.status === 'solved' ? ++rank : null, me: !!(user && r.uid === user.id), creator: r.uid === c.creator }));
+  const mine = list.find(x => x.me) || null;
+  // 다른 사람 기록(출제자 포함)은 내가 이 판을 끝낸 뒤에만 보여 줌 — 미리 보고 맞춰 풀지 못하게
+  const open = !!(mine || reveal);
+  return { code: c.code, n: c.n, creator: names.get(c.creator) || '탈퇴한 회원', total: list.length, solved: rank, open, list: open ? list : [], mine, diff: open ? c.diff : null };
+}
+export async function recordChallenge(user, code, status, time) {
+  const c = await getChallenge(code);
+  const rows = await historyRows('_chalrec', c.code);
+  if (rows.some(r => r.user_id === user.id)) return false; // 첫 기록만
+  await insertRow({ user_id: user.id, game: '_chalrec', mode: 'event', level: null, result: { code: c.code, status, time } });
+  await addHistory(user.id, { game: 'slither', mode: 'challenge', level: null, size: c.n, result: status, time, diff: c.diff, clues: c.clues, code: c.code });
+  return true;
 }
 
 /* ---------- history ---------- */

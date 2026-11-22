@@ -116,6 +116,9 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-web
 input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono);text-align:center}
 .bigcode{font-family:var(--f-mono);font-size:44px;font-weight:700;letter-spacing:8px;color:var(--amber)}
 .pl.me{outline:2px solid rgba(243,182,65,.5)}
+.chal-title{font-family:var(--f-display);font-size:26px;line-height:1.2;word-break:keep-all}
+.pl .crt{font-size:11px;color:var(--amber);margin-left:6px}
+.sharebox{font-family:var(--f-mono);font-size:13px;background:var(--board);border:1px solid var(--line-soft);border-radius:8px;padding:8px 10px;word-break:break-all;user-select:all;text-align:left}
 .pl .tag{font-size:12px;color:var(--chalk-dim)}
 .pl .off{opacity:.5}
 .chip{background:var(--slot);border:1px solid var(--line-soft);border-radius:999px;padding:5px 10px;font-size:13px;display:flex;gap:6px;align-items:center}
@@ -158,6 +161,25 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
       <div class="hint">방을 만들면 4자리 코드가 나와요. 다른 사람이 코드를 입력하면 같은 문제로 동시에 시작해서 정답을 먼저 맞힌 순서로 순위가 정해져요. 기록 대결은 로그인해야 할 수 있어요.</div>
     </div>
 
+    <div class="card">
+      <div class="label">도전장 (따로 풀어도 기록 대결)</div>
+      <div class="hint">혼자 푼 판의 결과 창에서 <b>도전장 보내기</b>를 누르면 링크가 만들어져요. 링크를 받은 사람은 언제든 같은 판을 풀고, 그 판 순위표에 기록이 쌓여요. 다른 사람 기록은 내가 다 푼 뒤에 보여요.</div>
+    </div>
+
+  </section>
+
+  <!-- CHALLENGE -->
+  <section id="chal" class="hidden">
+    <div class="card" style="text-align:center">
+      <div class="label">도전장</div>
+      <div class="chal-title" id="chalTitle">불러오는 중…</div>
+      <div class="hint" id="chalInfo"></div>
+    </div>
+    <div class="card hidden" id="chalBoardCard"><div class="label">순위</div><div class="players" id="chalBoard"></div></div>
+    <button class="primary full" id="chalStart" disabled>도전 시작</button>
+    <div class="hint" id="chalNote" style="text-align:center"></div>
+    <div class="err" id="chalErr" style="text-align:center"></div>
+    <button class="full" id="chalHome">처음 화면</button>
   </section>
 
   <!-- ROOM LOBBY -->
@@ -452,7 +474,7 @@ $('nick').value = store.get('sl_nick') || '';
 $('nick').addEventListener('input', ()=>store.set('sl_nick',$('nick').value.trim()));
 const nick = () => ($('nick').value.trim() || '플레이어').slice(0,10);
 
-function show(id){for(const s of ['home','room','game'])$(s).classList.toggle('hidden',s!==id);}
+function show(id){for(const s of ['home','room','game','chal'])$(s).classList.toggle('hidden',s!==id);}
 function segSelect(seg,n){for(const b of seg.querySelectorAll('button'))b.classList.toggle('sel',+b.dataset.n===n);}
 $('sizeSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;size=+b.dataset.n;segSelect($('sizeSeg'),size);if(size===15)loadBank();};
 
@@ -668,7 +690,8 @@ function check(){
   $('timer').textContent=fmt(finishTime,true);
   // tint loop green
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--ok)');
-  if(multi)sendFinish(); else saveSolo('solved');
+  if(chal&&chal.token){chalSend('finish',Array.from(lines,v=>v===1?'1':'0').join(''));}
+  else if(multi)sendFinish(); else saveSolo('solved');
   setTimeout(showWin,350);
 }
 
@@ -691,7 +714,7 @@ $('revealBtn').onclick=()=>{
   refresh();
   for(let e=0;e<G.E;e++)if(lines[e]===1)$('e'+e).children[0].setAttribute('stroke','var(--accent)');
   $('revealBtn').textContent='결과 창 열기';$('revealBtn').classList.remove('primary');revealArm=0;
-  if(multi)api('act',{type:'giveup'}).catch(()=>{}); else saveSolo('gaveup');
+  if(chal&&chal.token)chalSend('giveup'); else if(multi)api('act',{type:'giveup'}).catch(()=>{}); else saveSolo('gaveup');
   setTimeout(showWin,1200);
   });
 };
@@ -718,10 +741,12 @@ function addClose(){
 function renderWin(){
   if($('winOv').classList.contains('hidden'))return;
   const btns=$('winBtns');
+  if(chal&&chal.playing){renderChalWin();return;}
   if(!multi){
     $('winRank').textContent=gaveUp?`${G.R}×${G.R} · ${fmt(finishTime)}에 정답 확인`:`${G.R}×${G.R} 완료`;
     $('winResults').innerHTML='';
-    btns.innerHTML='<button class="primary full" id="againBtn">새 문제</button><button class="full mt" id="homeBtn2">처음 화면</button>';
+    btns.innerHTML=(replaying?'':'<button class="primary full" id="shareBtn">이 판으로 도전장 보내기</button><div id="shareOut"></div>')+'<button class="'+(replaying?'primary ':'')+'full mt" id="againBtn">새 문제</button><button class="full mt" id="homeBtn2">처음 화면</button>';
+    const sh=$('shareBtn');if(sh)sh.onclick=()=>makeChallenge(sh);
     $('againBtn').onclick=()=>{$('winOv').classList.add('hidden');startSolo();};
     $('homeBtn2').onclick=()=>{$('winOv').classList.add('hidden');stopTimer();playing=false;show('home');};
     addClose();return;
@@ -755,7 +780,7 @@ function renderWin(){
 let replaying=false;
 async function startSolo(){
   if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
-  multi=null;replaying=false;$('strip').classList.add('hidden');
+  chal=null;multi=null;replaying=false;$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
   const cl=await getPuzzle(size);
@@ -764,14 +789,98 @@ async function startSolo(){
 // 경기 기록의 '다시 풀기': 주소 ?p=크기.문제 로 같은 문제를 다시 엶
 async function startReplay(n,str){
   if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
-  multi=null;replaying=true;size=n;segSelect($('sizeSeg'),n);$('strip').classList.add('hidden');
+  chal=null;multi=null;replaying=true;size=n;segSelect($('sizeSeg'),n);$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
 }
 (()=>{ const m=/^(5|7|10|15)\.([.0-3]+)$/.exec(new URLSearchParams(location.search).get('p')||'');
   if(m&&m[2].length===m[1]*m[1]){ try{window.history.replaceState(null,'',location.pathname);}catch(e){} setTimeout(()=>startReplay(+m[1],m[2]),0); } })();
 $('soloBtn').onclick=startSolo;
-$('quitBtn').onclick=()=>{stopTimer();playing=false;if(multi)backToLobby();else show('home');};
+$('quitBtn').onclick=()=>{stopTimer();playing=false;if(chal&&chal.code){if(chal.token)chalSend('giveup');chal.playing=false;openChallenge(chal.code);}else if(multi)backToLobby();else show('home');};
+
+// ---------- 도전장: 혼자 푼 판을 링크로 공유, 받은 사람은 따로 풀어 그 판 순위표에 기록 ----------
+let chal=null; // {code, board, token, playing, result}
+const meReady=fetch('/api/auth/me',{cache:'no-store'}).then(r=>r.json()).then(d=>d.user||null).catch(()=>null);
+const chalUrl=code=>location.origin+'/slither/#c-'+code;
+async function shareLink(url,text){
+  if(navigator.share){try{await navigator.share({title:'슬리더링크 도전장',text,url});return 'shared';}catch(e){if(e&&e.name==='AbortError')return 'cancel';}}
+  try{await navigator.clipboard.writeText(text+' '+url);return 'copied';}catch(e){return 'show';}
+}
+async function makeChallenge(btn){
+  btn.disabled=true;btn.textContent='링크 만드는 중…';
+  const body={n:G.R,clues:clues.map(k=>k<0?'.':String(k)).join(''),result:gaveUp?'gaveup':'solved',time:Math.round(finishTime)};
+  body.diff=await ratePromise;
+  try{
+    const d=await post('/api/slither/chal',body);const url=chalUrl(d.code);
+    const how=await shareLink(url,`슬리더링크 ${G.R}×${G.R} 도전장! 같은 판을 누가 더 빨리 푸나 겨뤄요.`);
+    btn.textContent=how==='copied'?'링크를 복사했어요':how==='shared'?'도전장을 보냈어요':'도전장 보내기';btn.disabled=false;
+    $('shareOut').innerHTML=`<div class="sharebox mt">${url}</div><div class="hint mt">이 링크를 받은 사람은 같은 판을 풀 수 있어요. 순위는 <a href="/slither/#c-${d.code}" style="color:var(--amber)">여기</a>서 봐요.</div>`;
+  }catch(e){btn.disabled=false;btn.textContent='이 판으로 도전장 보내기';$('shareOut').innerHTML=`<div class="err mt">${e.message}${/로그인/.test(e.message)?` <a href="/account/?next=${encodeURIComponent('/slither/')}" style="color:var(--amber)">로그인</a>`:''}</div>`;}
+}
+function boardRows(list,extra){
+  const box=document.createDocumentFragment();
+  const rows=list.slice();if(extra)rows.splice(extra.at,0,extra.row);
+  rows.forEach(p=>{const d=document.createElement('div');d.className='pl'+(p.me?' me':'');
+    const nm=document.createElement('span');nm.textContent=(p.rank?p.rank+'. ':'')+p.name+(p.me?' (나)':'');if(p.creator){const c=document.createElement('span');c.className='crt';c.textContent='출제';nm.append(c);}
+    const st=document.createElement('span');st.className='st'+(p.status==='solved'?' done':'');st.textContent=p.status==='solved'?fmt(p.time,true):'포기';
+    d.append(nm,st);box.append(d);});
+  return box;
+}
+async function openChallenge(code){
+  stopTimer();playing=false;multi=null;chal={code};show('chal');
+  $('chalTitle').textContent='불러오는 중…';$('chalInfo').textContent='';$('chalErr').textContent='';$('chalNote').textContent='';$('chalStart').disabled=true;$('chalBoardCard').classList.add('hidden');
+  let b;try{const r=await fetch('/api/slither/chal/'+code,{cache:'no-store'});b=await r.json();if(!r.ok)throw new Error(b.error||'불러오지 못했어요');}catch(e){$('chalTitle').textContent='도전장을 찾을 수 없어요';$('chalErr').textContent=e.message;return;}
+  chal.board=b;
+  $('chalTitle').textContent=`${b.creator}님의 ${b.n}×${b.n} 도전장`;
+  $('chalInfo').textContent=`도전 ${b.total}명 · 성공 ${b.solved}명`+(b.open?'':' · 다른 사람 기록은 다 풀고 나면 보여요');
+  if(b.open&&b.list.length){$('chalBoard').innerHTML='';$('chalBoard').append(boardRows(b.list));$('chalBoardCard').classList.remove('hidden');}
+  const me=await meReady;
+  $('chalStart').disabled=false;
+  $('chalStart').textContent=b.mine?'연습으로 다시 풀기 (기록은 첫 도전만)':'도전 시작';
+  $('chalNote').innerHTML=b.mine?`내 기록: ${b.mine.status==='solved'?fmt(b.mine.time,true)+' · '+b.mine.rank+'등':'포기'}`:(me?'시작을 누르면 판이 열리고 시간이 가요. 첫 도전만 순위에 올라가고, 중간에 나가면 포기로 남아요.':`로그인하지 않으면 순위에 남지 않아요. <a href="/account/?next=${encodeURIComponent('/slither/#c-'+code)}" style="color:var(--amber)">로그인</a>`);
+}
+async function startChallenge(){
+  if(!chal)return;$('chalStart').disabled=true;$('chalErr').textContent='';
+  try{
+    const d=await post('/api/slither/chal/'+chal.code+'/start',{});
+    chal.token=d.token;chal.playing=true;chal.result=null;replaying=false;multi=null;
+    size=d.n;$('strip').classList.add('hidden');show('game');
+    loadPuzzle(d.n,Array.from(d.clues,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
+    $('sizeInfo').textContent=`도전장 · ${d.n}×${d.n}`;
+  }catch(e){$('chalStart').disabled=false;$('chalErr').textContent=e.message;}
+}
+async function chalSend(op,ln){
+  const c=chal;if(!c||!c.token)return;const token=c.token;c.token=null;
+  try{c.result=await post('/api/slither/chal/'+c.code+'/'+op,{token,lines:ln});}catch(e){c.result={error:e.message};}
+  renderWin();
+}
+function renderChalWin(){
+  const r=chal.result,btns=$('winBtns');$('winResults').innerHTML='';
+  if(!r){$('winRank').textContent='기록 확인 중…';btns.innerHTML='';addClose();return;}
+  if(r.error){$('winRank').textContent=r.error;}
+  else{
+    const b=r.board,me=b.list.find(p=>p.me);
+    if(r.status==='solved')$('winTime').textContent=fmt(r.time,true);
+    let extra=null;
+    if(r.recorded&&me)$('winRank').textContent=me.status==='solved'?`${b.total}명 중 ${me.rank}등`:'포기로 기록됐어요';
+    else if(b.mine)$('winRank').textContent='첫 도전 기록만 순위에 남아요 (이번 판은 연습)';
+    else{ // 로그인 안 함: 내 자리만 끼워서 보여 줌
+      $('winRank').textContent='로그인하지 않아서 순위에 남지 않았어요';
+      if(r.status==='solved'){const at=b.list.filter(p=>p.status==='solved'&&p.time<=r.time).length;extra={at,row:{name:'나',me:true,status:'solved',time:r.time,rank:null}};}
+    }
+    $('winResults').append(boardRows(b.list,extra));
+  }
+  btns.innerHTML='<button class="primary full" id="chalShare">이 판 공유하기</button><button class="full mt" id="chalBoardBtn">순위표</button><button class="full mt" id="homeBtn2">처음 화면</button>';
+  $('chalShare').onclick=async()=>{const how=await shareLink(chalUrl(chal.code),`슬리더링크 ${G.R}×${G.R} 도전장! 같은 판을 누가 더 빨리 푸나 겨뤄요.`);$('chalShare').textContent=how==='copied'?'링크를 복사했어요':how==='show'?chalUrl(chal.code):'이 판 공유하기';};
+  $('chalBoardBtn').onclick=()=>{$('winOv').classList.add('hidden');chal.playing=false;openChallenge(chal.code);};
+  $('homeBtn2').onclick=()=>{$('winOv').classList.add('hidden');chal=null;stopTimer();playing=false;try{window.history.replaceState(null,'',location.pathname);}catch(e){}show('home');};
+  addClose();
+}
+$('chalStart').onclick=startChallenge;
+$('chalHome').onclick=()=>{chal=null;try{window.history.replaceState(null,'',location.pathname);}catch(e){}show('home');};
+const chalHash=()=>{const m=/^#c-([A-Za-z0-9]{5})$/.exec(location.hash);return m?m[1].toUpperCase():null;};
+window.addEventListener('hashchange',()=>{const c=chalHash();if(c)openChallenge(c);});
+if(chalHash())setTimeout(()=>openChallenge(chalHash()),0);
 
 // 혼자 푼 결과는 로그인한 사람의 경기 기록에 저장 (대결 기록은 서버가 저장)
 function saveSolo(result){
@@ -789,7 +898,7 @@ async function post(path,body){
 const api=(op,body)=>post(`/api/slither/rooms/${multi.code}/${op}`,Object.assign({token:multi.token},body));
 function saveSess(){try{multi?sessionStorage.setItem('sl_room',JSON.stringify({code:multi.code,token:multi.token})):sessionStorage.removeItem('sl_room');}catch(e){}}
 async function enterRoom(code,token){
-  multi={code,token,view:null,startedRound:0,offset:0,es:null};saveSess();
+  chal=null;multi={code,token,view:null,startedRound:0,offset:0,es:null};saveSess();
   segSelect($('roomSizeSeg'),7);$('roomCode').textContent=code;
   show('room');connect();
 }

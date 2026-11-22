@@ -96,7 +96,7 @@ const tm = ms => { if (ms == null) return '–'; const s = Math.floor(ms / 1000)
 const GAMES = [
   { id: 'auction', short: '경매', name: '연봉 블라인드 경매', c: 'var(--amber)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
-  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결']] },
+  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결'], ['challenge', '도전장']] },
   { id: 'wallgo1', short: '벽바둑 Ⅰ', name: '벽바둑 Ⅰ', c: '#f0a35e', modes: [['online', '온라인'], ['local', '이 기기']] },
   { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', modes: [['online', '온라인'], ['local', '이 기기']] }
 ];
@@ -107,7 +107,7 @@ const DIFF = ['쉬움', '보통', '어려움', '매우 어려움'];
 const modeText = x => {
   if (x.game === 'auction') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 4인';
   if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
-  if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : '혼자 풀기') + ` · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
+  if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : x.mode === 'challenge' ? '도전장' : '혼자 풀기') + ` · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
   if (x.game === 'wallgo' || x.game === 'wallgo1') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
   return '';
 };
@@ -161,7 +161,7 @@ function itemHtml(x) {
     const others = x.mode === 'battle' ? (x.players || []).filter(p => !p.me).map(p => `${esc(p.name)} ${p.status === 'done' ? tm(p.time) : '포기'}`).join(' · ') : '';
     return `<div class="item" style="--c:${g.c}"><span class="badge ${win ? 'win' : 'lose'}">${badge}</span>
       <div>${head}${others ? `<div class="d">${others}</div>` : `<div class="d">${solved ? '정답을 맞혔어요' : '정답 보기로 확인'}${again}</div>`}</div>
-      <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small>${x.clues ? `<a class="again" href="/slither/?p=${x.size}.${encodeURIComponent(x.clues)}">다시 풀기</a>` : ''}</div></div>`;
+      <div class="r">${solved ? tm(x.time) : '–'}<small>${solved ? '풀이 시간' : '기록 없음'}</small>${x.code ? `<a class="again" href="/slither/#c-${x.code}">순위 보기</a>` : x.clues ? `<a class="again" href="/slither/?p=${x.size}.${encodeURIComponent(x.clues)}">다시 풀기</a>` : ''}</div></div>`;
   }
   if (x.game === 'wallgo' || x.game === 'wallgo1') {
     const others = (x.players || []).filter(p => !p.me).sort((a, b) => a.rank - b.rank).map(p => `${esc(p.name)}${p.ai ? '(AI)' : ''} ${p.score}칸`).join(' · ');

@@ -48,7 +48,7 @@ function makeGeom(n) {
   for (let r = 0; r < R; r++) for (let c = 0; c <= C; c++) edgeVtx[vId(r, c)] = [r * (C + 1) + c, (r + 1) * (C + 1) + c];
   return { E, cellEdges, vtxEdges, edgeVtx };
 }
-function isSolved(n, clues, lines) {
+export function isSolved(n, clues, lines) {
   const G = makeGeom(n);
   if (lines.length !== G.E) return false;
   for (let i = 0; i < clues.length; i++) {
