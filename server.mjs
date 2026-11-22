@@ -1,7 +1,7 @@
 // 1x1 MATCH — static game site server (no dependencies).
 // Serves index.html, auction/, blackwhite/ and keeps /api/health for the hosting platform's health check.
 import { createServer } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -305,10 +305,15 @@ createServer(async (req, res) => {
     return;
   }
   const body = await readFile(file);
+  const ext = extname(file).toLowerCase();
+  // 그림·글꼴은 하루 보관, 화면·스크립트(html/js/css)는 매번 바뀌었는지 확인 (게임을 고치면 바로 반영되게)
+  const etag = '"' + createHash('sha1').update(body).digest('base64').slice(0, 16) + '"';
   const headers = {
-    'content-type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
-    'cache-control': adminPage ? 'private, no-store' : extname(file) === '.html' ? 'no-cache' : 'public, max-age=86400'
+    'content-type': TYPES[ext] || 'application/octet-stream',
+    'cache-control': adminPage ? 'private, no-store' : ['.html', '.js', '.css', '.json'].includes(ext) ? 'no-cache' : 'public, max-age=86400',
+    etag
   };
+  if (!adminPage && req.headers['if-none-match'] === etag) { res.writeHead(304, headers); res.end(); return; }
   // 방문자 집계: 게임 페이지를 열 때마다 브라우저 번호(vid)로 하루 한 번씩 셈 (회원 관리 > 방문자)
   if (extname(file) === '.html' && req.method === 'GET' && !adminPage) {
     const ua = req.headers['user-agent'] || '';
