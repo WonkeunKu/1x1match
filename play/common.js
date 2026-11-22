@@ -27,21 +27,36 @@
     document.getElementById('againBtn').onclick = () => { ov.hidden = true; again && again(); };
     document.getElementById('closeBtn').onclick = () => { ov.hidden = true; };
   };
-  // 처음 열면 바로 시작하지 않고, 설정을 고른 뒤 '게임 시작'을 누르게 함. 옆 칸의 '새 게임'을 눌러도 시작돼요.
+  // 처음 열면 판은 바로 보여 주되 멈춰 둠. 설정 칸의 '게임 시작'을 눌러야 진행(AI 수, 시간 흐름, 판 누르기)이 시작돼요.
   LAB.beforeStart = null; // 공개 페이지에서 비회원 한 판 확인용
+  LAB.paused = false;
   LAB.ready = (root, start) => {
-    const main = root.querySelector('.g-main'); if (!main) { start(); return; }
-    const ov = LAB.h(`<div class="ready-ov"><div class="ready-box"><b>설정을 고르고 시작하세요</b><span>AI 난이도나 규칙은 <span class="rw">오른쪽</span><span class="rn">아래</span> 설정 칸에서 바꿀 수 있어요.</span><button type="button" class="primary ready-go">게임 시작</button></div></div>`);
-    main.appendChild(ov);
-    root.querySelectorAll('.g-side button.primary').forEach(b => b.addEventListener('click', () => ov.remove()));
-    ov.querySelector('.ready-go').onclick = async () => { if (LAB.beforeStart && !(await LAB.beforeStart())) return; ov.remove(); start(); };
+    const main = root.querySelector('.g-main'), btn = root.querySelector('.g-side button.primary');
+    if (!main || !btn) { LAB.paused = false; start(); return; }
+    LAB.paused = true; start(); // 멈춘 채로 첫 판을 그려 둠 (타이머는 돌지 않음)
+    const label = btn.textContent; btn.textContent = '게임 시작'; btn.dataset.ready = '1'; btn.classList.add('ready-btn');
+    const block = LAB.h('<div class="ready-block"><span class="ready-tip">설정을 고르고 <b>게임 시작</b>을 누르세요 <span class="rw">→</span><span class="rn">↓</span></span></div>');
+    main.appendChild(block);
+    block.addEventListener('click', () => { btn.classList.remove('nudge'); void btn.offsetWidth; btn.classList.add('nudge'); btn.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+    // 게임 시작 버튼이 화면에 보이면 안내 띠는 숨김 (버튼을 가리지 않게)
+    const tip = block.querySelector('.ready-tip'); let io = null;
+    try { io = new IntersectionObserver(es => { tip.hidden = es[0].isIntersecting; }); io.observe(btn); } catch (e) {}
+    const go = async e => {
+      if (!btn.dataset.ready) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      if (LAB.beforeStart && !(await LAB.beforeStart())) return;
+      delete btn.dataset.ready; btn.textContent = label; btn.classList.remove('ready-btn', 'nudge');
+      block.remove(); if (io) io.disconnect(); btn.removeEventListener('click', go, true);
+      LAB.paused = false; start();
+    };
+    btn.addEventListener('click', go, true);
   };
   // 게임마다 정리할 타이머 모음
   LAB.timers = () => {
     const ids = new Set();
     return {
-      set(fn, ms) { const id = setTimeout(() => { ids.delete(id); fn(); }, ms); ids.add(id); return id; },
-      every(fn, ms) { const id = setInterval(fn, ms); ids.add(id); return id; },
+      set(fn, ms) { if (LAB.paused) return 0; const id = setTimeout(() => { ids.delete(id); fn(); }, ms); ids.add(id); return id; },
+      every(fn, ms) { if (LAB.paused) return 0; const id = setInterval(fn, ms); ids.add(id); return id; },
       clear() { ids.forEach(id => { clearTimeout(id); clearInterval(id); }); ids.clear(); }
     };
   };

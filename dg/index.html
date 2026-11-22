@@ -325,12 +325,12 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .mm-w { stroke: var(--chalk); stroke-width: 9; stroke-linecap: round; pointer-events: none; } .mm-w.flash { stroke: var(--red); }
 .mm-p { stroke: #0b1a17; stroke-width: 3; pointer-events: none; } .mm-p.p0 { fill: var(--blue); } .mm-p.p1 { fill: var(--red); }
 .g-main, .boardbox { position: relative; }
-.ready-ov { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(8,26,22,.86); border-radius: inherit; }
-.ready-box { display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 320px; }
-.ready-box b { font-family: var(--f-display); font-weight: 400; font-size: 26px; }
-.ready-box span { color: var(--chalk-dim); font-size: 14px; word-break: keep-all; }
-.ready-box .rn { display: none; } @media (max-width: 820px) { .ready-box .rw { display: none; } .ready-box .rn { display: inline; } }
-.ready-box button { font-size: 17px; padding: 12px 28px; margin-top: 4px; }
+.ready-block { position: absolute; inset: 0; z-index: 5; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
+.ready-tip { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50; max-width: calc(100vw - 32px); background: var(--board, #0b2420); border: 1px solid rgba(243,182,65,.6); color: var(--chalk, #f1eee4); border-radius: 999px; padding: 8px 16px; font-size: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.35); word-break: keep-all; text-align: center; }
+.ready-tip b { color: var(--amber, #f3b641); } .ready-tip .rn { display: none; } @media (max-width: 820px) { .ready-tip .rw { display: none; } .ready-tip .rn { display: inline; } }
+.ready-btn { box-shadow: 0 0 0 3px rgba(243,182,65,.35); }
+.ready-btn.nudge { animation: rdNudge .6s ease; }
+@keyframes rdNudge { 0%,100% { transform: none; } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
 </style>
 </head>
 <body>
@@ -354,7 +354,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
     <div class="boardbox">
       <div class="status"><span class="dot" id="turnDot"></span><span id="turnName"></span><span class="msg" id="turnMsg"></span></div>
       <svg id="bc" viewBox="0 0 520 520" aria-label="바그찰 판"></svg>
-      <div class="ready-ov" id="baghReady"><div class="ready-box"><b>설정을 고르고 시작하세요</b><span>상대·내 진영·AI 난이도는 <span class="rw">오른쪽</span><span class="rn">아래</span> 설정 칸에서 바꿀 수 있어요.</span><button type="button" class="primary ready-go" id="baghGo">게임 시작</button></div></div>
+      <div class="ready-block" id="baghBlock"><span class="ready-tip">설정을 고르고 <b>게임 시작</b>을 누르세요 <span class="rw">→</span><span class="rn">↓</span></span></div>
     </div>
     <aside class="side">
       <div class="card">
@@ -363,7 +363,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
           <div><small>남은 염소 (손에 든 것)</small><b id="hand">20</b></div>
           <div><small>잡힌 염소</small><b id="caps">0</b><span class="pips" id="pips"></span></div>
         </div>
-        <div class="row"><button type="button" id="undoBtn">↶ 한 수 무르기</button><button type="button" class="primary" id="newBtn">새 게임</button></div>
+        <div class="row"><button type="button" id="undoBtn">↶ 한 수 무르기</button><button type="button" class="primary ready-btn" id="newBtn">게임 시작</button></div>
       </div>
       <div class="card">
         <h3>설정 (새 게임에 적용)</h3>
@@ -398,25 +398,25 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
   <div class="row"><button type="button" class="primary" id="againBtn">다시 하기</button><button type="button" id="closeBtn">판 보기</button></div>
 </div></div>
 
-<script src="/play/common.js?v=7"></script>
-<script src="games/doubles.js?v=7"></script>
-<script src="games/suspects.js?v=7"></script>
-<script src="/play/horse.js?v=7"></script>
-<script src="games/quake.js?v=7"></script>
-<script src="games/combo.js?v=7"></script>
-<script src="/play/mines.js?v=7"></script>
-<script src="/play/dinner.js?v=7"></script>
-<script src="games/colorturn.js?v=7"></script>
-<script src="games/secretdice.js?v=7"></script>
-<script src="games/mysterynum.js?v=7"></script>
-<script src="games/blindbet.js?v=7"></script>
-<script src="games/mathmaze.js?v=7"></script>
-<script src="games/jungle.js?v=7"></script>
-<script src="games/twelve.js?v=7"></script>
-<script src="games/gyulhap.js?v=7"></script>
-<script src="games/indian.js?v=7"></script>
-<script src="games/blackwhite.js?v=7"></script>
-<script src="games/memmaze.js?v=7"></script>
+<script src="/play/common.js?v=11"></script>
+<script src="games/doubles.js?v=11"></script>
+<script src="games/suspects.js?v=11"></script>
+<script src="/play/horse.js?v=11"></script>
+<script src="games/quake.js?v=11"></script>
+<script src="games/combo.js?v=11"></script>
+<script src="/play/mines.js?v=11"></script>
+<script src="/play/dinner.js?v=11"></script>
+<script src="games/colorturn.js?v=11"></script>
+<script src="games/secretdice.js?v=11"></script>
+<script src="games/mysterynum.js?v=11"></script>
+<script src="games/blindbet.js?v=11"></script>
+<script src="games/mathmaze.js?v=11"></script>
+<script src="games/jungle.js?v=11"></script>
+<script src="games/twelve.js?v=11"></script>
+<script src="games/gyulhap.js?v=11"></script>
+<script src="games/indian.js?v=11"></script>
+<script src="games/blackwhite.js?v=11"></script>
+<script src="games/memmaze.js?v=11"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -648,8 +648,10 @@ function newGame() {
   $('endOv').hidden = true; render(); if (!waiting) setTimeout(aiStep, 300);
 }
 let waiting = true; // 설정을 고르고 "게임 시작"을 눌러야 시작
-function startBagh() { waiting = false; const ov = $('baghReady'); if (ov) ov.remove(); newGame(); }
-$('baghGo').onclick = startBagh; $('newBtn').onclick = startBagh; $('againBtn').onclick = newGame;
+function startBagh() { waiting = false; const bl = $('baghBlock'); if (bl) bl.remove(); $('newBtn').textContent = '새 게임'; $('newBtn').classList.remove('ready-btn', 'nudge'); newGame(); }
+$('baghBlock').onclick = () => { const b = $('newBtn'); b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); b.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+try { const tip = $('baghBlock').querySelector('.ready-tip'); new IntersectionObserver(es => { tip.hidden = es[0].isIntersecting; }).observe($('newBtn')); } catch (e) {}
+$('newBtn').onclick = startBagh; $('againBtn').onclick = newGame;
 $('closeBtn').onclick = () => { $('endOv').hidden = true; };
 function seg(id, keyName, parse) {
   $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;

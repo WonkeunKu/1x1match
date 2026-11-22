@@ -325,12 +325,12 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .mm-w { stroke: var(--chalk); stroke-width: 9; stroke-linecap: round; pointer-events: none; } .mm-w.flash { stroke: var(--red); }
 .mm-p { stroke: #0b1a17; stroke-width: 3; pointer-events: none; } .mm-p.p0 { fill: var(--blue); } .mm-p.p1 { fill: var(--red); }
 .g-main { position: relative; }
-.ready-ov { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(8,26,22,.86); border-radius: inherit; }
-.ready-box { display: grid; gap: 10px; justify-items: center; text-align: center; max-width: 320px; }
-.ready-box b { font-family: var(--f-display); font-weight: 400; font-size: 26px; }
-.ready-box span { color: var(--chalk-dim); font-size: 14px; word-break: keep-all; }
-.ready-box .rn { display: none; } @media (max-width: 820px) { .ready-box .rw { display: none; } .ready-box .rn { display: inline; } }
-.ready-box button { font-size: 17px; padding: 12px 28px; margin-top: 4px; }
+.ready-block { position: absolute; inset: 0; z-index: 5; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
+.ready-tip { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50; max-width: calc(100vw - 32px); background: var(--board, #0b2420); border: 1px solid rgba(243,182,65,.6); color: var(--chalk, #f1eee4); border-radius: 999px; padding: 8px 16px; font-size: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.35); word-break: keep-all; text-align: center; }
+.ready-tip b { color: var(--amber, #f3b641); } .ready-tip .rn { display: none; } @media (max-width: 820px) { .ready-tip .rw { display: none; } .ready-tip .rn { display: inline; } }
+.ready-btn { box-shadow: 0 0 0 3px rgba(243,182,65,.35); }
+.ready-btn.nudge { animation: rdNudge .6s ease; }
+@keyframes rdNudge { 0%,100% { transform: none; } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
 </style>
 </head>
 <body>
@@ -339,7 +339,6 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
   <header class="brand">
     <a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a>
     <div><div class="eyebrow" id="pageEyebrow">1x1 MATCH</div><h1 id="pageTitle">새 게임</h1></div>
-    <span class="tag">공개 예정</span>
   </header>
 
   <a class="backlink" id="backLink" href="/#deathgame">← 전체 게임</a>
@@ -397,10 +396,10 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
   <div class="row"><button type="button" class="primary" id="againBtn">다시 하기</button><button type="button" id="closeBtn">판 보기</button></div>
 </div></div>
 
-<script src="/play/common.js?v=7"></script>
-<script src="/play/horse.js?v=7"></script>
-<script src="/play/mines.js?v=7"></script>
-<script src="/play/dinner.js?v=7"></script>
+<script src="/play/common.js?v=11"></script>
+<script src="/play/horse.js?v=11"></script>
+<script src="/play/mines.js?v=11"></script>
+<script src="/play/dinner.js?v=11"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);
@@ -672,7 +671,7 @@ let curGame = null; const freeOk = {};
 const playKey = id => { try { let k = sessionStorage.getItem('play_' + id); if (!k) { k = FreePlay.newId(); sessionStorage.setItem('play_' + id, k); } return k; } catch (e) { return FreePlay.newId(); } };
 async function gateOpen(id) { const ok = await FreePlay.ok(id, playKey(id)); freeOk[id] = ok; if (!ok) { if (cleanup) { try { cleanup(); } catch (e) {} cleanup = null; } } if (!ok) $('gameView').innerHTML = '<div class="card" style="text-align:center;display:grid;gap:10px;padding:28px"><b style="font-size:18px">계속하려면 로그인해 주세요</b><span class="muted">로그인하지 않으면 게임마다 한 판씩만 해 볼 수 있어요.</span><a class="primary" style="justify-self:center;padding:10px 18px;border-radius:10px;background:var(--amber);color:#1a1405;font-weight:700;text-decoration:none" href="/account/?next=' + encodeURIComponent(location.pathname + location.hash) + '">로그인하고 계속하기</a></div>'; }
 document.addEventListener('click', async e => {
-  const b = e.target.closest('#againBtn, #gameView .g-side button.primary'); if (!b || !curGame || b.dataset.freeOk) return;
+  const b = e.target.closest('#againBtn, #gameView .g-side button.primary'); if (!b || !curGame || b.dataset.freeOk || b.dataset.ready) return; // 첫 '게임 시작'은 LAB.ready 가 확인
   e.stopPropagation(); e.preventDefault();
   const id = FreePlay.newId(); if (!(await FreePlay.ok(curGame, id))) return;
   try { sessionStorage.setItem('play_' + curGame, id); } catch (e2) {}
