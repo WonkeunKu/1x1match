@@ -98,7 +98,7 @@ const tm = ms => { if (ms == null) return '–'; const s = Math.floor(ms / 1000)
 const GAMES = [
   { id: 'auction', short: '경매', name: '연봉 블라인드 경매', c: 'var(--amber)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
-  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결'], ['challenge', '도전장']] },
+  { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결'], ['challenge', '받은 도전장'], ['sent', '보낸 도전장']] },
   { id: 'wallgo1', short: '벽바둑 Ⅰ', name: '벽바둑 Ⅰ', c: '#f0a35e', modes: [['online', '온라인'], ['local', '이 기기']] },
   { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', modes: [['online', '온라인'], ['local', '이 기기']] },
   { id: 'heavy13', short: '무거운 13', name: '무거운 13', c: '#b8a6f2', modes: [['online', '온라인'], ['ai', 'AI 연습']] }
@@ -110,13 +110,14 @@ const DIFF = ['쉬움', '보통', '어려움', '매우 어려움'];
 const modeText = x => {
   if (x.game === 'auction') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 4인';
   if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
+  if (x.game === 'slither' && x.mode === 'sent') return `보낸 도전장 · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
   if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : x.mode === 'challenge' ? '도전장' : '혼자 풀기') + ` · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
   if (x.game === 'wallgo' || x.game === 'wallgo1') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
   if (x.game === 'heavy13') return (x.mode === 'ai' ? 'AI 연습' : '온라인') + ` ${x.total}인`;
   return '';
 };
 function statCard(g, list) {
-  const L = list.filter(x => x.game === g.id);
+  const L = list.filter(x => x.game === g.id && x.mode !== 'sent'); // 보낸 도전장은 경기 수에 안 셈
   let v = '기록 없음', sub = `${L.length}판`;
   if (g.id === 'auction' && L.length) {
     v = `우승 ${L.filter(x => x.rank === 1).length}회`;
@@ -140,7 +141,7 @@ function statCard(g, list) {
 function summary(all) {
   const gs = game === 'all' ? visibleGames() : [G_BY[game]];
   let html = gs.map(g => statCard(g, all)).join('');
-  if (game === 'all') html += `<div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${all.length}판</span><span class="s">${visibleGames().map(g => `${g.short} ${all.filter(x => x.game === g.id).length}`).join(' · ')}</span></div>`;
+  if (game === 'all') { const A = all.filter(x => x.mode !== 'sent'); html += `<div class="stat" style="--c:var(--green)"><span class="t">전체</span><span class="v">${A.length}판</span><span class="s">${visibleGames().map(g => `${g.short} ${A.filter(x => x.game === g.id).length}`).join(' · ')}</span></div>`; }
   document.getElementById('sum').innerHTML = html;
 }
 function itemHtml(x) {
@@ -159,6 +160,13 @@ function itemHtml(x) {
     return `<div class="item" style="--c:${g.c}"><span class="badge ${x.result}">${label}</span>
       <div>${head}<div class="d">상대: ${esc(x.opponent)} · ${x.innings}이닝</div></div>
       <div class="r">${x.myWins} : ${x.oppWins}<small>나 : 상대</small></div></div>`;
+  }
+  if (x.game === 'slither' && x.mode === 'sent') {
+    const who = x.challengers ? `도전자 ${x.challengers}명 · 정답 ${x.solved}명` + (x.lastAt ? ` · 마지막 도전 ${new Date(x.lastAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}` : '') : '아직 도전한 사람이 없어요';
+    const badge = x.myRank ? `${x.myRank}위` : '출제';
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${x.myRank === 1 ? 'win' : ''}">${badge}</span>
+      <div>${head}<div class="d">${who}</div></div>
+      <div class="r">${x.myStatus === 'solved' ? tm(x.myTime) : '–'}<small>${x.myStatus === 'solved' ? '내 기록' : '기록 없음'}</small><a class="again" href="/slither/#c-${x.code}">순위 보기</a></div></div>`;
   }
   if (x.game === 'slither') {
     const solved = x.result === 'solved';
@@ -219,7 +227,9 @@ async function start() {
     if (r.status === 401) { document.getElementById('who').hidden = true; document.getElementById('needLogin').hidden = false; return; }
     const d = await r.json();
     DATA = d.history || []; ADMIN = !!(d.user && d.user.admin);
-    const h = location.hash.replace('#', ''); if (G_BY[h]) game = h;
+    // 내가 보낸 슬리더링크 도전장도 목록에 넣음 (보낸 날짜에 표시, 순위 보기로 다른 사람 기록 확인)
+    try { const s2 = await (await fetch('/api/slither/chal/mine', { cache: 'no-store' })).json(); for (const c of s2.list || []) DATA.push({ game: 'slither', mode: 'sent', at: c.at, size: c.n, diff: c.diff, code: c.code, challengers: c.challengers, solved: c.solved, myRank: c.myRank, myStatus: c.myStatus, myTime: c.myTime, lastAt: c.lastAt }); DATA.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)); } catch (e) {}
+    const h = location.hash.replace('#', ''); if (G_BY[h]) game = h; if (h === 'sent') { game = 'slither'; mode = 'sent'; }
     document.getElementById('who').innerHTML = `<b>${esc(d.user.nickname)}</b>님의 경기 기록이에요. 로그인한 상태로 끝까지 한 경기만 쌓여요.`;
     document.getElementById('acct').innerHTML = '<button type="button" id="logoutBtn">로그아웃</button>';
     document.getElementById('logoutBtn').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); location.reload(); };

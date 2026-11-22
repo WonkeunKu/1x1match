@@ -455,6 +455,32 @@ export async function challengeBoard(code, user, reveal) {
   const open = !!(mine || reveal);
   return { code: c.code, n: c.n, creator: names.get(c.creator) || '탈퇴한 회원', total: list.length, solved: rank, open, list: open ? list : [], mine, diff: open ? c.diff : null };
 }
+// 내가 보낸 도전장 목록 (최근 100개) — 도전자 수, 그 판에서 내 순위
+export async function myChallenges(user) {
+  if (!user) fail('로그인하면 볼 수 있어요.');
+  let chals, recs;
+  if (usingSupabase) {
+    chals = await sb(`match_history?select=result,played_at&game=eq._chal&user_id=eq.${Number(user.id)}&order=played_at.desc&limit=100`);
+    const codes = chals.map(r => r.result && r.result.code).filter(c => /^[A-Z0-9]{5}$/.test(c || ''));
+    recs = codes.length ? await sb(`match_history?select=user_id,result,played_at&game=eq._chalrec&result->>code=in.(${codes.join(',')})&order=played_at.asc&limit=5000`) : [];
+  } else {
+    const db = await fdb();
+    chals = db.history.filter(h => h.game === '_chal' && h.user_id === user.id).sort((a, b) => b.id - a.id).slice(0, 100);
+    const codes = new Set(chals.map(r => r.result.code));
+    recs = db.history.filter(h => h.game === '_chalrec' && h.result && codes.has(h.result.code)).sort((a, b) => a.id - b.id);
+  }
+  const by = new Map();
+  for (const r of recs) { const c = r.result.code; if (!by.has(c)) by.set(c, new Map()); const m = by.get(c); if (!m.has(r.user_id)) m.set(r.user_id, { uid: r.user_id, status: r.result.status, time: r.result.time, at: Date.parse(r.played_at) }); }
+  return chals.map(r => {
+    const c = r.result, list = [...(by.get(c.code) || new Map()).values()];
+    const ok = list.filter(x => x.status === 'solved').sort((a, b) => a.time - b.time || a.at - b.at);
+    const mine = list.find(x => x.uid === user.id) || null;
+    const myRank = mine && mine.status === 'solved' ? ok.indexOf(mine) + 1 : null;
+    const others = list.filter(x => x.uid !== user.id);
+    const lastAt = others.length ? Math.max(...others.map(x => x.at)) : null;
+    return { code: c.code, n: c.n, diff: c.diff, at: r.played_at, challengers: others.length, solved: ok.filter(x => x.uid !== user.id).length, myStatus: mine ? mine.status : null, myTime: mine ? mine.time : null, myRank, lastAt: lastAt ? new Date(lastAt).toISOString() : null };
+  });
+}
 export async function recordChallenge(user, code, status, time) {
   const c = await getChallenge(code);
   const rows = await historyRows('_chalrec', c.code);

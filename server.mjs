@@ -189,6 +189,7 @@ async function wallgoApi(req, res, path, url) {
 const chalStarts = new Map(); // token -> { code, uid, n, clues, startAt }
 setInterval(() => { const t = Date.now(); for (const [k, v] of chalStarts) if (t - v.startAt > 6 * 3600 * 1000) chalStarts.delete(k); }, 30 * 60 * 1000).unref();
 async function chalApi(req, res, path, url, user) {
+  if (path === '/api/slither/chal/mine' && req.method === 'GET') return json(res, 200, { list: await Accounts.myChallenges(user) });
   const m = path.match(/^\/api\/slither\/chal(?:\/([A-Za-z0-9]{5}))?(?:\/(start|finish|giveup))?$/);
   if (!m) return json(res, 404, { error: '없는 주소예요.' });
   const code = m[1] && m[1].toUpperCase(), op = m[2];
