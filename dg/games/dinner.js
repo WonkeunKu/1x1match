@@ -118,7 +118,8 @@
           const show = cfg.show || G.over || isOpen;
           const can = (G.phase === 'place' && G.turn === 0 && n == null) || (G.phase === 'play' && G.turn === 0 && !G.reveal && G.open.length < 2 && !G.open.includes(i)) || (G.reveal && G.reveal.ok && G.turn === 0 && (i === G.reveal.a || i === G.reveal.b));
           const pick = G.reveal && G.reveal.ok && G.turn === 0 && (i === G.reveal.a || i === G.reveal.b);
-          return `<button type="button" class="plate ${isOpen ? 'open' : ''} ${pick ? 'pick' : ''} ${n == null ? 'empty' : ''}" data-i="${i}" ${can ? '' : 'disabled'}><small>${i + 1}</small><b>${n == null ? '' : show ? n : ''}</b>${n != null && !show ? '<i class="cover"></i>' : ''}</button>`;
+          const ang = (i / G.cnt.length) * 2 * Math.PI - Math.PI / 2; // 1번이 맨 위, 시계방향으로 원을 그리며 놓임
+          return `<button type="button" class="plate ${isOpen ? 'open' : ''} ${pick ? 'pick' : ''} ${n == null ? 'empty' : ''}" style="left:${(50 + 43 * Math.cos(ang)).toFixed(2)}%;top:${(50 + 43 * Math.sin(ang)).toFixed(2)}%" data-i="${i}" ${can ? '' : 'disabled'}><small>${i + 1}</small><b>${n == null ? '' : show ? n : ''}</b>${n != null && !show ? '<i class="cover"></i>' : ''}</button>`;
         }).join('');
         $('dPlates').querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
           const i = +b.dataset.i;
