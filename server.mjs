@@ -9,6 +9,7 @@ import * as Rooms from './game-data/auction-rooms.mjs';
 import * as BwRooms from './game-data/bw-rooms.mjs';
 import * as SlitherRooms from './game-data/slither-rooms.mjs';
 import * as H13 from './game-data/heavy13-rooms.mjs';
+H13.setFinishHook((uid, entry) => Accounts.addHistory(uid, entry).catch(e => console.error('heavy13 history', e.message)));
 import * as Relay from './game-data/relay.mjs';
 import * as Accounts from './game-data/accounts.mjs';
 
@@ -32,7 +33,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -93,7 +94,7 @@ const auctionApi = roomApi(Rooms, '/api/auction');
 // 접속 기기를 짧게 (예: 'iPhone · Safari') — 대표 계정의 접속 기록용
 function pageName(p) {
   if (p === '/' || p === '/index.html') return '홈';
-  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
+  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/heavy13', '무거운 13'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
   const m = map.find(([k]) => p === k || p.startsWith(k + '/'));
   return m ? m[1] : null;
 }
@@ -229,11 +230,10 @@ async function slitherApi(req, res, path, url) {
   }
 }
 
-// 무거운 13 온라인 방 (공개 전: 대표·관리자만)
+// 무거운 13 온라인 방. 로그인하면 닉네임으로, 아니면 입력한 이름으로 참가
 async function h13Api(req, res, path, url) {
   let user = null;
-  try { user = await Accounts.refreshAdmin(Accounts.userFromReq(req)); } catch (e) { console.error(e); }
-  if (!user || !(user.admin || user.owner)) return json(res, 404, { error: '없는 주소예요.' });
+  try { user = Accounts.userFromReq(req); } catch (e) { console.error(e); }
   const m = path.match(/^\/api\/h13\/rooms(?:\/([A-Za-z0-9]{4}))?(?:\/(join|act|events|leave))?$/);
   if (!m) return json(res, 404, { error: '없는 주소예요.' });
   const [, code, op] = m;
@@ -241,8 +241,9 @@ async function h13Api(req, res, path, url) {
     if (req.method === 'GET' && code && op === 'events') return H13.subscribe(code, url.searchParams.get('token'), res);
     if (req.method !== 'POST') return json(res, 405, { error: 'POST만 돼요.' });
     const body = await readJson(req);
-    if (!code && !op) return json(res, 200, H13.createRoom(user, { solo: !!body.solo }));
-    if (op === 'join') return json(res, 200, H13.joinRoom(code, body.token, user));
+    const who = user || { id: null, nickname: String(body.name || '').trim().slice(0, 10) || '손님' };
+    if (!code && !op) return json(res, 200, H13.createRoom(who, { solo: !!body.solo }));
+    if (op === 'join') return json(res, 200, H13.joinRoom(code, body.token, who));
     if (op === 'leave') { H13.leaveRoom(code, body.token); return json(res, 200, { ok: true }); }
     if (op === 'act') { H13.act(code, body.token, body); return json(res, 200, { ok: true }); }
     return json(res, 404, { error: '없는 주소예요.' });

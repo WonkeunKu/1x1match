@@ -1,5 +1,5 @@
 // 무거운 13 (데블스플랜: 데드 어게인 감옥매치) 온라인 방. 규칙·AI는 서버가 처리하고, 각자 화면은 SSE로 받음.
-// 5~7인, 빈자리는 AI. 접속이 끊긴 사람은 AI가 대신 둠. (공개 전: 대표·관리자만)
+// 5~7인, 빈자리는 AI. 접속이 끊긴 사람은 AI가 대신 둠. 로그인한 사람은 끝나면 경기 기록에 남음.
 import { randomBytes, randomInt } from 'node:crypto';
 
 /* ================= 규칙 엔진 (예전 1파일판에서 그대로 옮김) ================= */
@@ -301,7 +301,7 @@ export function createRoom(user, opts = {}) {
   return { code: room.code, token: t };
 }
 function addMember(room, user) {
-  const old = room.members.find(m => m.uid === user.id);
+  const old = user.id != null && room.members.find(m => m.uid === user.id);
   if (old) return old.token;
   if (room.members.length >= 7 && !room.st) fail('방이 가득 찼어요 (7명).');
   const m = { token: tokenNew(), pid: pidNew(), uid: user.id, name: String(user.nickname || '플레이어').slice(0, 10) };
@@ -378,7 +378,20 @@ export function act(code, tok, body) {
   }
   bump(room);
 }
-function onOver(room) { clearInterval(room.ticker); }
+let finishHook = null;
+export function setFinishHook(fn) { finishHook = fn; }
+function onOver(room) {
+  clearInterval(room.ticker);
+  const st = room.st; if (!st || room.recorded === st || !finishHook) return;
+  room.recorded = st;
+  const rk = st.ranking || computeRanking(st), N = st.players.length;
+  for (const m of room.members) {
+    if (m.uid == null) continue;
+    const mine = rk.find(r => r.id === m.pid); if (!mine) continue;
+    finishHook(m.uid, { game: 'heavy13', mode: room.solo ? 'ai' : 'online', level: null, result: mine.rank === 1 ? 'win' : 'lose', rank: mine.rank, total: N, penalty: mine.penalty,
+      players: rk.map(r => { const p = st.players.find(x => x.id === r.id); return { name: r.name, ai: !!(p && p.isAI), penalty: r.penalty, rank: r.rank, me: r.id === m.pid }; }) });
+  }
+}
 
 /* ---------- 실시간 화면 ---------- */
 function viewFor(room, tok) {

@@ -98,7 +98,8 @@ const GAMES = [
   { id: 'bw', short: '흑과 백', name: '9이닝 홈런 흑과 백', c: 'var(--blue)', modes: [['online', '사람과'], ['ai', 'AI와']] },
   { id: 'slither', short: '슬리더링크', name: '슬리더링크', c: '#b8a6f2', modes: [['solo', '혼자'], ['battle', '기록 대결'], ['challenge', '도전장']] },
   { id: 'wallgo1', short: '벽바둑 Ⅰ', name: '벽바둑 Ⅰ', c: '#f0a35e', modes: [['online', '온라인'], ['local', '이 기기']] },
-  { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', modes: [['online', '온라인'], ['local', '이 기기']] }
+  { id: 'wallgo', short: '벽바둑 Ⅱ', name: '벽바둑 Ⅱ', c: '#e7a0c8', modes: [['online', '온라인'], ['local', '이 기기']] },
+  { id: 'heavy13', short: '무거운 13', name: '무거운 13', c: '#b8a6f2', modes: [['online', '온라인'], ['ai', 'AI 연습']] }
 ];
 const G_BY = Object.fromEntries(GAMES.map(g => [g.id, g]));
 let game = 'all', mode = 'all';
@@ -109,6 +110,7 @@ const modeText = x => {
   if (x.game === 'bw') return x.mode === 'ai' ? `AI 대전 · ${LV[x.level] || '중'}` : '온라인 1:1';
   if (x.game === 'slither') return (x.mode === 'battle' ? `기록 대결 ${x.total}명` : x.mode === 'challenge' ? '도전장' : '혼자 풀기') + ` · ${x.size}×${x.size}` + (DIFF[x.diff] ? ` · <b class="dl d${x.diff}">${DIFF[x.diff]}</b>` : '');
   if (x.game === 'wallgo' || x.game === 'wallgo1') return (x.mode === 'online' ? `온라인 ${x.total}인` : `이 기기 ${x.total}인`) + (x.level ? ` · AI ${LV[x.level]}` : '');
+  if (x.game === 'heavy13') return (x.mode === 'ai' ? 'AI 연습' : '온라인') + ` ${x.total}인`;
   return '';
 };
 function statCard(g, list) {
@@ -127,6 +129,9 @@ function statCard(g, list) {
   } else if ((g.id === 'wallgo' || g.id === 'wallgo1') && L.length) {
     v = `1위 ${L.filter(x => x.rank === 1).length}회`;
     sub = `${L.length}판 · 평균 ${(L.reduce((s, x) => s + x.rank, 0) / L.length).toFixed(1)}위 · 최고 ${Math.max(...L.map(x => x.score))}칸`;
+  } else if (g.id === 'heavy13' && L.length) {
+    v = `1위 ${L.filter(x => x.rank === 1).length}회`;
+    sub = `${L.length}판 · 평균 ${(L.reduce((s, x) => s + x.rank, 0) / L.length).toFixed(1)}위 · 최저 벌점 ${Math.min(...L.map(x => x.penalty))}`;
   }
   return `<div class="stat" style="--c:${g.c}"><span class="t">${g.name}${g.admin ? '<span class="lock">관리자</span>' : ''}</span><span class="v">${v}</span><span class="s">${sub}</span></div>`;
 }
@@ -168,6 +173,12 @@ function itemHtml(x) {
     return `<div class="item" style="--c:${g.c}"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
       <div>${head}<div class="d">${others}</div></div>
       <div class="r">${x.score}칸<small>가장 큰 영역 ${x.best}칸</small></div></div>`;
+  }
+  if (x.game === 'heavy13') {
+    const others = (x.players || []).filter(p => !p.me).sort((a, b) => a.rank - b.rank).map(p => `${esc(p.name)}${p.ai ? '(AI)' : ''} ${p.penalty}`).join(' · ');
+    return `<div class="item" style="--c:${g.c}"><span class="badge ${x.rank === 1 ? 'win' : ''}">${x.rank}위</span>
+      <div>${head}<div class="d">${others}</div></div>
+      <div class="r">벌점 ${x.penalty}<small>${x.total}명 중 ${x.rank}위</small></div></div>`;
   }
   return '';
 }

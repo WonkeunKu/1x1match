@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex">
 <meta name="theme-color" content="#10302a">
 <link rel="icon" href="/favicon.ico?v=3" sizes="any">
 <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <title>무거운 13 · 1x1 MATCH</title>
+<meta name="description" content="데블스플랜 감옥 매치 무거운 13을 온라인으로. 5~7인, 빈자리는 AI가 채워요.">
+<script src="/freeplay.js?v=3"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -171,7 +172,7 @@ details.log summary { cursor: pointer; font-weight: 700; color: var(--dim); font
 </head>
 <body>
 <div class="wrap">
-  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 데블스플랜 · 관리자 전용</div><h1>무거운 13</h1></div><span class="ptag">공개 예정</span></header>
+  <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 데블스플랜 · 5~7인</div><h1>무거운 13</h1></div></header>
   <div id="app" style="display:grid;gap:18px"></div>
 </div>
 <div class="toasts" id="toasts"></div>
@@ -186,10 +187,15 @@ const CV = { R: 'var(--R)', G: 'var(--G)', B: 'var(--B)' };
 const sumOf = a => a.reduce((s, x) => s + x.v, 0);
 const store = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} } };
 
-let ME = null, room = null, V = null, es = null, screen = 'menu', menuErr = '', soloCount = 5;
+let ME = null, NAME = '', room = null, V = null, es = null, screen = 'menu', menuErr = '', soloCount = 5;
 let ui = { card: null, chip: null, editing: false }, prev = null, localDeadline = 0, lastLog = 0;
 
+const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+NAME = lsGet('h13_name');
+const meP = fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { ME = d.user || null; if (screen === 'menu') render(); }).catch(() => {});
 async function post(path, body) {
+  body = Object.assign({ name: NAME }, body || {});
   const r = await fetch('/api/h13/rooms' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || '요청이 실패했어요.');
@@ -260,6 +266,7 @@ function renderMenu() {
     <a class="backlink" href="/#devils">← 데블스플랜</a>
     <p class="mute" style="margin:0">데블스플랜 시즌3 감옥 매치. 바위 카드와 색깔 칩을 몰래 내서 받침대 3개에 바위를 올려요. 받침대 합을 13 이상으로 만든 사람이 벌점을 받아요.</p>
     <div class="box">
+      ${ME ? `<div class="mute small">${esc(ME.nickname)} 님으로 참가해요</div>` : `<div class="label">내 이름</div><input id="nm" maxlength="10" placeholder="게임에서 보일 이름" value="${esc(NAME)}" autocomplete="nickname"><div class="mute small">로그인하면 닉네임으로 참가하고 경기 기록이 남아요. <a href="/account/?next=${encodeURIComponent('/heavy13/' + location.hash)}" style="color:var(--accent)">로그인</a></div>`}
       <div class="label">친구와 하기 (5~7인, 빈자리는 AI)</div>
       <button class="btn-main" id="create">방 만들기</button>
       <div class="row"><input id="code" maxlength="4" placeholder="방 코드 4자리" value="${esc(/^[A-Z0-9]{4}$/.test(hashCode) ? hashCode : '')}" autocomplete="off" style="text-transform:uppercase"><button id="join" style="flex:none">참가</button></div>
@@ -272,10 +279,12 @@ function renderMenu() {
     <div class="err" id="err">${esc(menuErr)}</div>
     <button id="rules" style="justify-self:center;background:none;border:0;color:var(--dim);text-decoration:underline">게임 규칙 보기</button>`;
   const err = m => { $('err').textContent = m; };
-  $('create').onclick = async () => { try { const r = await post('', {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
-  $('join').onclick = async () => { const c = $('code').value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) return err('4자리 코드를 입력하세요'); try { const r = await post(`/${c}/join`, {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  const nm = $('nm'); if (nm) nm.oninput = () => { NAME = nm.value.trim(); lsSet('h13_name', NAME); };
+  const needName = () => { if (ME || NAME) return false; err('이름을 입력하세요'); $('nm').focus(); return true; };
+  $('create').onclick = async () => { if (needName()) return; try { const r = await post('', {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('join').onclick = async () => { if (needName()) return; const c = $('code').value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) return err('4자리 코드를 입력하세요'); try { const r = await post(`/${c}/join`, {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('soloSeg').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; soloCount = +b.dataset.n; renderMenu(); };
-  $('solo').onclick = async () => { try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60 }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('solo').onclick = async () => { if (needName()) return; if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60 }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('rules').onclick = showRules;
 }
 function renderLobby() {
@@ -297,7 +306,7 @@ function renderLobby() {
   document.querySelectorAll('.seg[data-key]').forEach(sg => sg.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || !v.host) return; act({ type: 'settings', [sg.dataset.key]: +b.dataset.v }); });
   $('copy').onclick = () => copyLink();
   $('leave').onclick = leave;
-  const st = $('start'); if (st) st.onclick = () => act({ type: 'start' });
+  const st = $('start'); if (st) st.onclick = async () => { if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; act({ type: 'start' }); };
   $('rules').onclick = showRules;
 }
 function copyLink() {
@@ -437,7 +446,7 @@ function showResult() {
     return `<div class="rk ${r.id === V.me ? 'me' : ''}"><span class="n">${r.rank}</span><i class="dot" style="background:${p ? p.hue : '#888'}"></i><span class="nm">${esc(r.name)}${out ? ' <span style="color:var(--danger);font-size:13px">탈락</span>' : r.rank === 1 ? ' <span style="color:var(--gold);font-size:13px">우승</span>' : ''}</span><span class="p">${r.penalty}</span></div>`; }).join('');
   const again = V.solo ? '<button class="btn-main" id="again">다시 하기</button>' : V.host ? '<button class="btn-main" id="again">같은 멤버로 대기실로</button>' : '<p class="mute small" style="text-align:center;margin:0">방장이 다음 게임을 열 수 있어요</p>';
   openModal(`<h3>최종 결과</h3><div class="ranks">${rows}</div><p class="mute small" style="margin:0;text-align:center">벌점이 같으면 더 최근에 벌점을 받은 쪽이 아래 순위예요</p>${again}<button id="closeM">판 보기</button>`);
-  const a = $('again'); if (a) a.onclick = async () => { closeModal(); await act({ type: 'lobby' }); if (V.solo) act({ type: 'start' }); };
+  const a = $('again'); if (a) a.onclick = async () => { if (V.solo && !(await FreePlay.ok('heavy13', FreePlay.newId()))) return; closeModal(); await act({ type: 'lobby' }); if (V.solo) act({ type: 'start' }); };
   $('closeM').onclick = closeModal;
 }
 function showRules() {
@@ -470,7 +479,7 @@ try {
 } catch (e) {}
 render();
 // 초대 링크(#코드)로 들어오면 바로 참가
-(() => { const c = (location.hash || '').slice(1).toUpperCase(); if (/^[A-Z0-9]{4}$/.test(c) && !store.get('h13_room')) post(`/${c}/join`, {}).then(d => enter(d.code, d.token)).catch(e => { menuErr = e.message; render(); }); })();
+meP.then(() => { const c = (location.hash || '').slice(1).toUpperCase(); if (!ME && !NAME) { if (/^[A-Z0-9]{4}$/.test(c)) { menuErr = '이름을 입력하고 참가를 누르세요'; render(); } return; } if (/^[A-Z0-9]{4}$/.test(c) && !store.get('h13_room')) post(`/${c}/join`, {}).then(d => enter(d.code, d.token)).catch(e => { menuErr = e.message; render(); }); });
 })();
 </script>
 </body>
