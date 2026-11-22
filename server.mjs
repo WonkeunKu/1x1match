@@ -33,7 +33,7 @@ const TYPES = {
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8'
 };
-const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13'];
+const PUBLIC = ['index.html', 'auction', 'blackwhite', 'history', 'account', 'robots.txt', 'favicon.ico', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-ball.ico', 'icon-ball.svg', 'icon-ball-32.png', 'icon-ball-180.png', 'rules.js', 'slither', 'wallgo', 'wallgo1', 'owner', 'dg', 'freeplay.js', 'heavy13', 'play'];
 
 async function resolveFile(urlPath) {
   let p = decodeURIComponent(urlPath.split('?')[0]);
@@ -94,7 +94,7 @@ const auctionApi = roomApi(Rooms, '/api/auction');
 // 접속 기기를 짧게 (예: 'iPhone · Safari') — 대표 계정의 접속 기록용
 function pageName(p) {
   if (p === '/' || p === '/index.html') return '홈';
-  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/heavy13', '무거운 13'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
+  const map = [['/auction/ai', '연봉 경매 AI'], ['/auction', '연봉 경매'], ['/blackwhite/online', '흑과 백 온라인'], ['/blackwhite', '흑과 백 AI'], ['/slither', '슬리더링크'], ['/wallgo1', '벽바둑 Ⅰ'], ['/wallgo', '벽바둑 Ⅱ'], ['/heavy13', '무거운 13'], ['/play', '데스게임 공개 게임'], ['/history', '경기 기록'], ['/account', '로그인·계정']];
   const m = map.find(([k]) => p === k || p.startsWith(k + '/'));
   return m ? m[1] : null;
 }
