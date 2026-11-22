@@ -171,8 +171,8 @@
         const showMine = setup || cfg.show || G.over;
         let s = '';
         for (let i = 0; i < N * N; i++) { const [r, c] = rc(i);
-          const allowed = ALLOWED.includes(i), sc = G.scored.has(i), zone = ZONE[0].includes(i) || ZONE[1].includes(i) || START.includes(i);
-          s += `<rect x="${X(c)}" y="${X(r)}" width="${S - 2}" height="${S - 2}" rx="4" class="mc ${zone ? 'zone' : ''} ${sc ? 'scored' : ''} ${setup && !allowed ? 'ban' : ''}" data-i="${i}"/>`; }
+          const allowed = ALLOWED.includes(i), sc = G.scored.has(i), zone = ZONE[0].includes(i) || START[0] === i ? 'zone zone0' : ZONE[1].includes(i) || START[1] === i ? 'zone zone1' : '';
+          s += `<rect x="${X(c)}" y="${X(r)}" width="${S - 2}" height="${S - 2}" rx="4" class="mc ${zone} ${sc ? 'scored' : ''} ${setup && !allowed ? 'ban' : ''}" data-i="${i}"/>`; }
         for (let k = 0; k < N; k++) s += `<text x="${X(k) + S / 2 - 1}" y="14" class="hl">${k + 1}</text><text x="10" y="${X(k) + S / 2 + 3}" class="hl">${ROWS[k]}</text>`;
         for (const t of G.treasures) { const [r, c] = rc(t); s += `<path d="M${X(c) + 22} ${X(r) + 8}l12 10-12 18-12-18z" class="mt"/>`; }
         for (const b of G.boom) { const [r, c] = rc(b); s += `<circle cx="${X(c) + 22}" cy="${X(r) + 22}" r="6" class="mboom"/>`; }
@@ -183,7 +183,7 @@
         }
         for (const a of G.armed) { const [r, c] = rc(a.cell); s += `<rect x="${X(c) - 44}" y="${X(r) - 44}" width="${S * 3 - 2}" height="${S * 3 - 2}" rx="6" class="marmed"/>`; }
         for (const d of dests) { const [r, c] = rc(d); s += `<circle cx="${X(c) + 22}" cy="${X(r) + 22}" r="8" class="hdest" data-i="${d}"/>`; }
-        for (const p of [0, 1]) { const [r, c] = rc(G.pos[p]); s += `<circle cx="${X(c) + 22}" cy="${X(r) + 22}" r="15" class="mp p${p}"/>`; }
+        for (const p of [0, 1]) { const [r, c] = rc(G.pos[p]); s += `<circle cx="${X(c) + 22}" cy="${X(r) + 22}" r="15" class="mp p${p}"/><text x="${X(c) + 22}" y="${X(r) + 27}" class="mpl">${p ? 'AI' : '나'}</text>`; }
         $('mBoard').innerHTML = s;
         // 행동 버튼
         let acts = '';
@@ -199,7 +199,7 @@
         const ready = $('mReady'); if (ready) ready.onclick = beginPlay;
         $('mActs').querySelectorAll('[data-bomb]').forEach(b => b.onclick = () => { const n = +b.dataset.bomb; G.declare = G.declare === n ? null : n; render(); });
         let msg = '';
-        if (setup) msg = (G.placingBomb ? '시한폭탄을 묻을 칸을 고르세요.' : '지뢰를 묻을 칸을 고르세요.') + ' 회색 칸은 금지 구역, 다시 누르면 빼요. 시작하면 위치가 가려져요.';
+        if (setup) msg = '내 말은 파랑(오른쪽 위 a11), AI 말은 빨강(왼쪽 아래 k1)이에요. ' + (G.placingBomb ? '시한폭탄을 묻을 칸을 고르세요.' : '지뢰를 묻을 칸을 고르세요.') + ' 회색 칸은 금지 구역, 다시 누르면 빼요. 시작하면 위치가 가려져요.';
         else if (G.over) msg = '게임 끝 — 상대 지뢰(작은 빨간 점)도 공개됐어요';
         else if (resp) msg = '지뢰를 밟았어요! 돌아갈 출발 구역 칸을 고르세요.';
         else if (myTurn) msg = '이동할 칸을 고르세요' + (G.declare ? ` (${G.declare}번 시한폭탄도 함께 발동)` : '');
