@@ -10,6 +10,7 @@
 <title>9이닝 홈런 흑과 백 온라인</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/rallypick.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -468,6 +469,7 @@ function renderResult() {
       ${V.me === V.host ? '<button class="btn amber block" type="button" data-a="restart">같은 상대와 재경기</button>' : '<p class="muted">방장이 재경기를 시작할 수 있어요.</p>'}
       <button class="btn block" type="button" data-a="leave">방 나가기</button>
       <p class="err">${esc(errMsg)}</p></div>
+      ${window.rallypickCTA ? rallypickCTA('blackwhite-online') : ''}
       <div class="panel"><h2>이번 판 카드 홈런 수</h2><div class="chips">${allHr}</div></div></div>
     <div class="colR"><div class="panel"><h2>이닝 기록</h2><table class="hist"><tbody>${rows}</tbody></table></div></div></div>`;
 }

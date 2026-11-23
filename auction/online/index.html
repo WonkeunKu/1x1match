@@ -10,6 +10,7 @@
 <title>연봉 블라인드 경매 온라인</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/rallypick.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -525,6 +526,7 @@ function renderResult() {
   const unsold = V.tiles.filter(t => t && t.card.type === 'player' && (t.status === 'pass' || t.status === 'released')).map(t => `${esc(t.card.name)} ${fmt(V.salaries[t.card.id])}`).join(' · ');
   app.innerHTML = `${topBar()}<div class="panel"><h2>${esc(V.players[order[0]].name)} 우승!</h2><p class="muted">연평균 연봉 합계 순위예요. 연봉 2배 카드는 가장 싼 선수에 적용했어요.</p></div>
     <div class="res">${rows}</div>
+    ${window.rallypickCTA ? rallypickCTA(V.ai ? 'auction-ai' : 'auction') : ''}
     ${unsold ? `<p class="muted">아무도 못 가진 선수: ${unsold}</p>` : ''}
     ${V.me === V.host ? `<button class="btn amber block" type="button" data-a="restart">${V.ai ? '같은 AI와 다시 하기' : '같은 멤버로 새 게임'}</button>` : '<p class="muted">방장이 새 게임을 시작할 수 있어요.</p>'}
     ${V.ai ? '<button class="btn block" type="button" data-a="leave">난이도 바꿔서 새로 하기</button>' : ''}`;

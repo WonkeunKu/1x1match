@@ -11,6 +11,7 @@
 <title>9이닝 홈런 흑과 백</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/rallypick.js?v=1"></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -214,7 +215,8 @@ button.c { text-align: left; font: inherit; }
 .actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 /* Result */
-.result { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.result { flex: 1; min-height: 0; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.result .rpk { margin: 0; flex: none; }
 .rhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
 .rhead h2 { font-family: var(--f-display); font-weight: 400; font-size: 40px; margin: 0; line-height: 1.1; }
 .rhead .sc { font-family: var(--f-mono); font-size: 34px; font-weight: 600; }
@@ -521,6 +523,7 @@ function renderResult() {
       <h2>${w === 'D' ? '무승부' : `${esc(S.names[w])} 승리`}</h2>
       <span class="sc"><span style="color:var(--p1)">${wins(0)}</span> : <span style="color:var(--p2)">${wins(1)}</span></span>
     </div>
+    ${window.rallypickCTA ? rallypickCTA('blackwhite') : ''}
     <table class="rt"><thead><tr><th>이닝</th><th>${esc(S.names[0])}</th><th>${esc(S.names[1])}</th><th>승자</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="leftover">${leftover}</div>`;
 }
