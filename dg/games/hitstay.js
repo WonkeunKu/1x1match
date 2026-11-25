@@ -163,7 +163,89 @@
     return hitAction(S, pid, hit > stay + (S.lv === 2 ? .01 : .03));
   }
 
-  const ENG = { PROF, DECK, newGame, startRound, reveal, allRevealed, startBetting, betAction, bettingDone, currentBettor, startHits, hitAction, hitsDone, showdown, gameOver, aiReveal, aiBet, aiHit, inHand, alive, toCall, maxRaiseTo, sum };
+  // ---------- 여럿이 하는 판 (AI 대전·온라인 공용, 서버도 이 코드를 불러 씀) ----------
+  // 시간이 흐르며 저절로 진행(AI 행동·단계 넘김·시간 초과)하는 부분은 tick(s, now)이 맡음
+  const TURN = 60; // 사람 한 번 행동 제한(초). 넘기면: 공개는 무작위, 베팅은 체크(낼 칩이 있으면 포기), 히트는 STAY
+  const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
+  const MULTI = {
+    TURN,
+    seats: o => Math.max(2, Math.min(5, Number(o && o.n) || 4)),
+    init(prev, o, seats) { // seats: [{name, bot}]
+      const chips = [10, 20, 30, 50].includes(Number(o && o.chips)) ? Number(o.chips) : 30, lv = [0, 1, 2].includes(Number(o && o.lv)) ? Number(o.lv) : 1;
+      const S = newGame(seats.map(x => x.name), chips, seats.map(x => !!x.bot), lv);
+      S.mid = Math.random().toString(36).slice(2, 9); S.noTimeout = !!(o && o.noTimeout); S.winner = -1;
+      S.log.push(`추첨으로 첫 선: ${S.players[S.first].name}`);
+      MULTI.newRound(S, Date.now() + 3000); // 선 추첨 연출이 끝날 시간
+      return S;
+    },
+    newRound(S, at) {
+      startRound(S); for (const p of alive(S)) if (p.ai) aiReveal(S, p.id);
+      S.at = at; S.waitKey = null;
+    },
+    actor(S) { // 지금 행동해야 하는 사람(사람만, 공개 단계는 여럿)
+      if (S.phase === 'reveal') return alive(S).filter(p => p.shown < 0).map(p => p.id);
+      if ((S.phase === 'bet1' || S.phase === 'bet2') && !bettingDone(S)) return [currentBettor(S)];
+      if (S.phase === 'hit' && !hitsDone(S)) return [S.hitTurn];
+      return [];
+    },
+    act(S, seat, a, now = Date.now()) {
+      const p = S.players[seat]; if (!p || p.out) fail('탈락해서 행동할 수 없어요.');
+      if (a.type === 'reveal') { if (S.phase !== 'reveal' || p.shown >= 0) fail('지금은 공개할 수 없어요.'); const i = Number(a.i); if (!(i >= 0 && i < 3)) fail('카드를 골라 주세요.'); reveal(S, seat, i); }
+      else if (a.type === 'bet') {
+        if (!(S.phase === 'bet1' || S.phase === 'bet2') || bettingDone(S) || currentBettor(S) !== seat) fail('지금은 내 베팅 차례가 아니에요.');
+        if (a.act === 'raise') { const to = Number(a.to); if (!Number.isInteger(to) || to <= S.bet.high || to > maxRaiseTo(S, p)) fail('올릴 수 있는 칩 수가 아니에요.'); betAction(S, seat, 'raise', to); }
+        else betAction(S, seat, a.act === 'fold' ? 'fold' : 'call');
+      }
+      else if (a.type === 'hit') { if (S.phase !== 'hit' || hitsDone(S) || S.hitTurn !== seat) fail('지금은 내 차례가 아니에요.'); hitAction(S, seat, !!a.hit); }
+      else fail('알 수 없는 행동이에요.');
+      S.at = Math.max(S.at || 0, now + 250);
+    },
+    tick(S, now = Date.now()) {
+      if (S.phase === 'over' || (S.at && now < S.at)) return false;
+      const who = MULTI.actor(S), key = S.phase + ':' + S.round + ':' + who.join(',') + ':' + (S.bet ? S.bet.queue.length : '') + ':' + S.deck.length;
+      if (key !== S.waitKey) { S.waitKey = key; S.deadline = S.noTimeout ? 0 : now + TURN * 1000; }
+      const timeUp = S.deadline && now >= S.deadline;
+      if (S.phase === 'reveal') {
+        if (allRevealed(S)) { startBetting(S, 'bet1'); S.at = now + 600; return true; }
+        if (timeUp) { for (const id of who) reveal(S, id, rnd(3)); S.log.push('시간 초과 → 무작위로 공개'); return true; }
+        return false;
+      }
+      if (S.phase === 'bet1' || S.phase === 'bet2') {
+        if (bettingDone(S)) {
+          if (inHand(S).length <= 1 || S.phase === 'bet2') { showdown(S); S.at = now + 4500; return true; }
+          startHits(S); S.at = now + 600; return true;
+        }
+        const id = currentBettor(S), p = S.players[id];
+        if (p.ai) { aiBet(S, id); S.at = now + 800; return true; }
+        if (timeUp) { S.log.push(`${p.name}: 시간 초과`); betAction(S, id, toCall(S, p) > 0 ? 'fold' : 'call'); return true; }
+        return false;
+      }
+      if (S.phase === 'hit') {
+        if (hitsDone(S)) { startBetting(S, 'bet2'); S.at = now + 600; return true; }
+        const p = S.players[S.hitTurn];
+        if (p.ai) { aiHit(S, p.id); S.at = now + 800; return true; }
+        if (timeUp) { S.log.push(`${p.name}: 시간 초과`); hitAction(S, p.id, false); return true; }
+        return false;
+      }
+      if (S.phase === 'result') {
+        if (gameOver(S)) { const w = alive(S)[0]; S.phase = 'over'; S.winner = w ? w.id : -1; S.log.push(w ? `최종 생존: ${w.name}` : '게임 끝'); return true; }
+        MULTI.newRound(S, now + 400); return true;
+      }
+      return false;
+    },
+    view(S, seat) {
+      const showAll = S.phase === 'result' || S.phase === 'over', me = S.players[seat];
+      const bet = (S.phase === 'bet1' || S.phase === 'bet2') && S.bet && !bettingDone(S);
+      return { mid: S.mid, me: seat, phase: S.phase, round: S.round, limit: S.limit, pot: S.phase === 'result' ? S.lastResult.pot : S.pot, base: S.base, cap: S.cap, deckLeft: S.deck ? S.deck.length : 0, first: S.first,
+        players: S.players.map(p => { const own = p.id === seat; const cards = p.cards.map((c, i) => own || showAll || i === p.shown || i >= 3 ? c : null);
+          return { id: p.id, name: p.name, ai: p.ai, chips: p.chips, put: p.put, out: p.out, folded: p.folded, stayed: p.stayed, shown: p.shown, cards }; }),
+        bettor: bet ? currentBettor(S) : -1, high: S.bet ? S.bet.high : 0, toCall: me && S.bet ? Math.min(toCall(S, me), me.chips) : 0, maxTo: me && S.bet ? maxRaiseTo(S, me) : 0,
+        hitTurn: S.phase === 'hit' && !hitsDone(S) ? S.hitTurn : -1, lastResult: showAll ? S.lastResult : null, winner: S.winner,
+        left: S.deadline && MULTI.actor(S).includes(seat) ? Math.max(0, S.deadline - Date.now()) : 0, log: S.log.slice(-80) };
+    },
+  };
+
+  const ENG = { MULTI, PROF, DECK, newGame, startRound, reveal, allRevealed, startBetting, betAction, bettingDone, currentBettor, startHits, hitAction, hitsDone, showdown, gameOver, aiReveal, aiBet, aiHit, inHand, alive, toCall, maxRaiseTo, sum };
   if (typeof module !== 'undefined' && module.exports) { module.exports = ENG; return; }
   if (typeof LAB === 'undefined') return;
 
@@ -179,126 +261,136 @@
       <li>선부터 돌아가며 카드를 더 받으면 <b>HIT</b>(공개), 그만 받으면 <b>STAY</b>. 모두 스테이하거나 카드가 떨어지면 <b>2차 베팅</b>.</li>
       <li>카드 합이 <b>한계 숫자 이하에서 가장 가까운</b> 사람이 판돈을 가져가요. 합이 같으면 카드가 많은 쪽, 한계를 넘으면 최하위. 그래도 같으면 나눠 갖고 남는 칩은 선에 가까운 사람이 가져요.</li>
       <li>칩이 0개가 되면 탈락. 마지막 1명이 남을 때까지 해요. 선은 매 라운드 왼쪽(다음 사람)으로 넘어가요.</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와요, 2~5인). 온라인에서 빈자리는 AI가 채우고, 내 차례는 60초 안에 정해야 해요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
-      let pend = { n: 4, chips: 30, lv: 1 }, cfg = { ...pend }, S = null, raiseTo = 0;
+      const roomLink = LAB.roomParam();
+      let pend = { n: 4, chips: 30, lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, S = null, net = null, V = null, room = null, raiseTo = 0, shownMid = null, recvAt = 0, busy = false, ended = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
-          <div class="hs-top"><div class="hs-die"><small>한계 숫자</small><b id="hsLimit">?</b></div><div class="hs-pot"><small>판돈</small><b id="hsPot">0</b></div><div class="hs-info"><span id="hsRound"></span><small id="hsBase"></small></div></div>
+          <div class="dn-lobby" id="hsLobby" hidden></div>
+          <div id="hsGame">
+          <div class="hs-top"><div class="hs-die"><small>한계 숫자</small><b id="hsLimit">?</b></div><div class="hs-pot"><small>판돈</small><b id="hsPot">0</b></div><div class="hs-pot mine"><small>내 칩</small><b id="hsMine">0</b></div><div class="hs-info"><span id="hsRound"></span><small id="hsBase"></small><b class="hs-time" id="hsTime"></b></div></div>
           <div class="hs-seats" id="hsSeats"></div>
           <p class="g-msg" id="hsMsg"></p>
           <div class="hs-act" id="hsAct"></div>
+          <div id="hsAgain"></div>
+          </div>
         </div>
         <aside class="g-side">
           <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>인원 (나 + AI)</span><div id="hsN"></div></div>
+            <div class="opt"><span>상대</span><div id="hsOpp"></div></div>
+            <div class="opt"><span id="hsNLab">인원 (나 + AI)</span><div id="hsN"></div></div>
             <div class="opt"><span>시작 칩</span><div id="hsChips"></div></div>
-            <div class="opt"><span>AI 난이도</span><div id="hsLv"></div></div>
+            <div class="opt"><span id="hsLvLab">AI 난이도</span><div id="hsLv"></div></div>
             <button type="button" class="primary" id="hsNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="hsLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
+      const labs = () => { $('hsNLab').textContent = pend.opp === 'net' ? '인원 (사람 + 빈자리는 AI)' : '인원 (나 + AI)'; $('hsLvLab').textContent = pend.opp === 'net' ? 'AI 난이도 (빈자리를 채울 때)' : 'AI 난이도'; };
+      $('hsOpp').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; labs(); })); labs();
       $('hsN').appendChild(seg([[2, '2인'], [3, '3인'], [4, '4인'], [5, '5인']], 4, v => pend.n = v));
       $('hsChips').appendChild(seg([[10, '10'], [20, '20'], [30, '30'], [50, '50']], 30, v => pend.chips = v));
       $('hsLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('hsNew').onclick = start;
-      const ME = 0;
       function start() {
-        T.clear(); cfg = { ...pend };
-        const names = ['나', ...['AI 1', 'AI 2', 'AI 3', 'AI 4'].slice(0, cfg.n - 1)];
-        S = ENG.newGame(names, cfg.chips, names.map((_, i) => i !== ME), cfg.lv);
-        S.log.push(`추첨으로 첫 선: ${S.players[S.first].name}`); LAB.coin(S.players.map(p => p.name), S.first, { title: '선 플레이어 추첨', suffix: '선' });
-        round();
-      }
-      function round() {
-        ENG.startRound(S);
-        for (const p of ENG.alive(S)) if (p.ai) ENG.aiReveal(S, p.id);
-        if (!S.players[ME].out) step(); else render();
-      }
-      function step() { // AI 차례를 하나씩 진행
-        render();
-        if (S.phase === 'reveal') { if (ENG.allRevealed(S)) { ENG.startBetting(S, 'bet1'); T.set(step, 500); } return; }
-        if (S.phase === 'bet1' || S.phase === 'bet2') {
-          if (ENG.bettingDone(S)) {
-            if (ENG.inHand(S).length <= 1 || S.phase === 'bet2') { ENG.showdown(S); render(); return afterRound(); }
-            ENG.startHits(S); T.set(step, 600); return;
-          }
-          const id = ENG.currentBettor(S);
-          if (S.players[id].ai) { T.set(() => { ENG.aiBet(S, id); step(); }, 750); }
-          else { raiseTo = Math.min(ENG.maxRaiseTo(S, S.players[ME]), S.bet.high + 1); render(); }
-          return;
+        T.clear(); cfg = { ...pend }; S = null; V = null; room = null; ended = null;
+        if (net) { net.close(); net = null; }
+        if (cfg.opp === 'net') {
+          $('hsGame').hidden = true;
+          net = LAB.duel('hitstay', { el: $('hsLobby'), title: `사람과 HIT, STAY (${cfg.n}인)`, opts: () => ({ n: cfg.n, chips: cfg.chips, lv: cfg.lv }),
+            onView: v => { if (!v.st) { $('hsGame').hidden = true; return; } net.hideLobby(); $('hsGame').hidden = false; room = v; recvAt = Date.now(); show(v.st); }, onError: m => { $('hsMsg').textContent = m; } });
+          net.start(); T.every(() => V && paintTime(), 500); return;
         }
-        if (S.phase === 'hit') {
-          if (ENG.hitsDone(S)) { ENG.startBetting(S, 'bet2'); T.set(step, 600); return; }
-          if (S.players[S.hitTurn].ai) T.set(() => { ENG.aiHit(S, S.hitTurn); step(); }, 750);
-          return;
-        }
+        $('hsLobby').hidden = true; $('hsGame').hidden = false;
+        const seats = [{ name: '나' }, ...['AI 1', 'AI 2', 'AI 3', 'AI 4'].slice(0, cfg.n - 1).map(name => ({ name, bot: true }))];
+        S = MULTI.init(null, { chips: cfg.chips, lv: cfg.lv, noTimeout: true }, seats);
+        local(); T.every(() => { if (S && MULTI.tick(S, Date.now())) local(); }, 150);
       }
-      function afterRound() {
-        const me = S.players[ME];
-        if (me.out) { const rank = ENG.alive(S).length + 1; T.set(() => LAB.end('탈락', `칩을 모두 잃어 ${rank}위 (${S.players.length}명 중) · ${S.round}라운드`, start), 1800); return; }
-        if (ENG.gameOver(S)) { T.set(() => LAB.end('1위 · 최종 생존', `${S.round}라운드 만에 마지막 1명으로 남았어요 · 칩 ${me.chips}개`, start), 1800); return; }
-        T.set(() => { round(); }, 3200);
+      function local() {
+        show(MULTI.view(S, 0));
+        if ((S.phase === 'over' || (S.players[0].out && S.phase === 'result')) && !ended) { ended = true; const me = S.players[0], rank = S.outOrder.includes(0) ? S.players.length - S.outOrder.indexOf(0) : 1;
+          T.set(() => LAB.end(rank === 1 ? '1위 · 최종 생존' : '탈락', rank === 1 ? `${S.round}라운드 만에 마지막 1명으로 남았어요 · 칩 ${me.chips}개` : `칩을 모두 잃어 ${rank}위 (${S.players.length}명 중) · ${S.round}라운드`, start), 1200); }
       }
-      // 사람 조작
+      async function send(a) {
+        if (busy) return;
+        if (net) { busy = true; await net.act(a); busy = false; return; }
+        try { MULTI.act(S, 0, a); } catch (e) { $('hsMsg').textContent = e.message; return; }
+        local();
+      }
       function act(a) {
-        if (!S) return;
-        if (S.phase === 'reveal' && a.startsWith('show')) { ENG.reveal(S, ME, +a.slice(4)); step(); return; }
-        if ((S.phase === 'bet1' || S.phase === 'bet2') && ENG.currentBettor(S) === ME) {
-          if (a === 'fold') ENG.betAction(S, ME, 'fold'); else if (a === 'raise') ENG.betAction(S, ME, 'raise', raiseTo); else if (a === 'call') ENG.betAction(S, ME, 'call'); else return;
-          step(); return;
-        }
-        if (S.phase === 'hit' && S.hitTurn === ME && (a === 'hit' || a === 'stay')) { ENG.hitAction(S, ME, a === 'hit'); step(); return; }
-        if (a === 'rp') { raiseTo = Math.min(ENG.maxRaiseTo(S, S.players[ME]), raiseTo + 1); render(); }
-        if (a === 'rm') { raiseTo = Math.max(S.bet.high + 1, raiseTo - 1); render(); }
+        const v = V; if (!v) return;
+        if (a.startsWith('show')) return send({ type: 'reveal', i: +a.slice(4) });
+        if (a === 'fold' || a === 'call') return send({ type: 'bet', act: a });
+        if (a === 'raise') return send({ type: 'bet', act: 'raise', to: raiseTo });
+        if (a === 'hit' || a === 'stay') return send({ type: 'hit', hit: a === 'hit' });
+        if (a === 'rp') { raiseTo = Math.min(v.maxTo, raiseTo + 1); show(v); }
+        if (a === 'rm') { raiseTo = Math.max(v.high + 1, raiseTo - 1); show(v); }
+        if (a === 'rmax') { raiseTo = v.maxTo; show(v); }
+        if (a === 'again') send({ type: 'again' });
       }
-      wrap.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.disabled && wrap.contains(b)) act(b.dataset.a); }); // 공개할 카드(자리 안)와 조작 버튼
+      wrap.addEventListener('change', e => { if (e.target.id !== 'hsRaiseIn' || !V) return; const n = Math.round(Number(e.target.value)); raiseTo = Math.max(V.high + 1, Math.min(V.maxTo, Number.isFinite(n) ? n : raiseTo)); show(V); });
+      wrap.addEventListener('keydown', e => { if (e.target.id === 'hsRaiseIn' && e.key === 'Enter') e.target.blur(); });
+      wrap.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.disabled && wrap.contains(b)) act(b.dataset.a); });
+      function paintTime() { const s = V.left ? Math.max(0, Math.ceil((V.left - (Date.now() - recvAt)) / 1000)) : 0; $('hsTime').textContent = s ? `내 차례 ${s}초` : ''; $('hsTime').classList.toggle('warn', s > 0 && s <= 10); }
 
       const card = (v, cls = '', attrs = '') => `<span class="hsc ${v < 0 ? 'neg' : ''} ${cls}" ${attrs}>${v == null ? '' : v}</span>`;
-      function render() {
-        const showAll = S.phase === 'result';
-        $('hsLimit').textContent = S.limit ?? '?'; $('hsPot').textContent = S.phase === 'result' ? S.lastResult.pot : S.pot;
-        $('hsRound').textContent = `${S.round}라운드`; $('hsBase').textContent = `기본 베팅 ${S.base} · 최대 ${S.cap}개 · 남은 카드 ${S.deck.length}장`;
-        $('hsSeats').innerHTML = S.players.map(p => {
-          const isMe = p.id === ME, sumTxt = isMe || showAll ? `합 ${ENG.sum(p.cards)}` : `보이는 합 ${ENG.sum(p.cards.filter((c, i) => i === p.shown || i >= 3))}`;
+      let lastBetKey = '';
+      function show(v) {
+        V = v; const ME = v.me, P = v.players, me = P[ME], name = id => id === ME ? '나' : P[id].name;
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(P.map(p => p.id === ME ? '나' : p.name), v.first, { title: '선 플레이어 추첨', suffix: '선' }); }
+        const betKey = v.round + ':' + v.phase + ':' + v.high; if (v.bettor === ME && betKey !== lastBetKey) { lastBetKey = betKey; raiseTo = Math.min(v.maxTo, v.high + 1); }
+        const showAll = v.phase === 'result' || v.phase === 'over', R = v.lastResult;
+        $('hsLimit').textContent = v.limit ?? '?'; $('hsPot').textContent = v.pot; $('hsMine').textContent = me.chips;
+        $('hsRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.round}라운드`; $('hsBase').textContent = `기본 베팅 ${v.base} · 최대 ${v.cap}개 · 남은 카드 ${v.deckLeft}장`;
+        paintTime();
+        $('hsSeats').innerHTML = P.map(p => {
+          const isMe = p.id === ME, vis = p.cards.filter(c => c != null);
+          const sumTxt = isMe || showAll ? `합 ${ENG.sum(p.cards)}` : ''; // 다른 사람은 공개된 카드만 보여 주고 합은 계산해 주지 않음
           const cards = p.cards.map((c, i) => {
-            const open = isMe || showAll || i === p.shown || i >= 3;
-            const pick = isMe && S.phase === 'reveal' && p.shown < 0 && i < 3;
+            const pick = isMe && v.phase === 'reveal' && p.shown < 0 && i < 3;
             if (pick) return `<button type="button" class="hsc pick ${c < 0 ? 'neg' : ''}" data-a="show${i}">${c}</button>`;
-            return open ? card(c, `${isMe && i < 3 && i !== p.shown ? 'secret' : ''} ${i >= 3 ? 'hit' : ''}`) : card(null, 'back');
+            return c != null ? card(c, `${isMe && i < 3 && i !== p.shown ? 'secret' : ''} ${i >= 3 ? 'hit' : ''}`) : card(null, 'back');
           }).join('');
           const st = p.out ? '탈락' : p.folded ? '포기' : p.stayed ? 'STAY' : '';
-          const turn = !p.out && ((S.phase === 'hit' && S.hitTurn === p.id) || ((S.phase === 'bet1' || S.phase === 'bet2') && S.bet && S.bet.queue[0] === p.id));
-          const won = showAll && S.lastResult.winners.includes(p.id);
-          const over = (isMe || showAll) && ENG.sum(p.cards) > S.limit && p.cards.length;
+          const turn = !p.out && (v.hitTurn === p.id || v.bettor === p.id || (v.phase === 'reveal' && p.shown < 0));
+          const won = R && v.phase === 'result' && R.winners.includes(p.id);
+          const over = (isMe || showAll) && p.cards.length && ENG.sum(p.cards) > v.limit;
+          const off = room && room.players && room.players[p.id] && !room.players[p.id].online;
           return `<div class="hs-seat ${isMe ? 'me' : ''} ${p.out ? 'out' : ''} ${p.folded && !p.out ? 'fold' : ''} ${turn ? 'turn' : ''} ${won ? 'won' : ''}">
-            <div class="hs-name"><b>${esc(p.name)}</b>${S.first === p.id ? '<span class="tag">선</span>' : ''}${st ? `<span class="st">${st}</span>` : ''}</div>
-            <div class="hs-chips">칩 <b>${p.chips}</b>${p.put ? ` · 건 칩 ${p.put}` : ''}${won ? ` · <b class="plus">+${S.lastResult.got[p.id]}</b>` : ''}</div>
+            <div class="hs-name"><b>${esc(isMe ? (net ? p.name + ' (나)' : '나') : p.name)}</b>${v.first === p.id ? '<span class="tag">선</span>' : ''}${off ? '<span class="st">연결 끊김</span>' : st ? `<span class="st">${st}</span>` : ''}</div>
+            <div class="hs-chips">칩 <b>${p.chips}</b>${p.put ? ` · 건 칩 ${p.put}` : ''}${won ? ` · <b class="plus">+${R.got[p.id]}</b>` : ''}</div>
             <div class="hs-cards">${cards}</div>
             <div class="hs-sum ${over ? 'bust' : ''}">${p.out ? '' : sumTxt}${over ? ' · 초과' : ''}</div></div>`;
         }).join('');
-        // 조작판
-        const me = S.players[ME]; let a = '', msg = '';
-        if (me.out) msg = '탈락했어요';
-        else if (S.phase === 'reveal') { msg = me.shown < 0 ? '세 장 중 모두에게 공개할 카드 1장을 누르세요' : '공개 중…'; }
-        else if ((S.phase === 'bet1' || S.phase === 'bet2') && !ENG.bettingDone(S) && ENG.currentBettor(S) === ME) {
-          const need = Math.min(ENG.toCall(S, me), me.chips), maxTo = ENG.maxRaiseTo(S, me);
-          msg = `${S.phase === 'bet1' ? '1차' : '2차'} 베팅 — 내 차례`;
-          a = `<button type="button" data-a="fold">포기</button><button type="button" class="primary" data-a="call">${need ? `콜 (${need}개)` : '체크'}</button>` +
-            (maxTo > S.bet.high ? `<span class="hs-raise"><button type="button" data-a="rm" ${raiseTo <= S.bet.high + 1 ? 'disabled' : ''}>−</button><button type="button" data-a="raise">레이즈 → 총 ${raiseTo}개</button><button type="button" data-a="rp" ${raiseTo >= maxTo ? 'disabled' : ''}>+</button></span>` : '<span class="muted">더 올릴 수 없어요 (최대 칩)</span>');
+        let a = '', msg = '';
+        if (v.phase === 'over') msg = v.winner === ME ? '최종 생존! 1위예요' : v.winner >= 0 ? `${P[v.winner].name} 최종 생존` : '게임 끝';
+        else if (me.out) msg = '탈락했어요 · 남은 사람들의 게임을 지켜보는 중';
+        else if (v.phase === 'reveal') msg = me.shown < 0 ? '세 장 중 모두에게 공개할 카드 1장을 누르세요' : '다른 사람들이 공개할 카드를 고르는 중…';
+        else if (v.bettor === ME) {
+          const maxTo = v.maxTo;
+          msg = `${v.phase === 'bet1' ? '1차' : '2차'} 베팅 — 내 차례`;
+          a = `<button type="button" data-a="fold">포기</button><button type="button" class="primary" data-a="call">${v.toCall ? `콜 (${v.toCall}개)` : '체크'}</button>` +
+            (maxTo > v.high ? `<span class="hs-raise"><button type="button" data-a="rm" aria-label="1개 빼기" ${raiseTo <= v.high + 1 ? 'disabled' : ''}>−</button><input type="number" id="hsRaiseIn" inputmode="numeric" min="${v.high + 1}" max="${maxTo}" value="${raiseTo}" aria-label="레이즈 후 총 칩 수"><button type="button" data-a="rp" aria-label="1개 더하기" ${raiseTo >= maxTo ? 'disabled' : ''}>+</button><button type="button" data-a="rmax" ${raiseTo >= maxTo ? 'disabled' : ''}>최대 ${maxTo}</button><button type="button" class="primary" data-a="raise">레이즈 → 총 ${raiseTo}개</button></span>
+              <p class="hs-cap">이번 라운드에 한 사람이 걸 수 있는 칩은 총 ${v.cap}개까지예요 (라운드 시작 때 칩이 가장 적은 사람 기준)${maxTo < v.cap ? ` · 내 남은 칩으로는 총 ${maxTo}개까지` : ''}</p>` : `<span class="muted">더 올릴 수 없어요 (이번 라운드 최대 ${v.cap}개)</span>`);
         }
-        else if (S.phase === 'hit' && S.hitTurn === ME && !ENG.hitsDone(S)) { msg = `카드를 더 받을까요? 내 합 ${ENG.sum(me.cards)} / 한계 ${S.limit}`; a = `<button type="button" class="primary" data-a="hit">HIT (한 장 더)</button><button type="button" data-a="stay">STAY (그만)</button>`; }
-        else if (S.phase === 'result') { const r = S.lastResult; msg = r.winners.includes(ME) ? (r.winners.length > 1 ? `무승부 — 판돈을 나눠 ${r.got[ME]}개 받았어요` : `이겼어요! 판돈 ${r.pot}개를 가져왔어요`) : r.single ? `${S.players[r.winners[0]].name}만 남아 판돈을 가져갔어요` : `${r.winners.map(i => S.players[i].name).join('·')} 승리`; }
+        else if (v.hitTurn === ME) { msg = `카드를 더 받을까요? 내 합 ${ENG.sum(me.cards)} / 한계 ${v.limit}`; a = `<button type="button" class="primary" data-a="hit">HIT (한 장 더)</button><button type="button" data-a="stay">STAY (그만)</button>`; }
+        else if (v.phase === 'result' && R) msg = R.winners.includes(ME) ? (R.winners.length > 1 ? `무승부 — 판돈을 나눠 ${R.got[ME]}개 받았어요` : `이겼어요! 판돈 ${R.pot}개를 가져왔어요`) : R.single ? `${name(R.winners[0])}만 남아 판돈을 가져갔어요` : `${R.winners.map(name).join('·')} 승리`;
         else if (me.folded) msg = '이번 라운드는 포기했어요';
-        else msg = S.phase === 'hit' ? `${S.players[S.hitTurn]?.name || ''} 고르는 중…` : S.bet ? `${S.players[ENG.currentBettor(S)]?.name || ''} 베팅 중…` : '';
+        else msg = v.hitTurn >= 0 ? `${P[v.hitTurn].name} 고르는 중…` : v.bettor >= 0 ? `${P[v.bettor].name} 베팅 중…` : '';
         $('hsMsg').textContent = msg; $('hsAct').innerHTML = a;
-        $('hsLog').innerHTML = S.log.slice(-80).reverse().map(x => `<span>${esc(x)}</span>`).join('');
+        // 온라인: 끝나면 다시 하기 (사람 모두 눌러야 새 판)
+        let ag = '';
+        if (room && v.phase === 'over') { const mine = room.players[ME].again, wait = room.players.filter(p => p && !p.bot && !p.again).map(p => p.name);
+          ag = `<div class="dn-again">${mine ? `<span class="muted">${esc(wait.join(', '))} 기다리는 중…</span>` : '<button type="button" class="primary" data-a="again">다시 하기</button>'}</div>`; }
+        $('hsAgain').innerHTML = ag;
+        $('hsLog').innerHTML = v.log.slice(-80).reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      LAB.ready(root, start);
-      return () => T.clear();
+      if (roomLink) start(); else LAB.ready(root, start);
+      return () => { T.clear(); if (net) net.close(); };
     }
   });
 })();

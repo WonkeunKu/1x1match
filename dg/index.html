@@ -349,7 +349,8 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .grd small { font-size: 10px; color: var(--amber); letter-spacing: 1px; min-height: 11px; } .grd:disabled { opacity: .3; }
 .gr-table { min-height: 96px; display: grid; place-items: center; }
 /* ---- HIT, STAY ---- */
-.hs-top { display: grid; grid-template-columns: auto auto 1fr; gap: 12px; align-items: center; }
+.hs-top { display: grid; grid-template-columns: auto auto auto 1fr; gap: 12px; align-items: center; }
+@media (max-width: 520px) { .hs-top { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .hs-top .hs-info { grid-column: 1 / -1; text-align: center; } }
 .hs-die, .hs-pot { display: grid; justify-items: center; background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px; }
 .hs-die small, .hs-pot small { font-size: 11px; color: var(--chalk-dim); } .hs-die b { font-family: var(--f-display); font-size: 34px; color: var(--amber); line-height: 1.1; } .hs-pot b { font-family: var(--f-mono); font-size: 26px; }
 .hs-info { display: grid; text-align: right; min-width: 0; } .hs-info span { font-weight: 700; } .hs-info small { color: var(--chalk-dim); font-size: 12px; }
@@ -367,7 +368,11 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .hsc.pick { cursor: pointer; box-shadow: 0 0 0 2px var(--amber); }
 .hs-sum { font-size: 12px; color: var(--chalk-dim); } .hs-sum.bust { color: var(--red); font-weight: 700; }
 .hs-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
-.hs-raise { display: inline-flex; gap: 4px; }
+.hs-raise { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.hs-raise input { width: 64px; background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px; color: var(--chalk); font: 600 16px var(--f-mono); text-align: center; }
+.hs-cap { flex-basis: 100%; margin: 2px 0 0; text-align: center; font-size: 12px; color: var(--chalk-dim); }
+.hs-pot.mine { border-color: rgba(111,196,234,.6); } .hs-pot.mine b { color: #6fc4ea; }
+.hs-time { font-family: var(--f-mono); font-size: 13px; color: var(--amber); } .hs-time.warn { color: var(--red); }
 /* ---- 카드 장기 ---- */
 .cj-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .cj-q { display: grid; gap: 4px; } .cj-q .muted { font-size: 12px; }
@@ -446,6 +451,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .dn-code { font-size: 14px; color: var(--chalk-dim); } .dn-code span { display: block; font-family: var(--f-mono); font-size: 40px; letter-spacing: .25em; color: var(--amber); font-weight: 700; }
 .dn-link { display: grid; grid-template-columns: 1fr auto; gap: 6px; } .dn-link input { font-size: 13px; font-family: var(--f-mono); }
 .dn-err { color: var(--red) !important; min-height: 18px; }
+.dn-seats { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; text-align: left; } .dn-seats li { background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 14px; } .dn-seats li.empty { color: var(--chalk-dim); border-style: dashed; }
 .dn-again { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 </style>
 </head>
@@ -534,9 +540,9 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 <script src="games/indian.js?v=11"></script>
 <script src="games/blackwhite.js?v=11"></script>
 <script src="games/memmaze.js?v=11"></script>
-<script src="games/duelnet.js?v=1"></script>
+<script src="games/duelnet.js?v=3"></script>
 <script src="games/gradation.js?v=6"></script>
-<script src="games/hitstay.js?v=2"></script>
+<script src="games/hitstay.js?v=4"></script>
 <script src="games/cardjanggi.js?v=3"></script>
 <script src="games/colorlink.js?v=2"></script>
 <script src="games/signal.js?v=3"></script>

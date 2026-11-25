@@ -23,6 +23,17 @@
     }
     function waitRoom(v) {
       o.el.hidden = false;
+      if (v.multi) { // 여럿이 하는 방: 들어온 사람 목록 + 방장 시작 버튼
+        const joined = v.players.filter(Boolean).length;
+        o.el.innerHTML = `<div class="dn-box"><b>참가자를 기다리는 중… (${joined}/${v.n})</b>
+          <p>아래 링크나 방 코드를 보내세요. 자리가 다 차면 바로 시작해요.${v.seat === 0 ? ' 먼저 시작하면 빈자리는 AI가 채워요.' : ''}</p>
+          <div class="dn-code">방 코드 <span>${esc(code)}</span></div>
+          <div class="dn-link"><input readonly value="${esc(link())}"><button type="button" class="primary" data-copy>링크 복사</button></div>
+          <ol class="dn-seats">${v.players.map((p, k) => `<li class="${p ? '' : 'empty'}">${p ? esc(p.name) + (k === v.seat ? ' (나)' : '') + (k === 0 ? ' · 방장' : '') : '빈자리'}</li>`).join('')}</ol>
+          ${v.seat === 0 ? `<button type="button" class="primary" data-start ${joined < 2 ? 'disabled' : ''}>지금 시작 (빈자리 ${v.n - joined}개는 AI)</button>` : '<p class="muted">방장이 시작하기를 기다리는 중…</p>'}
+          <button type="button" data-leave>나가기</button><p class="dn-err"></p></div>`;
+        const st = o.el.querySelector('[data-start]'); if (st) st.onclick = async () => { const e = await net.act({ type: 'start' }); if (e) o.el.querySelector('.dn-err').textContent = e; };
+      } else
       o.el.innerHTML = `<div class="dn-box"><b>상대를 기다리는 중…</b>
         <p>아래 링크나 방 코드를 상대에게 보내세요. 상대가 들어오면 바로 시작해요.</p>
         <div class="dn-code">방 코드 <span>${esc(code)}</span></div>
@@ -35,9 +46,9 @@
       get code() { return code; }, get last() { return last; },
       lobby(msg) {
         o.el.hidden = false;
-        const nameField = ME ? `<p class="muted">${esc(ME.nickname)} 님으로 들어가요</p>` : `<label class="dn-name">이름 <input id="dnName" maxlength="10" placeholder="상대에게 보일 이름" value="${esc(store.get('duel:name') || '')}"></label>`;
-        o.el.innerHTML = `<div class="dn-box"><b>사람과 1:1 대결</b>
-          <p>각자 자기 폰이나 컴퓨터로 같은 방에 들어와서 해요. 내 패는 상대 화면에 보이지 않아요.</p>
+        const nameField = ME ? `<p class="muted">${esc(ME.nickname)} 님으로 들어가요</p>` : `<label class="dn-name">이름 <input id="dnName" maxlength="10" placeholder="다른 사람에게 보일 이름" value="${esc(store.get('duel:name') || '')}"></label>`;
+        o.el.innerHTML = `<div class="dn-box"><b>${esc(o.title || '사람과 1:1 대결')}</b>
+          <p>각자 자기 폰이나 컴퓨터로 같은 방에 들어와서 해요. 내 패는 ${o.title ? '다른 사람' : '상대'} 화면에 보이지 않아요.</p>
           ${nameField}
           <button type="button" class="primary" data-make>방 만들기</button>
           <div class="dn-join"><input id="dnCode" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters"><button type="button" data-join>들어가기</button></div>
