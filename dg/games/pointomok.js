@@ -238,24 +238,19 @@
           </div>
         </div>
         <aside class="g-side">
-          <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>상대</span><div id="poOpp2"></div></div>
-            <div class="opt" id="poLvOpt"><span>AI 난이도</span><div id="poLv"></div></div>
-            <button type="button" class="primary" id="poNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="poLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('poOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('poLvOpt').hidden = v !== 'ai'; }));
-      $('poLvOpt').hidden = pend.opp !== 'ai';
-      $('poLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
-      $('poNew').onclick = start;
+      // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
+      const front = LAB.duelFront({ el: $('poLobby'), gameEl: $('poGame'), soloOpts: [{ key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       function start() {
         T.clear(); aiPending = false; cfg = { ...pend }; pickA = null; triple = null; bet = [1, 1, 1]; betRound = 0; lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('poGame').hidden = true;
-          net = LAB.duel('pointomok', { el: $('poLobby'), onView: v => { if (!v.st) { $('poGame').hidden = true; return; } net.hideLobby(); $('poGame').hidden = false; recvAt = Date.now(); show(v.st, v.opp || '상대', v); }, onError: m => { $('poMsg').textContent = m; } });
+          net = LAB.duel('pointomok', { front, el: $('poLobby'), onView: v => { if (!v.st) { $('poGame').hidden = true; return; } net.hideLobby(); $('poGame').hidden = false; recvAt = Date.now(); show(v.st, v.opp || '상대', v); }, onError: m => { $('poMsg').textContent = m; } });
           net.start(); T.every(() => lastArgs && paintTime(), 500); return;
         }
         $('poLobby').hidden = true; $('poGame').hidden = false;
@@ -339,7 +334,7 @@
         $('poAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
         $('poLog').innerHTML = v.log.slice().reverse().map(x => `<span>${x.timeout ? `${x.p === 0 ? '나' : esc(oppName)}: 시간 초과 (${x.timeout === 'choose' ? '무작위 선택' : '1·1·1 베팅'})` : `${x.round}라운드 (선택 ${x.chooser === 0 ? '나' : esc(oppName)}): ${x.own.map(o => o === 0 ? '나' : esc(oppName)).join(' · ')}`}</span>`).join('');
       }
-      if (roomLink) start(); else LAB.ready(root, start);
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });

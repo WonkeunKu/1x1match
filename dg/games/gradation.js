@@ -207,25 +207,20 @@
           </div>
         </div>
         <aside class="g-side">
-          <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>상대</span><div id="grOpp2"></div></div>
-            <div class="opt" id="grLvOpt"><span>AI 난이도</span><div id="grLv"></div></div>
-            <button type="button" class="primary" id="grNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="grLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('grOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('grLvOpt').hidden = v !== 'ai'; }));
-      $('grLvOpt').hidden = pend.opp !== 'ai';
-      $('grLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
-      $('grNew').onclick = start;
+      // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
+      const front = LAB.duelFront({ el: $('grLobby'), gameEl: $('grGame'), soloOpts: [{ key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       let logs = [];
       function start() {
         T.clear(); cfg = { ...pend }; draft = Array(7).fill(null); sel = 0; logs = []; V = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('grGame').hidden = true;
-          net = LAB.duel('gradation', { el: $('grLobby'), onView: v => { if (!v.st) { $('grGame').hidden = true; return; } net.hideLobby(); $('grGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('grMsg').textContent = m; } });
+          net = LAB.duel('gradation', { front, el: $('grLobby'), onView: v => { if (!v.st) { $('grGame').hidden = true; return; } net.hideLobby(); $('grGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('grMsg').textContent = m; } });
           net.start(); return;
         }
         $('grLobby').hidden = true; $('grGame').hidden = false;
@@ -313,7 +308,7 @@
         $('grHist').innerHTML = v.hist.length ? `<table><tr><th>R</th>${v.hist.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr><tr><td>나</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[0]]]}"></span>${x.x[0]}${x.first === 0 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>${esc(oppName)}</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[1]]]}"></span>${x.x[1]}${x.first === 1 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>결과</td>${v.hist.map(x => `<td>${x.r === 0 ? '승' : x.r === 1 ? '패' : '='}</td>`).join('')}</tr></table>` : '';
         $('grLog').innerHTML = [...logs, ...v.log].slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      if (roomLink) start(); else LAB.ready(root, start);
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });

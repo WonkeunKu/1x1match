@@ -269,17 +269,13 @@
       const T = LAB.timers();
       const roomLink = LAB.roomParam();
       LAB.paused = false;
-      // 화면 흐름은 무거운13·슬리더링크와 같음: 시작 화면(친구와 하기 / 혼자 AI와 연습) → 대기실(방장이 설정·시작) → 게임
-      let solo = { n: 4, chips: 30, lv: 1 }, S = null, net = null, V = null, room = null, raiseTo = 0, shownMid = null, recvAt = 0, busy = false, ended = null, ME = null, menuErr = '';
-      const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
-      let NAME = store.get('duel:name');
+      // 시작 화면·대기실은 모든 대결 게임 공통 (LAB.duelFront, 무거운13·슬리더링크와 같은 흐름)
+      let pend = { n: 4, chips: 30, lv: 1, opp: 'ai' }, S = null, net = null, V = null, room = null, raiseTo = 0, shownMid = null, recvAt = 0, busy = false, ended = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
-          <div id="hsMenu" class="hs-menu"></div>
-          <div id="hsRoom" class="hs-menu" hidden></div>
+          <div class="dn-lobby" id="hsLobby" hidden></div>
           <div id="hsGame" hidden>
-          <div class="hs-bar"><span class="muted" id="hsWho"></span><button type="button" class="hs-leave" id="hsLeave">← 나가기</button></div>
           <div class="hs-top"><div class="hs-die"><small>한계 숫자</small><b id="hsLimit">?</b></div><div class="hs-pot"><small>판돈</small><b id="hsPot">0</b></div><div class="hs-pot mine"><small>내 칩</small><b id="hsMine">0</b></div><div class="hs-info"><span id="hsRound"></span><small id="hsBase"></small><b class="hs-time" id="hsTime"></b></div></div>
           <div class="hs-seats" id="hsSeats"></div>
           <p class="g-msg" id="hsMsg"></p>
@@ -292,79 +288,26 @@
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      const screen = k => { $('hsMenu').hidden = k !== 'menu'; $('hsRoom').hidden = k !== 'room'; $('hsGame').hidden = k !== 'game'; };
-      const segRow = (key, opts, cur, dis = false) => `<div class="seg" data-key="${key}">${opts.map(([v, l]) => `<button type="button" class="${v === cur ? 'on' : ''}" data-v="${v}" ${dis ? 'disabled' : ''}>${l}</button>`).join('')}</div>`;
-      const N_OPTS = [[2, '2인'], [3, '3인'], [4, '4인'], [5, '5인']], C_OPTS = [[10, '10개'], [20, '20개'], [30, '30개'], [50, '50개']], L_OPTS = [[0, '쉬움'], [1, '보통'], [2, '어려움']];
-      fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { ME = d.user || null; if (!$('hsMenu').hidden) renderMenu(); }).catch(() => {});
-
-      function renderMenu() {
-        screen('menu');
-        $('hsMenu').innerHTML = `
-          <div class="hs-box">${ME ? `<p class="muted">${esc(ME.nickname)} 님으로 참가해요</p>` : `<label class="hs-lab" for="hsNm">내 이름</label><input id="hsNm" maxlength="10" placeholder="게임에서 보일 이름" value="${esc(NAME)}" autocomplete="nickname">`}
-            <div class="hs-lab">친구와 하기 (2~5인, 빈자리는 AI)</div>
-            <button type="button" class="primary" data-m="create">방 만들기</button>
-            <div class="hs-join"><input id="hsCode" maxlength="4" placeholder="방 코드 4자리" autocomplete="off"><button type="button" data-m="join">참가</button></div></div>
-          <div class="hs-box"><div class="hs-lab">혼자 AI와 연습</div>
-            <div class="hs-lab sub">인원 (나 + AI)</div>${segRow('n', N_OPTS, solo.n)}
-            <div class="hs-lab sub">시작 칩</div>${segRow('chips', C_OPTS, solo.chips)}
-            <div class="hs-lab sub">AI 실력</div>${segRow('lv', L_OPTS, solo.lv)}
-            <button type="button" data-m="solo">AI와 바로 시작</button></div>
-          <p class="dn-err">${esc(menuErr)}</p>`;
-        const nm = $('hsNm'); if (nm) nm.oninput = () => { NAME = nm.value.trim(); store.set('duel:name', NAME); };
-      }
-      function renderRoom(v) {
-        screen('room'); room = v;
-        const host = v.seat === 0, o = v.opts, people = v.players.filter(Boolean).length;
-        $('hsRoom').innerHTML = `
-          <div class="hs-box"><div class="hs-code"><small>방 코드</small><b>${esc(v.code)}</b><button type="button" data-m="copy">초대 링크 복사</button></div>
-            <p class="muted">코드나 초대 링크를 보내면 같이 할 수 있어요. 빈자리는 시작할 때 AI가 채워요.</p></div>
-          <div class="hs-box"><div class="hs-lab">참가자 ${people}명 · AI ${v.n - people}명</div>
-            <div class="hs-mems">${v.players.map((p, k) => p ? `<div class="hs-mem"><span class="dot ${p.online ? 'on' : ''}"></span>${esc(p.name)}${k === v.seat ? ' <span class="muted">(나)</span>' : ''}${k === 0 ? '<span class="tag">방장</span>' : ''}</div>` : '<div class="hs-mem ai">빈자리 → AI</div>').join('')}</div></div>
-          <div class="hs-box"><div class="hs-lab sub">인원</div>${segRow('rn', N_OPTS, o.n, !host)}
-            <div class="hs-lab sub">시작 칩</div>${segRow('rchips', C_OPTS, o.chips, !host)}
-            <div class="hs-lab sub">AI 실력</div>${segRow('rlv', L_OPTS, o.lv, !host)}
-            ${host ? '<button type="button" class="primary" data-m="start">게임 시작</button>' : '<p class="muted">방장이 시작하기를 기다리는 중…</p>'}
-            <button type="button" data-m="leave">방 나가기</button></div>
-          <p class="dn-err" id="hsRoomErr"></p>`;
-      }
-      const needName = () => { if (ME || NAME) return false; menuErr = '이름을 입력하세요'; renderMenu(); $('hsNm') && $('hsNm').focus(); return true; };
-      function mkNet() {
-        return LAB.duel('hitstay', { el: $('hsRoom'), opts: () => ({ n: 4, chips: 30, lv: 1 }),
-          onWait: v => renderRoom(v),
-          onView: v => { room = v; if (!v.st) return; screen('game'); recvAt = Date.now(); show(v.st); },
-          onError: m => { const e = $('hsRoomErr'); if (e && !$('hsRoom').hidden) e.textContent = m; else $('hsMsg').textContent = m; },
-          onJoinFail: m => { net = null; menuErr = m; renderMenu(); } });
-      }
+      const N_OPTS = { key: 'n', label: '인원', opts: [[2, '2인'], [3, '3인'], [4, '4인'], [5, '5인']], def: 4 }, C_OPTS = { key: 'chips', label: '시작 칩', opts: [[10, '10개'], [20, '20개'], [30, '30개'], [50, '50개']], def: 30 }, L_OPTS = { key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 };
+      const front = LAB.duelFront({ el: $('hsLobby'), gameEl: $('hsGame'), friendLabel: '친구와 하기 (2~5인, 빈자리는 AI)', soloOpts: [{ ...N_OPTS, label: '인원 (나 + AI)' }, C_OPTS, L_OPTS], roomOpts: [N_OPTS, C_OPTS, L_OPTS],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => reset() });
       function reset() { T.clear(); if (net) { net.close(); net = null; } S = null; V = null; room = null; ended = null; shownMid = null; $('hsLog').innerHTML = ''; }
-      async function createRoom() { if (needName()) return; reset(); net = mkNet(); try { await net.create(ME ? ME.nickname : NAME); T.every(() => V && paintTime(), 500); } catch (e) { net = null; menuErr = e.message; renderMenu(); } }
-      function joinRoom(code) { reset(); net = mkNet(); net.join(code, ME ? ME.nickname : NAME); T.every(() => V && paintTime(), 500); }
-      function startSolo() {
-        reset(); screen('game');
-        const seats = [{ name: '나' }, ...['AI 1', 'AI 2', 'AI 3', 'AI 4'].slice(0, solo.n - 1).map(name => ({ name, bot: true }))];
-        S = MULTI.init(null, { chips: solo.chips, lv: solo.lv, noTimeout: true }, seats);
+      function start() {
+        reset();
+        if (pend.opp === 'net') {
+          net = LAB.duel('hitstay', { front, el: $('hsLobby'), opts: () => ({ n: pend.n, chips: pend.chips, lv: pend.lv }),
+            onView: v => { room = v; if (!v.st) return; recvAt = Date.now(); show(v.st); }, onError: m => { $('hsMsg').textContent = m; } });
+          net.start(); T.every(() => V && paintTime(), 500); return;
+        }
+        const seats = [{ name: '나' }, ...['AI 1', 'AI 2', 'AI 3', 'AI 4'].slice(0, pend.n - 1).map(name => ({ name, bot: true }))];
+        S = MULTI.init(null, { chips: pend.chips, lv: pend.lv, noTimeout: true }, seats);
+        front.solo(`AI와 연습 · ${pend.n}인`);
         local(); T.every(() => { if (S && MULTI.tick(S, Date.now())) local(); }, 150);
       }
-      function toMenu() { if (net && room && !room.st && room.seat !== 0) net.act({ type: 'leave' }); reset(); menuErr = ''; renderMenu(); }
-      wrap.addEventListener('click', async e => {
-        const sg = e.target.closest('.seg[data-key] [data-v]');
-        if (sg && !sg.disabled) { const key = sg.parentElement.dataset.key, val = +sg.dataset.v;
-          if (key in solo) { solo[key] = val; renderMenu(); }
-          else if (net) net.act({ type: 'settings', [{ rn: 'n', rchips: 'chips', rlv: 'lv' }[key]]: val });
-          return; }
-        const m = e.target.closest('[data-m]'); if (!m || m.disabled) return;
-        const k = m.dataset.m; menuErr = '';
-        if (k === 'create') createRoom();
-        else if (k === 'join') { if (needName()) return; const c = ($('hsCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) { menuErr = '4자리 코드를 입력하세요'; return renderMenu(); } joinRoom(c); }
-        else if (k === 'solo') startSolo();
-        else if (k === 'start') net && net.act({ type: 'start' });
-        else if (k === 'leave') toMenu();
-        else if (k === 'copy' && net) { const url = net.link(); try { await navigator.clipboard.writeText(url); m.textContent = '복사했어요'; } catch { m.textContent = url; } }
-      });
-      $('hsLeave').onclick = toMenu;
       function local() {
         show(MULTI.view(S, 0));
         if ((S.phase === 'over' || (S.players[0].out && S.phase === 'result')) && !ended) { ended = true; const me = S.players[0], rank = S.outOrder.includes(0) ? S.players.length - S.outOrder.indexOf(0) : 1;
-          T.set(() => LAB.end(rank === 1 ? '1위 · 최종 생존' : '탈락', rank === 1 ? `${S.round}라운드 만에 마지막 1명으로 남았어요 · 칩 ${me.chips}개` : `칩을 모두 잃어 ${rank}위 (${S.players.length}명 중) · ${S.round}라운드`, startSolo), 1200); }
+          T.set(() => LAB.end(rank === 1 ? '1위 · 최종 생존' : '탈락', rank === 1 ? `${S.round}라운드 만에 마지막 1명으로 남았어요 · 칩 ${me.chips}개` : `칩을 모두 잃어 ${rank}위 (${S.players.length}명 중) · ${S.round}라운드`, start), 1200); }
       }
       async function send(a) {
         if (busy) return;
@@ -391,7 +334,6 @@
       const card = (v, cls = '', attrs = '') => `<span class="hsc ${v < 0 ? 'neg' : ''} ${cls}" ${attrs}>${v == null ? '' : v}</span>`;
       let lastBetKey = '';
       function show(v) {
-        $('hsWho').textContent = net && room ? `방 ${room.code} · ${room.n}인` : `AI와 연습 · ${v.players.length}인`;
         V = v; const ME = v.me, P = v.players, me = P[ME], name = id => id === ME ? '나' : P[id].name;
         if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(P.map(p => p.id === ME ? '나' : p.name), v.first, { title: '선 플레이어 추첨', suffix: '선' }); }
         const betKey = v.round + ':' + v.phase + ':' + v.high; if (v.bettor === ME && betKey !== lastBetKey) { lastBetKey = betKey; raiseTo = Math.min(v.maxTo, v.high + 1); }
@@ -441,7 +383,7 @@
         $('hsAgain').innerHTML = ag;
         $('hsLog').innerHTML = v.log.slice(-80).reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      if (roomLink) joinRoom(roomLink); else renderMenu();
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });

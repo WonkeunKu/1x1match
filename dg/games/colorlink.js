@@ -235,26 +235,19 @@
           </div>
         </div>
         <aside class="g-side">
-          <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>상대</span><div id="clOpp2"></div></div>
-            <div class="opt"><span>판 크기</span><div id="clN"></div></div>
-            <div class="opt" id="clLvOpt"><span>AI 난이도</span><div id="clLv"></div></div>
-            <button type="button" class="primary" id="clNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="clLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('clOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('clLvOpt').hidden = v !== 'ai'; }));
-      $('clLvOpt').hidden = pend.opp !== 'ai';
-      $('clN').appendChild(seg([[6, '6×6'], [7, '7×7'], [8, '8×8']], 7, v => pend.n = v));
-      $('clLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
-      $('clNew').onclick = start;
+      // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
+      const front = LAB.duelFront({ el: $('clLobby'), gameEl: $('clGame'), soloOpts: [{ key: 'n', label: '판 크기', opts: [[6, '6×6'], [7, '7×7'], [8, '8×8']], def: 7 }, { key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [{ key: 'n', label: '판 크기', opts: [[6, '6×6'], [7, '7×7'], [8, '8×8']], def: 7 }],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       function start() {
         T.clear(); cfg = { ...pend }; pick = null; placing = []; proof = null; lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('clGame').hidden = true;
-          net = LAB.duel('colorlink', { el: $('clLobby'), opts: () => ({ n: cfg.n }), onView: v => { if (!v.st) { $('clGame').hidden = true; return; } net.hideLobby(); $('clGame').hidden = false; if (v.st.phase !== 'prove' || v.st.prover !== 0) proof = null; show(v.st, v.opp || '상대', v); }, onError: m => { $('clMsg').textContent = m; } });
+          net = LAB.duel('colorlink', { front, el: $('clLobby'), opts: () => ({ n: cfg.n }), onView: v => { if (!v.st) { $('clGame').hidden = true; return; } net.hideLobby(); $('clGame').hidden = false; if (v.st.phase !== 'prove' || v.st.prover !== 0) proof = null; show(v.st, v.opp || '상대', v); }, onError: m => { $('clMsg').textContent = m; } });
           net.start(); return;
         }
         $('clLobby').hidden = true; $('clGame').hidden = false;
@@ -353,7 +346,7 @@
         $('clAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
         $('clLog').innerHTML = v.log.slice().reverse().map(x => `<span>${x.w != null ? `${x.round}라운드: ${x.w === 0 ? '내' : esc(oppName)} 1점 (${esc(x.why)})` : x.declare ? `${x.p === 0 ? '나' : esc(oppName)}: 불가능 선언!` : `${x.p === 0 ? '나' : esc(oppName)}: ${x.cells.map(({ c, i }) => `${c}→${name(i)}`).join(', ')}`}</span>`).join('');
       }
-      if (roomLink) start(); else LAB.ready(root, start);
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });

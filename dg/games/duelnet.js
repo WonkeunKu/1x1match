@@ -8,6 +8,7 @@
   LAB.roomParam = () => new URLSearchParams(location.search).get('room');
   LAB.duel = (game, o) => {
     let code = null, token = null, es = null, closed = false, last = null;
+    const F = o.front || null;
     const post = async (path, body) => {
       const r = await fetch('/api/duel' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || '연결에 실패했어요.'); return d;
@@ -16,7 +17,7 @@
     function connect() {
       if (es) es.close();
       es = new EventSource(`/api/duel/${code}/events?token=${token}`);
-      es.onmessage = e => { const v = JSON.parse(e.data); last = v; if (!v.st) (o.onWait ? o.onWait(v) : waitRoom(v)); o.onView(v); };
+      es.onmessage = e => { const v = JSON.parse(e.data); last = v; if (!v.st) (F ? F.room(v, net) : o.onWait ? o.onWait(v) : waitRoom(v)); else if (F) F.playing(v); o.onView(v); };
       es.onerror = () => { if (closed) return; };
       store.set('duel:' + code, token);
       if (!LAB.roomParam()) history.replaceState(null, '', `${location.pathname}?room=${code}${location.hash}`);
@@ -60,16 +61,94 @@
       async create(name) { const d = await post('', { game, name: name || '손님', opts: o.opts ? o.opts() : {} }); code = d.code; token = d.token; connect(); }, // 직접 만든 시작 화면용
       link, me: () => ME,
       async join(c, name) {
-        if (!/^[A-Za-z0-9]{4}$/.test(c || '')) return net.lobby('방 코드 4자리를 넣어 주세요.');
+        if (!/^[A-Za-z0-9]{4}$/.test(c || '')) return F ? F.menu('방 코드 4자리를 넣어 주세요.') : net.lobby('방 코드 4자리를 넣어 주세요.');
         try { const d = await post(`/${c.toUpperCase()}/join`, { game, token: store.get('duel:' + c.toUpperCase()), name: name || (ME ? ME.nickname : store.get('duel:name')) || '손님' }); code = d.code; token = d.token; connect(); }
-        catch (e) { history.replaceState(null, '', location.pathname + location.hash); if (o.onJoinFail) o.onJoinFail(e.message); else net.lobby(e.message); }
+        catch (e) { history.replaceState(null, '', location.pathname + location.hash); if (F) F.menu(e.message); else if (o.onJoinFail) o.onJoinFail(e.message); else net.lobby(e.message); }
       },
-      start() { const r = LAB.roomParam(); if (r) { o.el.hidden = false; o.el.innerHTML = '<div class="dn-box"><b>방에 들어가는 중…</b></div>'; setTimeout(() => net.join(r), ME === null ? 300 : 0); } else net.lobby(); },
+      start() {
+        if (F) { // 시작 화면(LAB.duelFront)에서 고른 행동 실행
+          F.net = net; const p = F.take();
+          if (p && p.create) { o.el.hidden = false; net.create(p.name).catch(e => F.menu(e.message)); return; }
+          if (p && p.join) { net.join(p.join, p.name); return; }
+        }
+        const r = LAB.roomParam(); if (r) { o.el.hidden = false; o.el.innerHTML = '<div class="dn-box"><b>방에 들어가는 중…</b></div>'; setTimeout(() => net.join(r), ME === null ? 300 : 0); } else net.lobby(); },
       async act(body) { try { await post(`/${code}/act`, { token, ...body }); return ''; } catch (e) { if (o.onError) o.onError(e.message); return e.message; } },
       close() { closed = true; if (es) es.close(); es = null; if (LAB.roomParam()) history.replaceState(null, '', location.pathname + location.hash); code = null; token = null; },
       hideLobby() { o.el.hidden = true; o.el.innerHTML = ''; },
     };
     return net;
+  };
+
+  // 모든 대결 게임 공통 시작 화면 (무거운13·슬리더링크와 같은 흐름)
+  // 시작 화면: [친구와 하기: 방 만들기 / 코드로 참가] [혼자 AI와 연습: 옵션 + AI와 바로 시작] → 대기실(방장이 설정·시작) → 게임
+  // c = { el, gameEl, friendLabel, multi, soloOpts:[{key,label,opts:[[v,l]],def}], roomOpts:[...], onStart(mode 'ai'|'net', cfg), onLeave() }
+  LAB.duelFront = c => {
+    const solo = {}, roomCfg = {}; (c.soloOpts || []).forEach(x => { solo[x.key] = x.def; }); (c.roomOpts || []).forEach(x => { roomCfg[x.key] = x.def; });
+    let pending = null, err = '', lastRoom = null;
+    const segRow = (key, opts, cur, dis) => `<div class="seg" data-fk="${key}">${opts.map(([v, l]) => `<button type="button" class="${v === cur ? 'on' : ''}" data-v="${v}" ${dis ? 'disabled' : ''}>${l}</button>`).join('')}</div>`;
+    const nameOf = () => ME ? ME.nickname : (store.get('duel:name') || '');
+    // 게임 화면 위 막대: 지금 판 이름 + 나가기
+    const bar = document.createElement('div'); bar.className = 'df-bar'; bar.innerHTML = '<span class="muted" data-lab></span><button type="button" data-fm="leave">← 나가기</button>';
+    c.gameEl.prepend(bar);
+    const F = {
+      net: null,
+      take() { const p = pending; pending = null; return p; },
+      label(t) { bar.querySelector('[data-lab]').textContent = t; },
+      menu(msg) {
+        err = msg || ''; lastRoom = null;
+        if (F.net) { try { F.net.close(); } catch {} F.net = null; }
+        c.gameEl.hidden = true; c.el.hidden = false;
+        c.el.innerHTML = `<div class="df-menu">
+          <div class="df-box">${ME ? `<p class="muted">${esc(ME.nickname)} 님으로 참가해요</p>` : `<label class="df-lab" for="dfNm">내 이름</label><input id="dfNm" maxlength="10" placeholder="게임에서 보일 이름" value="${esc(nameOf())}" autocomplete="nickname">`}
+            <div class="df-lab">${esc(c.friendLabel || '친구와 1:1 대결')}</div>
+            <button type="button" class="primary" data-fm="create">방 만들기</button>
+            <div class="df-join"><input id="dfCode" maxlength="4" placeholder="방 코드 4자리" autocomplete="off"><button type="button" data-fm="join">참가</button></div></div>
+          <div class="df-box"><div class="df-lab">혼자 AI와 연습</div>
+            ${(c.soloOpts || []).map(x => `<div class="df-lab sub">${esc(x.label)}</div>${segRow('s:' + x.key, x.opts, solo[x.key])}`).join('')}
+            <button type="button" data-fm="solo">AI와 바로 시작</button></div>
+          <p class="dn-err">${esc(err)}</p></div>`;
+        const nm = c.el.querySelector('#dfNm'); if (nm) nm.oninput = () => store.set('duel:name', nm.value.trim());
+      },
+      room(v, net) {
+        F.net = net; lastRoom = v; c.gameEl.hidden = true; c.el.hidden = false;
+        const host = v.seat === 0, o = v.opts || {};
+        const people = v.multi ? v.players : [{ name: v.me, online: true }, v.opp ? { name: v.opp, online: v.oppOnline } : null];
+        const joined = people.filter(Boolean).length, ready = v.multi || joined >= 2;
+        c.el.innerHTML = `<div class="df-menu">
+          <div class="df-box"><div class="df-code"><small>방 코드</small><b>${esc(v.code)}</b><button type="button" data-fm="copy">초대 링크 복사</button></div>
+            <p class="muted">코드나 초대 링크를 보내면 같이 할 수 있어요.${v.multi ? ' 빈자리는 시작할 때 AI가 채워요.' : ''}</p></div>
+          <div class="df-box"><div class="df-lab">참가자 ${joined}명${v.multi ? ` · AI ${v.n - joined}명` : ' / 2명'}</div>
+            <div class="df-mems">${people.map((p, k) => p ? `<div class="df-mem"><span class="dot ${p.online ? 'on' : ''}"></span>${esc(p.name)}${(v.multi ? k === v.seat : k === 0) ? ' <span class="muted">(나)</span>' : ''}${(v.multi ? k === 0 : host === (k === 0)) ? '<span class="tag">방장</span>' : ''}</div>` : `<div class="df-mem ai">${v.multi ? '빈자리 → AI' : '상대를 기다리는 중…'}</div>`).join('')}</div></div>
+          <div class="df-box">${(c.roomOpts || []).map(x => `<div class="df-lab sub">${esc(x.label)}</div>${segRow('r:' + x.key, x.opts, o[x.key] ?? x.def, !host)}`).join('')}
+            ${host ? `<button type="button" class="primary" data-fm="start" ${ready ? '' : 'disabled'}>게임 시작</button>${ready ? '' : '<p class="muted">상대가 들어오면 시작할 수 있어요</p>'}` : '<p class="muted">방장이 시작하기를 기다리는 중…</p>'}
+            <button type="button" data-fm="leave">방 나가기</button></div>
+          <p class="dn-err" data-ferr></p></div>`;
+      },
+      playing(v) { lastRoom = v; c.el.hidden = true; c.gameEl.hidden = false; F.label(`방 ${v.code}${v.multi ? ` · ${v.n}인` : ' · 1:1'}`); },
+      solo(text) { c.el.hidden = true; c.gameEl.hidden = false; F.label(text || 'AI와 연습'); },
+      leave() {
+        if (F.net && lastRoom && !lastRoom.st && lastRoom.seat !== 0) F.net.act({ type: 'leave' });
+        c.onLeave && c.onLeave(); F.menu();
+      },
+    };
+    const needName = () => { if (ME || nameOf()) return false; F.menu('이름을 입력하세요'); const i = c.el.querySelector('#dfNm'); i && i.focus(); return true; };
+    const onClick = async e => {
+      const sg = e.target.closest('[data-fk] [data-v]');
+      if (sg && !sg.disabled) { const [kind, key] = sg.parentElement.dataset.fk.split(':'), raw = sg.dataset.v, val = isNaN(+raw) ? raw : +raw;
+        if (kind === 's') { solo[key] = val; sg.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === sg)); }
+        else if (F.net) { const er = await F.net.act({ type: 'settings', [key]: val }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }
+        return; }
+      const b = e.target.closest('[data-fm]'); if (!b || b.disabled) return;
+      const k = b.dataset.fm;
+      if (k === 'solo') { F.solo(); c.onStart('ai', { ...solo }); }
+      else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
+      else if (k === 'join') { if (needName()) return; const code = (c.el.querySelector('#dfCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) return F.menu('4자리 코드를 입력하세요'); pending = { join: code, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
+      else if (k === 'start' && F.net) { const er = await F.net.act({ type: 'start' }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }
+      else if (k === 'leave') F.leave();
+      else if (k === 'copy' && F.net) { const url = F.net.link(); try { await navigator.clipboard.writeText(url); b.textContent = '복사했어요'; } catch { b.textContent = url; } }
+    };
+    c.el.addEventListener('click', onClick); bar.addEventListener('click', onClick);
+    return F;
   };
   // 게임 끝난 뒤 '다시 하기'(두 사람 모두 눌러야 새 판) 표시
   LAB.duelAgain = (v, net) => {

@@ -245,23 +245,18 @@
           </div>
         </div>
         <aside class="g-side">
-          <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>상대</span><div id="sgOpp2"></div></div>
-            <div class="opt" id="sgLvOpt"><span>AI 난이도</span><div id="sgLv"></div></div>
-            <button type="button" class="primary" id="sgNew">새 게임</button></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('sgOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('sgLvOpt').hidden = v !== 'ai'; }));
-      $('sgLvOpt').hidden = pend.opp !== 'ai';
-      $('sgLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
-      $('sgNew').onclick = start;
+      // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
+      const front = LAB.duelFront({ el: $('sgLobby'), gameEl: $('sgGame'), soloOpts: [{ key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       function start() {
         T.clear(); cfg = { ...pend }; clearIn(); lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('sgGame').hidden = true;
-          net = LAB.duel('signal', { el: $('sgLobby'), onView: v => { if (!v.st) { $('sgGame').hidden = true; return; } net.hideLobby(); $('sgGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('sgMsg').textContent = m; } });
+          net = LAB.duel('signal', { front, el: $('sgLobby'), onView: v => { if (!v.st) { $('sgGame').hidden = true; return; } net.hideLobby(); $('sgGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('sgMsg').textContent = m; } });
           net.start(); return;
         }
         $('sgLobby').hidden = true; $('sgGame').hidden = false;
@@ -322,7 +317,7 @@
           : v.waiting ? `${oppName}의 추측을 기다리는 중…` : `${oppName} 수식을 추측해 9칸을 채우세요 (성립하지 않아도 돼요)${v.oppWaiting ? ` · ${oppName}는 이미 냈어요` : ''}`;
         $('sgAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
       }
-      if (roomLink) start(); else LAB.ready(root, start);
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });

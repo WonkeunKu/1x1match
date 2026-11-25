@@ -276,25 +276,20 @@
           </div>
         </div>
         <aside class="g-side">
-          <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>상대</span><div id="cjOpp2"></div></div>
-            <div class="opt" id="cjLvOpt"><span>AI 난이도</span><div id="cjLv"></div></div>
-            <button type="button" class="primary" id="cjNew">새 게임</button></div>
           <div class="card"><h3>행마 카드</h3><div class="cj-help">${CARDS.map(c => `<div>${cardHtml(c, 'sm', 'disabled')}<span>${CD[c]}</span></div>`).join('')}</div></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="cjLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('cjOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('cjLvOpt').hidden = v !== 'ai'; }));
-      $('cjLvOpt').hidden = pend.opp !== 'ai';
-      $('cjLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
-      $('cjNew').onclick = start;
+      // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
+      const front = LAB.duelFront({ el: $('cjLobby'), gameEl: $('cjGame'), soloOpts: [{ key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [],
+        onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       function start() {
         T.clear(); cfg = { ...pend }; sel = null; arr = []; lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('cjGame').hidden = true;
-          net = LAB.duel('cardjanggi', { el: $('cjLobby'), onView: v => { if (!v.st) { $('cjGame').hidden = true; return; } net.hideLobby(); $('cjGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('cjMsg').textContent = m; } });
+          net = LAB.duel('cardjanggi', { front, el: $('cjLobby'), onView: v => { if (!v.st) { $('cjGame').hidden = true; return; } net.hideLobby(); $('cjGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('cjMsg').textContent = m; } });
           net.start(); return;
         }
         $('cjLobby').hidden = true; $('cjGame').hidden = false;
@@ -368,7 +363,7 @@
         $('cjAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
         $('cjLog').innerHTML = v.log.slice().reverse().map(x => `<span>${x.draw ? '60수 → 무승부, 다시' : x.w != null ? `${x.round}판: ${x.w === 0 ? '내가' : esc(oppName) + '가'} 이겼어요` : `${x.p === 0 ? '나' : esc(oppName)} ${CN[x.card]}${x.kind === 'cap' ? ' · 잡음' : x.kind === 'pass' ? ' · 넘김' : ''}`}</span>`).join('');
       }
-      if (roomLink) start(); else LAB.ready(root, start);
+      if (roomLink) { pend.opp = 'net'; start(); } else front.menu();
       return () => { T.clear(); if (net) net.close(); };
     }
   });
