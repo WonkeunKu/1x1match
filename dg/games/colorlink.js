@@ -114,7 +114,93 @@
     return Math.random() < [.55, .9, 1][lv];
   }
 
-  const ENG = { COLORS, MINLEN, solve, newRound, piecesOf, countOf, need, canPlace, legalAny, aiPlace, aiShouldDeclare, randomPlacement, withPlacement };
+  // ---------- 1:1 대결 규칙 (AI 대전·온라인 대전 공용, 서버도 불러 씀) ----------
+  const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
+  function checkProof(R, paths) {
+    const N = R.N, pcs = piecesOf(R), seen = new Map();
+    for (const c of Object.keys(pcs)) {
+      const p = (paths[c] || []).map(Number);
+      if (p.length < MINLEN) return `${c}: ${p.length}칸 (6칸 이상 필요)`;
+      for (let k = 1; k < p.length; k++) { const a = p[k - 1], b = p[k]; if (!(b >= 0 && b < N * N) || Math.abs(Math.floor(a / N) - Math.floor(b / N)) + Math.abs(a % N - b % N) !== 1) return `${c}: 경로가 끊겼어요`; }
+      if (new Set(p).size !== p.length) return `${c}: 같은 칸을 두 번 지나요`;
+      if (pcs[c].length === 2) { if (!(pcs[c].includes(p[0]) && pcs[c].includes(p[p.length - 1]))) return `${c}: 두 말이 이어지지 않았어요`; }
+      else { if (p[0] !== pcs[c][0]) return `${c}: 말에서 시작해야 해요`; if (R.cells[p[p.length - 1]]) return `${c}: 짝을 놓을 끝 칸이 비어 있어야 해요`; }
+      for (let k = 1; k < p.length - 1; k++) if (R.cells[p[k]]) return `${c}: 다른 말이 있는 칸을 지나요`;
+      for (const x of p) { if (seen.has(x)) return `${c}·${seen.get(x)} 경로가 겹쳐요`; seen.set(x, c); }
+    }
+    return '';
+  }
+  const DUEL = {
+    init(prev, opts) {
+      const N = [6, 7, 8].includes(Number(opts && opts.n)) ? Number(opts.n) : prev ? prev.N : 7;
+      const s = { N, score: [0, 0], roundNo: 0, log: [], winner: -1 };
+      return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true);
+    },
+    newRound(s, first, isMatchStart) {
+      s.roundNo++; s.R = newRound(s.N, first); s.phase = 'place'; s.prover = -1; s.declarer = -1; s.shown = null; s.chooser = -1;
+      if (isMatchStart) s.matchFirst = first;
+      return s;
+    },
+    roundWin(s, w, why) {
+      s.score[w]++; s.log.push({ round: s.roundNo, w, why });
+      if (s.score[w] >= 3 || s.roundNo >= 5) { s.phase = 'over'; s.winner = s.score[0] === s.score[1] ? 2 : s.score[0] > s.score[1] ? 0 : 1; return; }
+      s.phase = 'choose'; s.chooser = 1 - w;
+    },
+    act(s, seat, a) {
+      const R = s.R;
+      if (a.type === 'place') {
+        if (s.phase !== 'place' || R.turn !== seat) fail('내 차례가 아니에요.');
+        const list = (a.cells || []).map(x => ({ c: String(x.c), i: Number(x.i) }));
+        if (list.length !== need(R)) fail(`말 ${need(R)}개를 놓아야 해요.`);
+        R.placedThisTurn = [];
+        for (const { c, i } of list) {
+          if (!COLORS.includes(c) || !(i >= 0 && i < s.N * s.N) || !canPlace(R, c, i)) { R.placedThisTurn.forEach(x => R.cells[x.i] = null); R.placedThisTurn = []; fail('놓을 수 없는 자리나 색이에요 (같은 차례엔 서로 다른 색).'); }
+          R.cells[i] = c; R.placedThisTurn.push({ c, i });
+        }
+        R.last = R.placedThisTurn.slice(); R.placedThisTurn = []; R.turnNo++; R.turn = 1 - R.turn;
+        s.log.push({ p: seat, cells: R.last });
+        if (!legalAny(R)) DUEL.roundWin(s, seat, '상대가 더 놓을 자리가 없어요');
+        return;
+      }
+      if (a.type === 'declare') {
+        if (s.phase !== 'place' || R.turn !== seat || R.turnNo === 0) fail('지금은 불가능 선언을 할 수 없어요.');
+        s.phase = 'prove'; s.prover = 1 - seat; s.declarer = seat; s.log.push({ p: seat, declare: true }); return;
+      }
+      if (a.type === 'proof') {
+        if (s.phase !== 'prove' || seat !== s.prover) fail('증명할 차례가 아니에요.');
+        const err = checkProof(R, a.paths || {}); if (err) fail('아직 증명이 안 됐어요: ' + err);
+        s.shown = a.paths; DUEL.roundWin(s, seat, '증명 성공'); return;
+      }
+      if (a.type === 'giveup') {
+        if (s.phase !== 'prove' || seat !== s.prover) fail('증명할 차례가 아니에요.');
+        const sol = solve(s.N, piecesOf(R), 300000); s.shown = sol.ok ? sol.paths : null;
+        DUEL.roundWin(s, s.declarer, sol.ok ? '증명 포기 (사실은 이을 수 있었어요)' : '증명 포기 (정말 불가능한 판이었어요)'); return;
+      }
+      if (a.type === 'choose') {
+        if (s.phase !== 'choose' || seat !== s.chooser) fail('선후를 정할 차례가 아니에요.');
+        DUEL.newRound(s, a.first ? seat : 1 - seat); return;
+      }
+      fail('알 수 없는 행동이에요.');
+    },
+    view(s, seat) {
+      const R = s.R, rel = x => x == null || x < 0 ? -1 : x === seat ? 0 : 1;
+      return { phase: s.phase, N: s.N, score: [s.score[seat], s.score[1 - seat]], roundNo: s.roundNo, cells: R.cells, turn: rel(R.turn), first: rel(R.first), turnNo: R.turnNo, need: need(R),
+        last: R.last || [], prover: rel(s.prover), declarer: rel(s.declarer), chooser: rel(s.chooser), shown: s.shown, winner: s.winner === 2 ? 2 : rel(s.winner),
+        log: s.log.slice(-24).map(x => ({ ...x, p: x.p != null ? rel(x.p) : undefined, w: x.w != null ? rel(x.w) : undefined })) };
+    },
+    ai(v, lv) {
+      const R = { N: v.N, cells: v.cells.slice(), turnNo: v.turnNo, placedThisTurn: [], turn: 0 };
+      if (v.phase === 'choose' && v.chooser === 0) return { type: 'choose', first: false };
+      if (v.phase === 'prove' && v.prover === 0) { const s = solve(v.N, piecesOf(R), 400000); return s.ok ? { type: 'proof', paths: s.paths } : { type: 'giveup' }; }
+      if (v.phase === 'place' && v.turn === 0) {
+        if (v.turnNo > 0 && aiShouldDeclare(R, lv)) return { type: 'declare' };
+        const pl = aiPlace(R, lv); return pl ? { type: 'place', cells: pl } : null;
+      }
+      return null;
+    },
+  };
+
+  const ENG = { COLORS, MINLEN, solve, newRound, piecesOf, countOf, need, canPlace, legalAny, aiPlace, aiShouldDeclare, randomPlacement, withPlacement, checkProof, DUEL };
   if (typeof module !== 'undefined' && module.exports) { module.exports = ENG; return; }
   if (typeof LAB === 'undefined') return;
 
@@ -129,159 +215,145 @@
       <li>경로는 상하좌우로 이어진 칸들이고, <b>말이 있는 칸을 포함해 6칸 이상</b>이어야 해요. 다른 말이 있는 칸은 지날 수 없어요. 아직 하나만 놓인 색도 앞으로 놓일 짝과 이어질 수 있어야 해요.</li>
       <li>상대가 놓은 뒤 더는 다 이을 수 없다고 보면 <b>불가능 선언</b>! 직전에 놓은 사람이 모든 경로(혼자인 말은 짝 위치까지)를 그려 증명하면 증명한 쪽이, 못 하면 선언한 쪽이 1점.</li>
       <li>5라운드, <b>먼저 3점</b>을 따면 승리. 다음 라운드 선후는 직전 라운드에 진 쪽이 정해요.</li>
-      <li>이 사이트 버전 기준: 판 크기는 설정에서 골라요(기본 7×7). 시간 제한은 없어요.</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요. 판 크기는 설정에서 골라요(기본 7×7). 시간 제한은 없어요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
-      let pend = { lv: 1, n: 7 }, cfg = { ...pend }, M = null, R = null, pick = null, proof = null, shown = null;
+      const roomLink = LAB.roomParam();
+      let pend = { lv: 1, n: 7, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, pick = null, placing = [], proof = null, busy = false, lastArgs = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
-          <div class="dp-score"><div><small>나</small><b id="clMe">0</b></div><div class="dp-mid"><span id="clRound"></span><small id="clSub"></small></div><div><small>AI</small><b id="clAi">0</b></div></div>
+          <div class="dn-lobby" id="clLobby" hidden></div>
+          <div id="clGame">
+          <div class="dp-score"><div><small>나</small><b id="clMe">0</b></div><div class="dp-mid"><span id="clRound"></span><small id="clSub"></small></div><div><small id="clOpN">상대</small><b id="clAi">0</b></div></div>
           <div class="cl-wrap"><div class="cl-board" id="clB"></div><svg class="cl-svg" id="clSvg"></svg></div>
           <p class="g-msg" id="clMsg"></p>
           <div class="cl-pal" id="clPal"></div>
           <div class="row" id="clBtns"></div>
+          <div id="clAgain"></div>
+          </div>
         </div>
         <aside class="g-side">
           <div class="card"><h3>설정 (새 게임에 적용)</h3>
+            <div class="opt"><span>상대</span><div id="clOpp2"></div></div>
             <div class="opt"><span>판 크기</span><div id="clN"></div></div>
-            <div class="opt"><span>AI 난이도</span><div id="clLv"></div></div>
+            <div class="opt" id="clLvOpt"><span>AI 난이도</span><div id="clLv"></div></div>
             <button type="button" class="primary" id="clNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="clLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
+      $('clOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('clLvOpt').hidden = v !== 'ai'; }));
+      $('clLvOpt').hidden = pend.opp !== 'ai';
       $('clN').appendChild(seg([[6, '6×6'], [7, '7×7'], [8, '8×8']], 7, v => pend.n = v));
       $('clLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('clNew').onclick = start;
-      const log = t => M.log.push(t);
-      function start() { T.clear(); cfg = { ...pend }; M = { score: [0, 0], roundNo: 0, log: [], over: false }; const f = rnd(2); log(`동전 던지기: ${f === 0 ? '내가' : 'AI가'} 1라운드 선`); newRound(f); }
-      function newRound(first) {
-        M.roundNo++; R = ENG.newRound(cfg.n, first); pick = null; proof = null; shown = null; M.phase = 'place';
-        log(`— ${M.roundNo}라운드 (선 ${first === 0 ? '나' : 'AI'})`); render(); if (first === 1) aiTurn();
+      function start() {
+        T.clear(); cfg = { ...pend }; pick = null; placing = []; proof = null; lastArgs = null;
+        if (net) { net.close(); net = null; }
+        if (cfg.opp === 'net') {
+          $('clGame').hidden = true;
+          net = LAB.duel('colorlink', { el: $('clLobby'), opts: () => ({ n: cfg.n }), onView: v => { if (!v.st) { $('clGame').hidden = true; return; } net.hideLobby(); $('clGame').hidden = false; if (v.st.phase !== 'prove' || v.st.prover !== 0) proof = null; show(v.st, v.opp || '상대', v); }, onError: m => { $('clMsg').textContent = m; } });
+          net.start(); return;
+        }
+        $('clLobby').hidden = true; $('clGame').hidden = false;
+        st = DUEL.init(null, { n: cfg.n }); local(); aiStep();
       }
-      function endTurn() { R.last = R.placedThisTurn.slice(); R.placedThisTurn = []; R.turnNo++; R.turn = 1 - R.turn; }
-      function aiTurn() {
-        M.phase = 'ai'; render();
-        T.set(() => {
-          // 먼저 내가 놓은 판이 불가능한지 따져 봄
-          if (R.turnNo > 0 && ENG.aiShouldDeclare(R, cfg.lv)) { log('AI: 불가능 선언!'); M.phase = 'prove'; proof = { paths: {}, cur: null }; render(); return; }
-          if (!ENG.legalAny(R)) { log('AI가 더 놓을 수 없어요'); return roundWin(0, '더 놓을 자리가 없어 AI 패배'); }
-          const pl = ENG.aiPlace(R, cfg.lv);
-          pl.forEach(({ c, i }) => { R.cells[i] = c; R.placedThisTurn.push({ c, i }); });
-          log(`AI: ${pl.map(({ c, i }) => `${c}→${'abcdefgh'[i % R.N]}${R.N - Math.floor(i / R.N)}`).join(', ')}`);
-          endTurn(); M.phase = 'place'; render();
-          if (!ENG.legalAny(R)) { log('놓을 자리가 없어요'); roundWin(1, '더 놓을 자리가 없어 내 패배'); }
-        }, 700);
+      const local = () => show(DUEL.view(st, 0), 'AI', null);
+      function aiStep() {
+        if (!st || st.phase === 'over') return;
+        const v1 = DUEL.view(st, 1);
+        const mine = (v1.phase === 'place' && v1.turn === 0) || (v1.phase === 'prove' && v1.prover === 0) || (v1.phase === 'choose' && v1.chooser === 0);
+        if (!mine) return;
+        T.set(() => { const a = DUEL.ai(DUEL.view(st, 1), cfg.lv); if (a) { try { DUEL.act(st, 1, a); } catch (e) { console.error(e); } } local(); aiStep(); afterLocal(); }, 700);
       }
-      // 내가 불가능 선언 → AI가 증명 시도
-      function declare() {
-        if (M.phase !== 'place' || R.turn !== 0 || R.placedThisTurn.length || R.turnNo === 0) return;
-        log('나: 불가능 선언!'); M.phase = 'ai'; render();
-        T.set(() => {
-          const s = ENG.solve(R.N, ENG.piecesOf(R), 400000);
-          if (s.ok) { shown = s.paths; log('AI가 모든 경로를 증명했어요'); render(); roundWin(1, 'AI가 증명 성공'); }
-          else { shown = null; log(s.exhaustive ? 'AI 증명 실패 — 정말 불가능한 판이었어요' : 'AI가 증명하지 못했어요'); render(); roundWin(0, '불가능 선언 성공'); }
-        }, 600);
+      function afterLocal() { if (st.phase === 'over' && !st.ended) { st.ended = true; const w = st.winner; T.set(() => LAB.end(w === 0 ? '승리' : w === 1 ? '패배' : '무승부', `최종 ${st.score[0]} : ${st.score[1]}`, start), 1800); } }
+      async function send(a) {
+        if (busy) return;
+        if (net) { busy = true; const err = await net.act(a); busy = false; return err; }
+        try { DUEL.act(st, 0, a); } catch (e) { $('clMsg').textContent = e.message; return e.message; }
+        local(); aiStep(); afterLocal(); return '';
       }
-      function roundWin(w, why) {
-        M.score[w]++; log(`${M.roundNo}라운드: ${w === 0 ? '내' : 'AI'} 1점 (${why}) · ${M.score[0]}:${M.score[1]}`); M.phase = 'between'; render();
-        if (M.score[w] >= 3 || M.roundNo >= 5) { M.over = true; const d = M.score[0] - M.score[1]; T.set(() => LAB.end(d > 0 ? '승리' : d < 0 ? '패배' : '무승부', `최종 ${M.score[0]} : ${M.score[1]}`, start), 1800); return; }
-        const loser = 1 - w;
-        if (loser === 0) { M.phase = 'choose'; render(); } else T.set(() => newRound(0), 2200); // AI가 지면 AI는 후를 택함 → 내가 선
-      }
+      const name = i => { const v = lastArgs[0]; return `${'abcdefgh'[i % v.N]}${v.N - Math.floor(i / v.N)}`; };
       // 칸 누르기
       function clickCell(i) {
-        if (M.phase === 'place' && R.turn === 0) {
-          const mine = R.placedThisTurn.findIndex(x => x.i === i);
-          if (mine >= 0) { R.cells[i] = null; R.placedThisTurn.splice(mine, 1); render(); return; } // 이번에 놓은 말 다시 누르면 취소
-          if (!pick || R.placedThisTurn.length >= ENG.need(R) || !ENG.canPlace(R, pick, i)) return;
-          R.cells[i] = pick; R.placedThisTurn.push({ c: pick, i }); pick = null; render(); return;
+        const v = lastArgs && lastArgs[0]; if (!v) return;
+        if (v.phase === 'place' && v.turn === 0) {
+          const k = placing.findIndex(x => x.i === i);
+          if (k >= 0) { placing.splice(k, 1); show(...lastArgs); return; } // 이번에 놓은 말 다시 누르면 취소
+          const cnt = c => v.cells.filter(x => x === c).length + placing.filter(x => x.c === c).length;
+          if (!pick || placing.length >= v.need || v.cells[i] || placing.some(x => x.c === pick) || cnt(pick) >= 2) return;
+          placing.push({ c: pick, i }); pick = null; show(...lastArgs); return;
         }
-        if (M.phase === 'prove') {
-          const c = R.cells[i], cur = proof.cur, p = cur ? proof.paths[cur] : null, head = p ? p[p.length - 1] : null;
-          const adj = head != null && Math.abs(Math.floor(i / R.N) - Math.floor(head / R.N)) + Math.abs(i % R.N - head % R.N) === 1;
-          const finished = p && p.length > 1 && R.cells[head] === cur;
-          if (c) {
-            // 같은 색 짝에 닿으면 경로 완성, 아니면 그 말에서 새로 그리기 시작
-            if (p && c === cur && i !== p[0] && adj && !finished) { p.push(i); render(); return; }
-            proof.cur = c; proof.paths[c] = [i]; render(); return;
-          }
+        if (v.phase === 'prove' && v.prover === 0) {
+          if (!proof) proof = { paths: {}, cur: null };
+          const N = v.N, c = v.cells[i], cur = proof.cur, p = cur ? proof.paths[cur] : null, head = p ? p[p.length - 1] : null;
+          const adj = head != null && Math.abs(Math.floor(i / N) - Math.floor(head / N)) + Math.abs(i % N - head % N) === 1;
+          const finished = p && p.length > 1 && v.cells[head] === cur;
+          if (c) { if (p && c === cur && i !== p[0] && adj && !finished) { p.push(i); show(...lastArgs); return; } proof.cur = c; proof.paths[c] = [i]; show(...lastArgs); return; }
           if (!p) return;
-          const k = p.indexOf(i); if (k >= 0) { p.length = k + 1; render(); return; } // 되돌리기
+          const k = p.indexOf(i); if (k >= 0) { p.length = k + 1; show(...lastArgs); return; }
           if (!adj || finished) return;
-          if (Object.entries(proof.paths).some(([cc, pp]) => cc !== cur && pp.includes(i))) return; // 다른 경로와 겹침
-          p.push(i); render();
+          if (Object.entries(proof.paths).some(([cc, pp]) => cc !== cur && pp.includes(i))) return;
+          p.push(i); show(...lastArgs);
         }
       }
-      function submitProof() {
-        const pcs = ENG.piecesOf(R), bad = [];
-        const usedCells = new Map();
-        for (const c of Object.keys(pcs)) {
-          const p = proof.paths[c];
-          if (!p || p.length < ENG.MINLEN) { bad.push(`${c}: ${p ? p.length : 0}칸 (6칸 이상 필요)`); continue; }
-          if (pcs[c].length === 2) { if (!(pcs[c].includes(p[0]) && pcs[c].includes(p[p.length - 1]) && p[0] !== p[p.length - 1])) { bad.push(`${c}: 두 말이 이어지지 않았어요`); continue; } }
-          else if (R.cells[p[p.length - 1]]) { bad.push(`${c}: 짝을 놓을 끝 칸이 비어 있지 않아요`); continue; }
-          for (const x of p) { if (usedCells.has(x) && usedCells.get(x) !== c) bad.push(`${c}·${usedCells.get(x)} 경로가 겹쳐요`); usedCells.set(x, c); }
-        }
-        if (bad.length) { $('clMsg').textContent = '아직 증명이 안 됐어요: ' + bad.slice(0, 3).join(' / '); return; }
-        shown = proof.paths; proof = null; log('나: 모든 경로를 증명했어요'); roundWin(0, '증명 성공');
-      }
-      function giveUp() { proof = null; const s = ENG.solve(R.N, ENG.piecesOf(R), 400000); shown = s.ok ? s.paths : null; log(s.ok ? '증명 포기 — 사실은 이렇게 이을 수 있었어요' : '증명 포기 — 정말 불가능한 판이었어요'); roundWin(1, '증명 실패'); }
-
-      $('clB').addEventListener('click', e => { const el = e.target.closest('[data-i]'); if (el) clickCell(+el.dataset.i); });
-      $('clPal').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b || b.disabled) return; pick = pick === b.dataset.c ? null : b.dataset.c; render(); });
-      $('clBtns').addEventListener('click', e => {
+      wrap.addEventListener('click', async e => {
+        const cell = e.target.closest('[data-i]'); if (cell) { clickCell(+cell.dataset.i); return; }
+        const pc = e.target.closest('[data-c]'); if (pc && !pc.disabled) { pick = pick === pc.dataset.c ? null : pc.dataset.c; show(...lastArgs); return; }
         const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
         const a = b.dataset.a;
-        if (a === 'done' && R.placedThisTurn.length === ENG.need(R)) { log(`나: ${R.placedThisTurn.map(({ c, i }) => `${c}→${'abcdefgh'[i % R.N]}${R.N - Math.floor(i / R.N)}`).join(', ')}`); endTurn(); render(); aiTurn(); }
-        else if (a === 'declare') declare();
-        else if (a === 'submit') submitProof();
-        else if (a === 'giveup') giveUp();
-        else if (a === 'first' || a === 'second') newRound(a === 'first' ? 0 : 1);
+        if (a === 'done') { const cells = placing.slice(); placing = []; const err = await send({ type: 'place', cells }); if (err) { placing = cells; show(...lastArgs); } }
+        else if (a === 'declare') send({ type: 'declare' });
+        else if (a === 'submit') { const err = await send({ type: 'proof', paths: (proof && proof.paths) || {} }); if (err) $('clMsg').textContent = err; else proof = null; }
+        else if (a === 'giveup') { proof = null; send({ type: 'giveup' }); }
+        else if (a === 'first' || a === 'second') send({ type: 'choose', first: a === 'first' });
+        else if (a === 'again') send({ type: 'again' });
       });
 
-      function render() {
-        const N = R.N;
-        $('clMe').textContent = M.score[0]; $('clAi').textContent = M.score[1];
-        $('clRound').textContent = M.over ? '게임 끝' : `${M.roundNo}라운드 · 3점 선승`;
-        $('clSub').textContent = `${R.turnNo + 1}번째 차례 · ${R.turn === 0 ? '내' : 'AI'} 차례`;
-        const b = $('clB'); b.style.setProperty('--n', N);
-        const lastSet = new Set((R.last || []).map(x => x.i));
+      function show(v, oppName, room) {
+        lastArgs = [v, oppName, room];
+        const N = v.N;
+        $('clOpN').textContent = oppName; $('clMe').textContent = v.score[0]; $('clAi').textContent = v.score[1];
+        $('clRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}라운드 · 3점 선승`;
+        $('clSub').textContent = `${v.turnNo + 1}번째 차례 · ${v.turn === 0 ? '내' : oppName} 차례`;
+        $('clB').style.setProperty('--n', N);
+        const lastSet = new Set((v.last || []).map(x => x.i));
+        const cells = v.cells.slice(); placing.forEach(x => cells[x.i] = x.c);
         const proofCells = new Map(); if (proof) for (const [c, p] of Object.entries(proof.paths)) p.forEach(x => proofCells.set(x, c));
+        const myPlace = v.phase === 'place' && v.turn === 0;
+        const cnt = c => cells.filter(x => x === c).length;
         let s = '';
-        for (let i = 0; i < N * N; i++) { const c = R.cells[i];
-          const canPut = M.phase === 'place' && R.turn === 0 && pick && ENG.canPlace(R, pick, i) && R.placedThisTurn.length < ENG.need(R);
+        for (let i = 0; i < N * N; i++) { const c = cells[i];
+          const canPut = myPlace && pick && !c && placing.length < v.need;
           const pc = proofCells.get(i);
-          s += `<button type="button" class="clc ${canPut ? 'can' : ''} ${pc && !c ? 'pth' : ''}" style="${pc && !c ? `--pc:${PAL[pc]}` : ''}" data-i="${i}">${c ? `<span class="clp ${lastSet.has(i) ? 'last' : ''} ${R.placedThisTurn.some(x => x.i === i) ? 'new' : ''} ${ENG.countOf(R, c) === 1 ? 'single' : ''}" style="--pc:${PAL[c]}">${c}</span>` : ''}</button>`; }
-        b.innerHTML = s;
-        // 경로 그림 (증명 결과)
+          s += `<button type="button" class="clc ${canPut ? 'can' : ''} ${pc && !c ? 'pth' : ''}" style="${pc && !c ? `--pc:${PAL[pc]}` : ''}" data-i="${i}">${c ? `<span class="clp ${lastSet.has(i) ? 'last' : ''} ${placing.some(x => x.i === i) ? 'new' : ''} ${cnt(c) === 1 ? 'single' : ''}" style="--pc:${PAL[c]}">${c}</span>` : ''}</button>`; }
+        $('clB').innerHTML = s;
         const svg = $('clSvg'); svg.setAttribute('viewBox', `0 0 ${N} ${N}`);
-        const drawn = shown || (proof && proof.paths) || null;
-        svg.innerHTML = drawn ? Object.entries(drawn).map(([c, p]) => `<polyline points="${p.map(x => `${x % N + .5},${Math.floor(x / N) + .5}`).join(' ')}" style="stroke:${PAL[c]}"/>${!R.cells[p[p.length - 1]] && p.length >= ENG.MINLEN && shown ? `<circle cx="${p[p.length - 1] % N + .5}" cy="${Math.floor(p[p.length - 1] / N) + .5}" r=".22" style="fill:${PAL[c]}"/>` : ''}`).join('') : '';
-        // 팔레트
-        const placing = M.phase === 'place' && R.turn === 0;
-        $('clPal').hidden = !placing;
-        if (placing) $('clPal').innerHTML = ENG.COLORS.map(c => { const n = 2 - ENG.countOf(R, c); const dis = n <= 0 || R.placedThisTurn.some(x => x.c === c) || R.placedThisTurn.length >= ENG.need(R);
+        const drawn = (proof && proof.paths) || v.shown;
+        svg.innerHTML = drawn && (v.phase !== 'place' || proof) ? Object.entries(drawn).map(([c, p]) => `<polyline points="${p.map(x => `${x % N + .5},${Math.floor(x / N) + .5}`).join(' ')}" style="stroke:${PAL[c]}"/>${!v.cells[p[p.length - 1]] && p.length >= MINLEN ? `<circle cx="${p[p.length - 1] % N + .5}" cy="${Math.floor(p[p.length - 1] / N) + .5}" r=".22" style="fill:${PAL[c]}"/>` : ''}`).join('') : '';
+        $('clPal').hidden = !myPlace;
+        if (myPlace) $('clPal').innerHTML = COLORS.map(c => { const n = 2 - cnt(c); const dis = n <= 0 || placing.some(x => x.c === c) || placing.length >= v.need;
           return `<button type="button" class="clk ${pick === c ? 'on' : ''}" style="--pc:${PAL[c]}" data-c="${c}" ${dis ? 'disabled' : ''}>${c}<small>${n}</small></button>`; }).join('');
-        // 버튼과 안내
         let btn = '', msg = '';
-        if (M.phase === 'place' && R.turn === 0) {
-          const k = ENG.need(R), left = k - R.placedThisTurn.length;
-          msg = left ? `${k === 2 ? '서로 다른 색 말 2개' : '말 1개'}를 놓으세요 — 색을 고르고 빈칸을 누르세요 (${left}개 남음)` : '"놓기 완료"를 누르세요 (놓은 말을 다시 누르면 취소)';
-          btn = `${R.turnNo > 0 && !R.placedThisTurn.length ? '<button type="button" data-a="declare">불가능 선언</button>' : ''}<button type="button" class="primary" data-a="done" ${left ? 'disabled' : ''}>놓기 완료</button>`;
-        } else if (M.phase === 'ai') msg = 'AI가 생각하는 중…';
-        else if (M.phase === 'prove') {
-          msg = '증명하세요: 말을 누르고 이웃 칸을 차례로 눌러 경로를 그려요(6칸 이상). 혼자인 말은 경로 끝 빈칸이 짝 자리예요. 경로 칸을 다시 누르면 거기까지 되돌려요';
+        if (myPlace) {
+          const left = v.need - placing.length;
+          msg = left ? `${v.need === 2 ? '서로 다른 색 말 2개' : '말 1개'}를 놓으세요 — 색을 고르고 빈칸을 누르세요 (${left}개 남음)` : '"놓기 완료"를 누르세요 (놓은 말을 다시 누르면 취소)';
+          btn = `${v.turnNo > 0 && !placing.length ? '<button type="button" data-a="declare">불가능 선언</button>' : ''}<button type="button" class="primary" data-a="done" ${left ? 'disabled' : ''}>놓기 완료</button>`;
+        } else if (v.phase === 'place') msg = `${oppName}가 놓는 중…`;
+        else if (v.phase === 'prove' && v.prover === 0) {
+          msg = `${oppName}가 불가능 선언! 증명하세요: 말을 누르고 이웃 칸을 차례로 눌러 경로를 그려요(6칸 이상). 혼자인 말은 경로 끝 빈칸이 짝 자리예요. 경로 칸을 다시 누르면 거기까지 되돌려요`;
           btn = '<button type="button" data-a="giveup">포기</button><button type="button" class="primary" data-a="submit">증명 제출</button>';
-        } else if (M.phase === 'choose') { msg = '이번 라운드를 졌어요. 다음 라운드 선후를 고르세요'; btn = '<button type="button" data-a="first">내가 선</button><button type="button" data-a="second">내가 후</button>'; }
-        else if (M.phase === 'between') msg = shown ? '경로 증명 결과예요' : '';
+        } else if (v.phase === 'prove') msg = `내가 불가능 선언! ${oppName}가 증명하는 중…`;
+        else if (v.phase === 'choose') { const lw = v.log.filter(x => x.w != null).pop(); msg = (lw ? `${v.roundNo}라운드: ${lw.w === 0 ? '내' : oppName} 1점 (${lw.why}). ` : '') + (v.chooser === 0 ? '다음 라운드 선후를 고르세요' : `${oppName}가 다음 라운드 선후를 고르는 중…`); if (v.chooser === 0) btn = '<button type="button" data-a="first">내가 선</button><button type="button" data-a="second">내가 후</button>'; }
+        else if (v.phase === 'over') msg = v.winner === 0 ? `승리! ${v.score[0]} : ${v.score[1]}` : v.winner === 1 ? `패배 ${v.score[0]} : ${v.score[1]}` : `무승부 ${v.score[0]} : ${v.score[1]}`;
         $('clBtns').innerHTML = btn; $('clMsg').textContent = msg;
-        $('clLog').innerHTML = M.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
+        $('clAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
+        $('clLog').innerHTML = v.log.slice().reverse().map(x => `<span>${x.w != null ? `${x.round}라운드: ${x.w === 0 ? '내' : esc(oppName)} 1점 (${esc(x.why)})` : x.declare ? `${x.p === 0 ? '나' : esc(oppName)}: 불가능 선언!` : `${x.p === 0 ? '나' : esc(oppName)}: ${x.cells.map(({ c, i }) => `${c}→${name(i)}`).join(', ')}`}</span>`).join('');
       }
-      LAB.ready(root, start);
-      return () => T.clear();
+      if (roomLink) start(); else LAB.ready(root, start);
+      return () => { T.clear(); if (net) net.close(); };
     }
   });
 })();

@@ -172,7 +172,45 @@
     return best;
   }
 
-  const ENG = { L, CH, check, feedback, findCandidates, aiGuess, randomSecret, evalSide };
+  // ---------- 1:1 대결 규칙 (AI 대전·온라인 대전 공용, 서버도 불러 씀) ----------
+  const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
+  const MAXT = 15;
+  const DUEL = {
+    init() { return { phase: 'secret', secret: [null, null], pending: [null, null], hist: [[], []], turn: 0, winner: -1 }; },
+    act(s, seat, a) {
+      if (a.type === 'secret') {
+        if (s.phase !== 'secret' || s.secret[seat]) fail('지금은 수식을 낼 수 없어요.');
+        const eq = [...(a.eq || [])].map(String); const err = check(eq); if (err) fail(err);
+        s.secret[seat] = eq; if (s.secret[0] && s.secret[1]) s.phase = 'guess'; return;
+      }
+      if (a.type === 'guess') {
+        if (s.phase !== 'guess' || s.pending[seat]) fail('지금은 추측을 낼 수 없어요.');
+        const g = [...(a.g || [])].map(String); if (g.length !== L || g.some(c => !CH.includes(c))) fail('9칸을 숫자와 기호로 채워 주세요.');
+        s.pending[seat] = g;
+        if (s.pending[0] && s.pending[1]) {
+          s.turn++;
+          const f = [feedback(s.secret[1], s.pending[0]), feedback(s.secret[0], s.pending[1])];
+          s.hist[0].push({ g: s.pending[0], f: f[0] }); s.hist[1].push({ g: s.pending[1], f: f[1] }); s.pending = [null, null];
+          const win = f.map(x => x.every(y => y === 2));
+          if (win[0] || win[1] || s.turn >= MAXT) { s.phase = 'over'; s.winner = win[0] && win[1] ? 2 : win[0] ? 0 : win[1] ? 1 : 2; }
+        }
+        return;
+      }
+      fail('알 수 없는 행동이에요.');
+    },
+    view(s, seat) {
+      const o = 1 - seat;
+      return { phase: s.phase, turn: s.turn, mySecret: s.secret[seat], oppReady: !!s.secret[o], oppSecret: s.phase === 'over' ? s.secret[o] : null,
+        mine: s.hist[seat], theirs: s.hist[o], waiting: !!s.pending[seat], oppWaiting: !!s.pending[o], winner: s.winner < 0 ? -1 : s.winner === 2 ? 2 : s.winner === seat ? 0 : 1 };
+    },
+    ai(v, lv) {
+      if (v.phase === 'secret' && !v.mySecret) return { type: 'secret', eq: randomSecret() };
+      if (v.phase === 'guess' && !v.waiting) return { type: 'guess', g: aiGuess(v.mine, lv) };
+      return null;
+    },
+  };
+
+  const ENG = { L, CH, check, feedback, findCandidates, aiGuess, randomSecret, evalSide, DUEL };
   if (typeof module !== 'undefined' && module.exports) { module.exports = ENG; return; }
   if (typeof LAB === 'undefined') return;
 
@@ -185,76 +223,100 @@
       <li>기호는 연달아 쓸 수 없고, 곱하기를 생략할 수 없어요(제곱 ^ 뒤엔 숫자). 두 자리 이상 숫자는 0으로 시작할 수 없어요. 계산 순서는 ^ → × ÷ → + − 예요.</li>
       <li>매 턴 두 사람이 동시에 상대 수식을 추측해 적어요. 추측은 <b>성립하지 않아도 돼요</b>.</li>
       <li><b>빨강</b>: 그 글자가 상대 수식에 없음 · <b>노랑</b>: 있지만 자리가 다름 · <b>초록</b>: 자리까지 맞음. 같은 글자가 정답보다 많이 쓰이면 넘치는 만큼은 빨강이에요.</li>
-      <li>상대 수식을 먼저 맞히면 승리. 같은 턴에 둘 다 맞히면 무승부예요. (이 사이트 버전: 시간 제한 없음, 15턴이 지나면 무승부)</li>
+      <li>상대 수식을 먼저 맞히면 승리. 같은 턴에 둘 다 맞히면 무승부예요. (이 사이트 버전: 시간 제한 없음, ${MAXT}턴이 지나면 무승부)</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
-      let pend = { lv: 1 }, cfg = { ...pend }, G = null, input = [];
+      const roomLink = LAB.roomParam();
+      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, input = [], busy = false, lastArgs = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
-          <div class="dp-score"><div><small>나</small><b id="sgMe">-</b></div><div class="dp-mid"><span id="sgTurn"></span><small id="sgSub"></small></div><div><small>AI</small><b id="sgAi">-</b></div></div>
-          <div class="sg-boards"><div><div class="sg-h">내 추측 → AI 수식</div><div class="sg-rows" id="sgMine"></div></div><div><div class="sg-h">AI 추측 → 내 수식 <span id="sgMySecret" class="sg-secret"></span></div><div class="sg-rows" id="sgTheirs"></div></div></div>
+          <div class="dn-lobby" id="sgLobby" hidden></div>
+          <div id="sgGame">
+          <div class="dp-score"><div><small>나</small><b id="sgMe">-</b></div><div class="dp-mid"><span id="sgTurn"></span><small id="sgSub"></small></div><div><small id="sgOpN">상대</small><b id="sgAi">-</b></div></div>
+          <div class="sg-boards"><div><div class="sg-h" id="sgH1">내 추측 → 상대 수식</div><div class="sg-rows" id="sgMine"></div></div><div><div class="sg-h"><span id="sgH2">상대 추측 → 내 수식</span> <span id="sgMySecret" class="sg-secret"></span></div><div class="sg-rows" id="sgTheirs"></div></div></div>
           <div class="sg-input" id="sgInput"></div>
           <p class="g-msg" id="sgMsg"></p>
           <div class="sg-keys" id="sgKeys"></div>
-          <div class="row"><button type="button" id="sgDel">지우기</button><button type="button" id="sgRand">무작위 수식</button><button type="button" class="primary" id="sgGo">확인</button></div>
+          <div class="row" id="sgBtns"><button type="button" id="sgDel">지우기</button><button type="button" id="sgRand">무작위 수식</button><button type="button" class="primary" id="sgGo">확인</button></div>
+          <div id="sgAgain"></div>
+          </div>
         </div>
         <aside class="g-side">
           <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>AI 난이도</span><div id="sgLv"></div></div>
+            <div class="opt"><span>상대</span><div id="sgOpp2"></div></div>
+            <div class="opt" id="sgLvOpt"><span>AI 난이도</span><div id="sgLv"></div></div>
             <button type="button" class="primary" id="sgNew">새 게임</button></div>
-          <div class="card"><h3>진행 기록</h3><div class="log" id="sgLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
+      $('sgOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('sgLvOpt').hidden = v !== 'ai'; }));
+      $('sgLvOpt').hidden = pend.opp !== 'ai';
       $('sgLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('sgNew').onclick = start;
-      function start() { T.clear(); cfg = { ...pend }; G = { phase: 'secret', mySecret: null, aiSecret: randomSecret(), mine: [], theirs: [], turn: 0, log: [], over: false }; input = []; G.log.push('내 수식을 만들어 주세요'); render(); }
-      function type(c) { if (G.over || G.phase === 'wait') return; if (input.length < L) input.push(c); render(); }
-      $('sgKeys').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) type(b.dataset.k); });
-      $('sgDel').onclick = () => { input.pop(); render(); };
-      $('sgRand').onclick = () => { if (G.phase === 'secret') { input = randomSecret(); render(); } };
-      $('sgGo').onclick = () => {
-        if (G.over) return;
-        if (G.phase === 'secret') { const err = check(input); if (err) { $('sgMsg').textContent = err; return; } G.mySecret = input.slice(); input = []; G.phase = 'guess'; G.log.push('수식 제출 완료. 이제 AI 수식을 맞혀 보세요'); render(); return; }
-        if (G.phase === 'guess') {
-          if (input.length !== L) { $('sgMsg').textContent = '9칸을 모두 채워 주세요'; return; }
-          const g = input.slice(); input = []; G.phase = 'wait'; render();
-          T.set(() => {
-            const ag = aiGuess(G.theirs, cfg.lv);
-            G.turn++;
-            const f1 = feedback(G.aiSecret, g), f2 = feedback(G.mySecret, ag);
-            G.mine.push({ g, f: f1 }); G.theirs.push({ g: ag, f: f2 });
-            G.log.push(`${G.turn}턴: 나 ${g.join('')} · AI ${ag.join('')}`);
-            const meWin = f1.every(x => x === 2), aiWin = f2.every(x => x === 2);
-            G.phase = 'guess';
-            if (meWin || aiWin || G.turn >= 15) { G.over = true; render(); LAB.end(meWin && aiWin ? '무승부' : meWin ? '승리' : aiWin ? '패배' : '무승부', meWin && aiWin ? `${G.turn}턴에 둘 다 맞혔어요` : meWin ? `${G.turn}턴 만에 AI 수식을 맞혔어요` : aiWin ? `AI가 ${G.turn}턴 만에 내 수식을 맞혔어요. AI 수식은 ${G.aiSecret.join('')}` : `15턴 동안 아무도 못 맞혔어요. AI 수식은 ${G.aiSecret.join('')}`, start); return; }
-            render();
-          }, 500);
+      function start() {
+        T.clear(); cfg = { ...pend }; input = []; lastArgs = null;
+        if (net) { net.close(); net = null; }
+        if (cfg.opp === 'net') {
+          $('sgGame').hidden = true;
+          net = LAB.duel('signal', { el: $('sgLobby'), onView: v => { if (!v.st) { $('sgGame').hidden = true; return; } net.hideLobby(); $('sgGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('sgMsg').textContent = m; } });
+          net.start(); return;
         }
-      };
-      const row = (r, show = true) => `<div class="sg-row">${r.g.map((c, i) => `<span class="sgt f${r.f[i]}">${show ? esc(c) : ''}</span>`).join('')}</div>`;
-      function render() {
-        $('sgTurn').textContent = G.phase === 'secret' ? '수식 만들기' : `${G.turn + (G.over ? 0 : 1)}턴`;
-        $('sgSub').textContent = G.over ? '게임 끝' : '먼저 맞히면 승리';
-        $('sgMe').textContent = G.mine.length ? Math.max(...G.mine.map(r => r.f.filter(x => x === 2).length)) + '/9' : '-';
-        $('sgAi').textContent = G.theirs.length ? Math.max(...G.theirs.map(r => r.f.filter(x => x === 2).length)) + '/9' : '-';
-        $('sgMine').innerHTML = G.mine.map(r => row(r)).join('') || '<span class="muted">아직 추측 없음</span>';
-        $('sgTheirs').innerHTML = G.theirs.map(r => row(r)).join('') || '<span class="muted">아직 추측 없음</span>';
-        $('sgMySecret').textContent = G.mySecret ? `(내 수식 ${G.mySecret.join('')})` : '';
-        $('sgInput').innerHTML = Array.from({ length: L }, (_, i) => `<span class="sgt in ${i === input.length ? 'cur' : ''}">${esc(input[i] || '')}</span>`).join('');
-        // 키보드 색: 내가 받은 힌트 중 가장 좋은 것
-        const best = {}; for (const r of G.mine) r.g.forEach((c, i) => { best[c] = Math.max(best[c] ?? -1, r.f[i]); });
-        $('sgKeys').innerHTML = CH.map(c => `<button type="button" class="sgk ${best[c] != null && G.phase !== 'secret' ? 'f' + best[c] : ''} ${isD(c) ? '' : 'op'}" data-k="${c}">${c}</button>`).join('');
-        $('sgRand').hidden = G.phase !== 'secret';
-        $('sgGo').textContent = G.phase === 'secret' ? '이 수식으로 제출' : '추측 제출';
-        const err = G.phase === 'secret' && input.length === L ? check(input) : '';
-        $('sgMsg').textContent = G.over ? '' : G.phase === 'secret' ? (err || 'AI가 맞힐 내 수식을 만드세요 (예: 48÷6+2=10)') : G.phase === 'wait' ? 'AI도 추측하는 중…' : 'AI 수식을 추측해 9칸을 채우세요 (성립하지 않아도 돼요)';
-        $('sgLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
+        $('sgLobby').hidden = true; $('sgGame').hidden = false;
+        st = DUEL.init(); local(); aiStep();
       }
-      LAB.ready(root, start);
-      return () => T.clear();
+      const local = () => show(DUEL.view(st, 0), 'AI', null);
+      function aiStep() {
+        if (!st || st.phase === 'over') return;
+        const a = DUEL.ai(DUEL.view(st, 1), cfg.lv);
+        if (a) T.set(() => { try { DUEL.act(st, 1, a); } catch (e) { console.error(e); } local(); afterLocal(); }, a.type === 'secret' ? 50 : 400);
+      }
+      function afterLocal() { if (st.phase === 'over' && !st.ended) { st.ended = true; const w = st.winner; T.set(() => LAB.end(w === 0 ? '승리' : w === 1 ? '패배' : '무승부', w === 0 ? `${st.turn}턴 만에 AI 수식을 맞혔어요` : w === 1 ? `AI가 ${st.turn}턴 만에 내 수식을 맞혔어요. AI 수식은 ${st.secret[1].join('')}` : `무승부 · AI 수식은 ${st.secret[1].join('')}`, start), 900); } }
+      async function send(a) {
+        if (busy) return '';
+        if (net) { busy = true; const e = await net.act(a); busy = false; return e; }
+        try { DUEL.act(st, 0, a); } catch (e) { $('sgMsg').textContent = e.message; return e.message; }
+        local(); aiStep(); afterLocal(); return '';
+      }
+      const type = c => { const v = lastArgs && lastArgs[0]; if (!v || v.phase === 'over' || v.waiting || (v.phase === 'secret' && v.mySecret)) return; if (input.length < L) input.push(c); show(...lastArgs); };
+      $('sgKeys').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) type(b.dataset.k); });
+      $('sgDel').onclick = () => { input.pop(); lastArgs && show(...lastArgs); };
+      $('sgRand').onclick = () => { input = randomSecret(); lastArgs && show(...lastArgs); };
+      $('sgGo').onclick = async () => {
+        const v = lastArgs && lastArgs[0]; if (!v || v.phase === 'over') return;
+        if (v.phase === 'secret') { const err = check(input); if (err) { $('sgMsg').textContent = err; return; } const eq = input.slice(); input = []; const e = await send({ type: 'secret', eq }); if (e) input = eq; return; }
+        if (input.length !== L) { $('sgMsg').textContent = '9칸을 모두 채워 주세요'; return; }
+        const g = input.slice(); input = []; const e = await send({ type: 'guess', g }); if (e) { input = g; show(...lastArgs); }
+      };
+      wrap.addEventListener('click', e => { if (e.target.closest('[data-again]')) send({ type: 'again' }); });
+      const row = r => `<div class="sg-row">${r.g.map((c, i) => `<span class="sgt f${r.f[i]}">${esc(c)}</span>`).join('')}</div>`;
+      function show(v, oppName, room) {
+        lastArgs = [v, oppName, room];
+        $('sgOpN').textContent = oppName; $('sgH1').textContent = `내 추측 → ${oppName} 수식`; $('sgH2').textContent = `${oppName} 추측 → 내 수식`;
+        $('sgTurn').textContent = v.phase === 'secret' ? '수식 만들기' : `${v.turn + (v.phase === 'over' ? 0 : 1)}턴`;
+        $('sgSub').textContent = v.phase === 'over' ? '게임 끝' : '먼저 맞히면 승리';
+        const best = rows => rows.length ? Math.max(...rows.map(r => r.f.filter(x => x === 2).length)) + '/9' : '-';
+        $('sgMe').textContent = best(v.mine); $('sgAi').textContent = best(v.theirs);
+        $('sgMine').innerHTML = v.mine.map(row).join('') || '<span class="muted">아직 추측 없음</span>';
+        $('sgTheirs').innerHTML = v.theirs.map(row).join('') || '<span class="muted">아직 추측 없음</span>';
+        $('sgMySecret').textContent = v.mySecret ? `(내 수식 ${v.mySecret.join('')})` : '';
+        const typing = !(v.phase === 'over' || v.waiting || (v.phase === 'secret' && v.mySecret));
+        $('sgInput').innerHTML = Array.from({ length: L }, (_, i) => `<span class="sgt in ${typing && i === input.length ? 'cur' : ''}">${esc(input[i] || '')}</span>`).join('');
+        const bestc = {}; for (const r of v.mine) r.g.forEach((c, i) => { bestc[c] = Math.max(bestc[c] ?? -1, r.f[i]); });
+        $('sgKeys').innerHTML = CH.map(c => `<button type="button" class="sgk ${bestc[c] != null && v.phase !== 'secret' ? 'f' + bestc[c] : ''} ${isD(c) ? '' : 'op'}" data-k="${c}">${c}</button>`).join('');
+        $('sgKeys').hidden = $('sgBtns').hidden = !typing; $('sgInput').hidden = !typing;
+        $('sgRand').hidden = v.phase !== 'secret';
+        $('sgGo').textContent = v.phase === 'secret' ? '이 수식으로 제출' : '추측 제출';
+        const err = v.phase === 'secret' && input.length === L ? check(input) : '';
+        $('sgMsg').textContent = v.phase === 'over' ? (v.winner === 0 ? `승리! ${v.turn}턴 만에 맞혔어요` : v.winner === 1 ? `패배 — ${oppName}가 먼저 맞혔어요` : '무승부') + (v.oppSecret ? ` · ${oppName} 수식: ${v.oppSecret.join('')}` : '')
+          : v.phase === 'secret' ? (v.mySecret ? `${oppName}가 수식을 만드는 중…` : (err || `${oppName}가 맞힐 내 수식을 만드세요 (예: 48÷6+2=10)`))
+          : v.waiting ? `${oppName}의 추측을 기다리는 중…` : `${oppName} 수식을 추측해 9칸을 채우세요 (성립하지 않아도 돼요)${v.oppWaiting ? ` · ${oppName}는 이미 냈어요` : ''}`;
+        $('sgAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
+      }
+      if (roomLink) start(); else LAB.ready(root, start);
+      return () => { T.clear(); if (net) net.close(); };
     }
   });
 })();

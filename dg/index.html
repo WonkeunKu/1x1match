@@ -409,6 +409,18 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .sg-keys { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; width: min(100%, 460px); margin: 0 auto; }
 .sgk { border: 1px solid var(--line); background: var(--board-2); color: var(--chalk); border-radius: 7px; padding: 10px 0; font-family: var(--f-mono); font-size: 18px; font-weight: 700; min-width: 0; }
 .sgk.op { color: var(--amber); } .sgk.f0 { opacity: .35; } .sgk.f1 { background: #c99a2e; color: #1a1405; } .sgk.f2 { background: #3f9a55; color: #fff; }
+
+/* ---- 1:1 온라인 대기실 ---- */
+.dn-lobby { display: grid; }
+.dn-box { display: grid; gap: 10px; max-width: 420px; margin: 0 auto; width: 100%; text-align: center; padding: 12px 0; }
+.dn-box b { font-size: 18px; } .dn-box p { margin: 0; color: var(--chalk-dim); font-size: 14px; word-break: keep-all; }
+.dn-box input { width: 100%; background: var(--slot); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--chalk); font-size: 16px; }
+.dn-name { display: grid; gap: 4px; text-align: left; font-size: 13px; font-weight: 700; }
+.dn-join { display: grid; grid-template-columns: 1fr auto; gap: 6px; } .dn-join input { text-transform: uppercase; letter-spacing: .2em; font-family: var(--f-mono); }
+.dn-code { font-size: 14px; color: var(--chalk-dim); } .dn-code span { display: block; font-family: var(--f-mono); font-size: 40px; letter-spacing: .25em; color: var(--amber); font-weight: 700; }
+.dn-link { display: grid; grid-template-columns: 1fr auto; gap: 6px; } .dn-link input { font-size: 13px; font-family: var(--f-mono); }
+.dn-err { color: var(--red) !important; min-height: 18px; }
+.dn-again { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -495,11 +507,12 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 <script src="games/indian.js?v=11"></script>
 <script src="games/blackwhite.js?v=11"></script>
 <script src="games/memmaze.js?v=11"></script>
-<script src="games/gradation.js?v=1"></script>
-<script src="games/hitstay.js?v=1"></script>
-<script src="games/cardjanggi.js?v=1"></script>
-<script src="games/colorlink.js?v=1"></script>
-<script src="games/signal.js?v=1"></script>
+<script src="games/duelnet.js?v=1"></script>
+<script src="games/gradation.js?v=2"></script>
+<script src="games/hitstay.js?v=2"></script>
+<script src="games/cardjanggi.js?v=2"></script>
+<script src="games/colorlink.js?v=2"></script>
+<script src="games/signal.js?v=2"></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);

@@ -107,7 +107,59 @@
     return best;
   }
 
-  const ENG = { ALLV, GOOD, COL, CNAME, validDist, aiDistribution, aiChoose, sampleBeliefs };
+  // ---------- 1:1 대결 규칙 (AI 대전과 온라인 대전이 같이 씀. 서버도 이 코드를 불러 판정) ----------
+  const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
+  const DUEL = {
+    init(prev) { return { phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, lead: prev ? 1 - prev.firstOfMatch : rnd(2), firstOfMatch: null, table: null, hist: [], winner: -1, tie: 0, log: [] }; },
+    act(s, seat, a) {
+      if (a.type === 'dist') {
+        if (s.phase !== 'setup' || s.dist[seat]) fail('지금은 배치할 수 없어요.');
+        const v = (a.v || []).map(Number); if (!validDist(v)) fail('배치가 규칙에 맞지 않아요 (오름차순, 합 30 이하, 숫자마다 2개까지).');
+        s.dist[seat] = v;
+        if (s.dist[0] && s.dist[1]) { s.phase = 'play'; if (s.firstOfMatch == null) s.firstOfMatch = s.lead; s.round = 1; s.table = { first: s.lead, a: null, b: null }; }
+        return;
+      }
+      if (a.type === 'pick') {
+        const t = s.table, i = Number(a.i);
+        if (s.phase !== 'play' || !t) fail('지금은 낼 수 없어요.');
+        if (!(i >= 0 && i < 7) || s.used[seat].includes(i)) fail('그 통은 이미 냈어요.');
+        if (seat === t.first && t.a == null) t.a = i;
+        else if (seat !== t.first && t.a != null && t.b == null) t.b = i;
+        else fail('지금은 내 차례가 아니에요.');
+        s.used[seat].push(i);
+        if (t.a != null && t.b != null) {
+          const pos = [0, 0]; pos[t.first] = t.a; pos[1 - t.first] = t.b;
+          const x = [s.dist[0][pos[0]], s.dist[1][pos[1]]];
+          s.reveals[0].push({ c: COL[pos[0]], x: x[0] }); s.reveals[1].push({ c: COL[pos[1]], x: x[1] });
+          const r = x[0] > x[1] ? 0 : x[0] < x[1] ? 1 : -1;
+          if (r >= 0) { s.score[r]++; s.lead = r; }
+          s.hist.push({ pos, x, r, first: t.first });
+          if (s.round >= 7) {
+            if (s.score[0] === s.score[1]) { s.log.push(`${s.score[0]}:${s.score[1]} 동점 → 다시 배치해서 재대결`); s.lastDuel = { hist: s.hist, dist: s.dist }; Object.assign(s, { phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, table: null, hist: [], tie: s.tie + 1 }); }
+            else { s.phase = 'over'; s.winner = s.score[0] > s.score[1] ? 0 : 1; s.table = null; }
+          } else { s.round++; s.table = { first: s.lead, a: null, b: null }; }
+        }
+        return;
+      }
+      fail('알 수 없는 행동이에요.');
+    },
+    view(s, seat) {
+      const o = 1 - seat, t = s.table, rel = h => ({ pos: [h.pos[seat], h.pos[o]], x: [h.x[seat], h.x[o]], r: h.r < 0 ? -1 : h.r === seat ? 0 : 1, first: h.first === seat ? 0 : 1 });
+      let table = null;
+      if (t) { const mf = t.first === seat, myPick = mf ? t.a : t.b, oppPick = mf ? t.b : t.a; table = { first: mf ? 0 : 1, mine: myPick, oppColor: oppPick == null ? null : COL[oppPick] }; }
+      return { phase: s.phase, round: s.round, score: [s.score[seat], s.score[o]], myDist: s.dist[seat], oppReady: !!s.dist[o], oppDist: s.phase === 'over' ? s.dist[o] : null,
+        myUsed: s.used[seat], oppReveals: s.reveals[o], table, hist: s.hist.map(rel), winner: s.winner < 0 ? -1 : s.winner === seat ? 0 : 1, tie: s.tie, log: s.log.slice(-10) };
+    },
+    // AI(자리 seat)가 지금 할 행동. 자기 화면(view)에 보이는 것만 씀
+    ai(v, lv) {
+      if (v.phase === 'setup' && !v.myDist) return { type: 'dist', v: aiDistribution(lv) };
+      const t = v.table; if (v.phase !== 'play' || !t || t.mine != null) return null;
+      if (t.first === 1 && t.oppColor == null) return null;
+      return { type: 'pick', i: aiChoose(lv, { v: v.myDist, used: new Set(v.myUsed) }, v.oppReveals, t.first === 0 ? null : t.oppColor) };
+    },
+  };
+
+  const ENG = { ALLV, GOOD, COL, CNAME, validDist, aiDistribution, aiChoose, sampleBeliefs, DUEL };
   if (typeof module !== 'undefined' && module.exports) { module.exports = ENG; return; }
   if (typeof LAB === 'undefined') return;
 
@@ -122,17 +174,19 @@
       <li>담을 때 <b>왼쪽에서 오른쪽으로 오름차순</b>(같은 숫자 가능), <b>7개 합은 30 이하</b>여야 해요.</li>
       <li>라운드마다 선이 통 하나를 내고, 후는 그 <b>통의 색만 보고</b> 자기 통을 내요. 같은 색 두 통 중 어느 쪽인지는 몰라요.</li>
       <li>두 통의 숫자를 공개해 <b>큰 쪽이 1점</b>, 같으면 점수 없음. 이긴 사람이 다음 라운드 선(비기면 그대로)이에요.</li>
-      <li>7라운드 뒤 점수가 높은 쪽이 대결 승리. 동점이면 다시 배치해서 재대결해요.</li>
-      <li><b>3인 서바이벌</b>(방송 방식): 대결 승자가 쉬던 사람과 붙고, <b>2연승</b>한 사람이 1위예요. 직전 대결 승자가 다음 대결 첫 라운드 선이에요.</li>
+      <li>7라운드 뒤 점수가 높은 쪽이 승리. 동점이면 다시 배치해서 재대결해요.</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
-      let pend = { lv: 1, mode: 'duel' }, cfg = { ...pend }, G = null, D = null;
+      const roomLink = LAB.roomParam();
+      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, V = null, net = null, draft = Array(7).fill(null), sel = 0, busy = false;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
-          <div class="dp-score"><div><small id="grMeN">나</small><b id="grMe">0</b></div><div class="dp-mid"><span id="grRound"></span><small id="grSub"></small></div><div><small id="grOpN">AI</small><b id="grOp">0</b></div></div>
-          <div class="gr-surv" id="grSurv"></div>
+          <div class="dn-lobby" id="grLobby" hidden></div>
+          <div id="grGame">
+          <div class="dp-score"><div><small id="grMeN">나</small><b id="grMe">0</b></div><div class="dp-mid"><span id="grRound"></span><small id="grSub"></small></div><div><small id="grOpN">상대</small><b id="grOp">0</b></div></div>
           <div class="gr-lab">상대 통 <span class="muted" id="grOpLeft"></span></div>
           <div class="gr-bins opp" id="grOpp"></div>
           <div class="gr-table" id="grTable"></div>
@@ -141,179 +195,109 @@
           <div class="gr-bins" id="grMine"></div>
           <div class="gr-pool" id="grPool"></div>
           <div class="row" id="grSetBtns"><button type="button" id="grAuto">추천 배치</button><button type="button" id="grClear">비우기</button><button type="button" class="primary" id="grDone">배치 완료</button></div>
+          <div id="grAgain"></div>
           <div class="bw-hist" id="grHist"></div>
+          </div>
         </div>
         <aside class="g-side">
           <div class="card"><h3>설정 (새 게임에 적용)</h3>
-            <div class="opt"><span>방식</span><div id="grMode"></div></div>
-            <div class="opt"><span>AI 난이도</span><div id="grLv"></div></div>
+            <div class="opt"><span>상대</span><div id="grOpp2"></div></div>
+            <div class="opt" id="grLvOpt"><span>AI 난이도</span><div id="grLv"></div></div>
             <button type="button" class="primary" id="grNew">새 게임</button></div>
           <div class="card"><h3>진행 기록</h3><div class="log" id="grLog"></div></div>
         </aside></div>`);
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
-      $('grMode').appendChild(seg([['duel', '1:1 대결'], ['surv', '3인 서바이벌']], 'duel', v => pend.mode = v));
+      $('grOpp2').appendChild(seg([['ai', 'AI'], ['net', '사람 (온라인)']], pend.opp, v => { pend.opp = v; $('grLvOpt').hidden = v !== 'ai'; }));
+      $('grLvOpt').hidden = pend.opp !== 'ai';
       $('grLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('grNew').onclick = start;
-      const log = t => { G.log.push(t); };
-
-      // ---------- 게임(대결 묶음) ----------
+      let logs = [];
       function start() {
-        T.clear(); cfg = { ...pend };
-        const players = cfg.mode === 'surv' ? ['나', 'AI 1', 'AI 2'] : ['나', 'AI'];
-        G = { players, streak: players.map(() => 0), log: [], duelNo: 0, over: false, lastWinner: null, survLog: [] };
-        if (cfg.mode === 'surv') { const opp = 1 + rnd(2); G.wait = 3 - opp; newDuel([0, opp], rnd(2) ? 0 : opp); }
-        else newDuel([0, 1], rnd(2) ? 0 : 1);
+        T.clear(); cfg = { ...pend }; draft = Array(7).fill(null); sel = 0; logs = []; V = null;
+        if (net) { net.close(); net = null; }
+        if (cfg.opp === 'net') {
+          $('grGame').hidden = true;
+          net = LAB.duel('gradation', { el: $('grLobby'), onView: v => { if (!v.st) { $('grGame').hidden = true; return; } net.hideLobby(); $('grGame').hidden = false; show(v.st, v.opp || '상대', v); }, onError: m => { $('grMsg').textContent = m; } });
+          net.start(); return;
+        }
+        $('grLobby').hidden = true; $('grGame').hidden = false;
+        st = DUEL.init(null); logs.push(`AI 대결 시작 · 첫 라운드 선: ${st.lead === 0 ? '나' : 'AI'}`); aiStep(); local();
       }
-      function newDuel(pair, first) {
-        G.duelNo++;
-        D = { pair, first, lead: first, score: [0, 0], round: 0, phase: 'setup', dist: [null, null], used: [new Set(), new Set()], reveals: [[], []], hist: [], table: null, draft: Array(7).fill(null), sel: 0 };
-        const names = pair.map(p => G.players[p]);
-        log(`대결 ${G.duelNo}: ${names[0]} vs ${names[1]} (선: ${G.players[first]})`);
-        if (pair.includes(0)) {
-          D.dist[1] = aiDistribution(cfg.lv); // 상대 AI는 바로 배치
-          render();
-        } else { simulateAIDuel(); }
+      const local = () => show(DUEL.view(st, 0), 'AI', null);
+      function aiStep() { // AI는 자리 1
+        if (!st || st.phase === 'over') return;
+        const a = DUEL.ai(DUEL.view(st, 1), cfg.lv);
+        if (a) T.set(() => { try { DUEL.act(st, 1, a); } catch (e) { console.error(e); } local(); aiStep(); afterLocal(); }, a.type === 'dist' ? 50 : 900);
       }
-      const idx = p => D.pair.indexOf(p); // 대결 안 자리(0: 나 또는 앞 사람)
-
-      // ---------- 배치 ----------
-      const poolLeft = d => 2 - D.draft.filter(x => x === d).length;
-      function placeDigit(d) {
-        if (D.phase !== 'setup' || poolLeft(d) <= 0) return;
-        D.draft[D.sel] = d;
-        const nx = D.draft.findIndex(x => x == null); if (nx >= 0) D.sel = nx;
-        render();
+      function afterLocal() { if (st.phase === 'over' && !st.ended) { st.ended = true; T.set(() => LAB.end(st.winner === 0 ? '승리' : '패배', `최종 ${st.score[0]} : ${st.score[1]}`, start), 900); } }
+      async function send(a) {
+        if (busy) return;
+        if (net) { busy = true; await net.act(a); busy = false; return; }
+        try { DUEL.act(st, 0, a); } catch (e) { $('grMsg').textContent = e.message; return; }
+        local(); aiStep(); afterLocal();
       }
+      // 배치
+      const poolLeft = d => 2 - draft.filter(x => x === d).length;
       function draftProblem() {
-        const v = D.draft;
-        if (v.some(x => x == null)) return `통 ${v.filter(x => x == null).length}개가 비어 있어요`;
-        for (let i = 1; i < 7; i++) if (v[i] < v[i - 1]) return `왼쪽에서 오른쪽으로 오름차순이어야 해요 (${i}번째 ${v[i - 1]} > ${i + 1}번째 ${v[i]})`;
-        if (vsum(v) > 30) return `합이 ${vsum(v)}이에요. 30 이하여야 해요`;
+        if (draft.some(x => x == null)) return `통 ${draft.filter(x => x == null).length}개가 비어 있어요`;
+        for (let i = 1; i < 7; i++) if (draft[i] < draft[i - 1]) return `왼쪽에서 오른쪽으로 오름차순이어야 해요 (${i}번째 ${draft[i - 1]} > ${i + 1}번째 ${draft[i]})`;
+        if (vsum(draft) > 30) return `합이 ${vsum(draft)}이에요. 30 이하여야 해요`;
         return '';
       }
-      $('grAuto').onclick = () => { if (D.phase !== 'setup') return; D.draft = GOOD[rnd(GOOD.length)].slice(); D.sel = 0; render(); };
-      $('grClear').onclick = () => { if (D.phase !== 'setup') return; D.draft = Array(7).fill(null); D.sel = 0; render(); };
-      $('grDone').onclick = () => {
-        if (D.phase !== 'setup') return;
-        const p = draftProblem(); if (p) { $('grMsg').textContent = p; return; }
-        D.dist[0] = D.draft.slice(); D.phase = 'play';
-        if (vsum(D.dist[0]) < 30) log(`내 배치 합 ${vsum(D.dist[0])} (30보다 작아요)`);
-        nextRound();
-      };
+      $('grAuto').onclick = () => { draft = GOOD[rnd(GOOD.length)].slice(); sel = 0; rerender(); };
+      $('grClear').onclick = () => { draft = Array(7).fill(null); sel = 0; rerender(); };
+      $('grDone').onclick = () => { const p = draftProblem(); if (p) { $('grMsg').textContent = p; return; } send({ type: 'dist', v: draft.slice() }); draft = Array(7).fill(null); };
+      wrap.addEventListener('click', e => {
+        const s = e.target.closest('[data-s]'); if (s) { sel = +s.dataset.s; rerender(); return; }
+        const d = e.target.closest('[data-d]'); if (d && !d.disabled) { const k = +d.dataset.d; if (poolLeft(k) > 0) { draft[sel] = k; const nx = draft.findIndex(x => x == null); if (nx >= 0) sel = nx; rerender(); } return; }
+        const p = e.target.closest('[data-p]'); if (p && !p.disabled) { send({ type: 'pick', i: +p.dataset.p }); return; }
+        if (e.target.closest('[data-again]')) send({ type: 'again' });
+      });
+      let lastArgs = null; const rerender = () => lastArgs && show(...lastArgs);
 
-      // ---------- 라운드 ----------
-      function nextRound() {
-        if (D.round >= 7) return endDuel();
-        D.round++; D.table = { first: D.lead, a: null, b: null }; render();
-        if (D.pair[0] === 0 && D.lead !== 0) T.set(() => { D.table.a = aiPickFor(1, null); render(); }, 900);
-      }
-      // 대결 안 자리 s(0/1)의 AI가 고름. oppColor: 상대가 이미 낸 색
-      function aiPickFor(s, oppColor) {
-        const me = { v: D.dist[s], used: D.used[s] };
-        const i = aiChoose(cfg.lv, me, D.reveals[1 - s], oppColor, D.reveals[s]);
-        D.used[s].add(i); return i;
-      }
-      function humanPlay(i) {
-        const t = D.table; if (!t || D.phase !== 'play' || D.used[0].has(i)) return;
-        if (t.first === 0 && t.a == null) { t.a = i; D.used[0].add(i); render(); T.set(() => { t.b = aiPickFor(1, COL[i]); render(); T.set(resolve, 900); }, 900); }
-        else if (t.first === 1 && t.a != null && t.b == null) { t.b = i; D.used[0].add(i); render(); T.set(resolve, 700); }
-      }
-      function resolve() {
-        const t = D.table;
-        const pos = t.first === 0 ? [t.a, t.b] : [t.b, t.a]; // [자리0, 자리1]
-        const x = [D.dist[0][pos[0]], D.dist[1][pos[1]]];
-        D.reveals[0].push({ c: COL[pos[0]], x: x[0] }); D.reveals[1].push({ c: COL[pos[1]], x: x[1] });
-        const r = x[0] > x[1] ? 0 : x[0] < x[1] ? 1 : -1;
-        if (r >= 0) { D.score[r]++; D.lead = r; }
-        D.hist.push({ pos, x, r, first: t.first });
-        D.table = null; render(); T.set(nextRound, 1500);
-      }
-      function endDuel() {
-        const [a, b] = D.score, names = D.pair.map(p => G.players[p]);
-        if (a === b) { log(`대결 ${G.duelNo}: ${a}:${b} 동점 → 다시 배치해서 재대결`); render(); T.set(() => newDuel(D.pair, D.first), 1800); return; }
-        const w = a > b ? 0 : 1, wp = D.pair[w], lp = D.pair[1 - w];
-        log(`대결 ${G.duelNo}: ${names[0]} ${a} : ${b} ${names[1]} → ${G.players[wp]} 승리`);
-        if (cfg.mode === 'duel') { G.over = true; render(); LAB.end(wp === 0 ? '승리' : '패배', `최종 ${a} : ${b}`, start); return; }
-        G.streak[wp]++; G.streak[lp] = 0;
-        if (G.streak[wp] >= 2) { G.over = true; render(); LAB.end(wp === 0 ? '1위 · 결승 진출' : '탈락', wp === 0 ? '2연승으로 서바이벌 1위!' : `${G.players[wp]}가 2연승으로 1위를 차지했어요`, start); return; }
-        const sit = G.wait; G.wait = lp;
-        render(); T.set(() => newDuel(sit === 0 ? [0, wp] : [wp, sit].sort((x, y) => x - y), wp), 1800);
-      }
-      // 나 없이 AI끼리 붙는 대결은 바로 계산
-      function simulateAIDuel() {
-        D.dist = [aiDistribution(cfg.lv), aiDistribution(cfg.lv)]; D.phase = 'play';
-        const lead0 = D.first === D.pair[0] ? 0 : 1; D.lead = lead0;
-        for (let r = 0; r < 7; r++) {
-          const f = D.lead, s2 = 1 - f;
-          const pf = aiPickFor(f, null), ps = aiPickFor(s2, COL[pf]);
-          const pos = f === 0 ? [pf, ps] : [ps, pf], x = [D.dist[0][pos[0]], D.dist[1][pos[1]]];
-          D.reveals[0].push({ c: COL[pos[0]], x: x[0] }); D.reveals[1].push({ c: COL[pos[1]], x: x[1] });
-          const w = x[0] > x[1] ? 0 : x[0] < x[1] ? 1 : -1; if (w >= 0) { D.score[w]++; D.lead = w; }
-          D.hist.push({ pos, x, r: w, first: f });
-        }
-        D.round = 7; render(); T.set(endDuel, 2200);
-      }
-
-      // ---------- 그리기 ----------
       const cube = (c, x, cls = '', attrs = '') => `<button type="button" class="grb c${c} ${cls}" style="--bg:${GRAD[c]};--ink:${INK[c]}" ${attrs}><span>${x == null ? '' : x}</span></button>`;
-      function render() {
-        const meIn = D.pair[0] === 0;
-        const names = D.pair.map(p => G.players[p]);
-        $('grMeN').textContent = names[0]; $('grOpN').textContent = names[1];
-        $('grMe').textContent = D.score[0]; $('grOp').textContent = D.score[1];
-        $('grRound').textContent = G.over ? '게임 끝' : D.phase === 'setup' ? '배치 단계' : `${D.round}/7 라운드`;
-        $('grSub').textContent = D.table ? `${names[D.table.first]} 선` : cfg.mode === 'surv' ? `대결 ${G.duelNo}` : '';
-        $('grSurv').innerHTML = cfg.mode === 'surv' ? G.players.map((n, p) => `<span class="${D.pair.includes(p) ? 'in' : 'out'}">${esc(n)} <b>${'●'.repeat(G.streak[p])}${'○'.repeat(2 - G.streak[p])}</b>${D.pair.includes(p) ? '' : ' · 대기'}</span>`).join('') : '';
-        $('grSurv').hidden = cfg.mode !== 'surv';
-        // 상대 통: 색만 보이고 낸 통은 흐리게. 같은 색 중 어느 쪽을 냈는지는 모르므로 색별 남은 개수로 표시
-        const opUsedC = [0, 0, 0, 0]; D.reveals[1].forEach(r => opUsedC[r.c]++);
-        const opDone = D.phase === 'play' && D.round >= 7 && !D.table;
-        let opHtml = '';
+      function show(v, oppName, room) {
+        lastArgs = [v, oppName, room];
+        $('grOpN').textContent = oppName; $('grMe').textContent = v.score[0]; $('grOp').textContent = v.score[1];
+        $('grRound').textContent = v.phase === 'over' ? '게임 끝' : v.phase === 'setup' ? '배치 단계' : `${v.round}/7 라운드`;
+        $('grSub').textContent = v.table ? `${v.table.first === 0 ? '내가' : oppName + '가'} 선` : v.tie ? `재대결 ${v.tie}회째` : '';
+        // 상대 통: 색만, 낸 만큼 흐리게 (같은 색 중 어느 쪽인지는 모름)
+        const used = [0, 0, 0, 0]; v.oppReveals.forEach(r => used[r.c]++);
         const shown = [0, 0, 0, 0];
-        for (let i = 0; i < 7; i++) {
-          const c = COL[i]; const usedHere = shown[c] < opUsedC[c] && (shown[c]++, true);
-          opHtml += cube(c, (G.over || opDone) && D.dist[1] ? D.dist[1][i] : null, usedHere ? 'used' : '', 'disabled');
-        }
-        $('grOpp').innerHTML = opHtml;
-        $('grOpLeft').textContent = D.phase === 'setup' ? '' : `남은 통: ${[0, 1, 2, 3].map(c => `${CNAME[c]} ${POS[c].length - opUsedC[c]}`).join(' · ')}`;
-        // 가운데 판
-        const t = D.table; let tb = '';
-        if (t) { const mine = t.first === 0 ? t.a : t.b, theirs = t.first === 0 ? t.b : t.a;
-          const slot = (i, s) => i == null ? '<span class="grb empty"><span>?</span></span>' : cube(COL[i], s === 0 && meIn ? D.dist[0][i] : null, 'big', 'disabled');
-          tb = `<div class="duel"><div><small>${esc(names[0])}</small>${slot(mine, 0)}</div><span class="vs">VS</span><div><small>${esc(names[1])}</small>${slot(theirs, 1)}</div></div>`; }
-        else if (D.hist.length && D.phase === 'play') { const l = D.hist[D.hist.length - 1];
-          tb = `<div class="duel"><div><small>${esc(names[0])}</small>${cube(COL[l.pos[0]], l.x[0], 'big', 'disabled')}</div><span class="vs">${l.r === 0 ? '승' : l.r === 1 ? '패' : '무'}</span><div><small>${esc(names[1])}</small>${cube(COL[l.pos[1]], l.x[1], 'big', 'disabled')}</div></div>`; }
+        $('grOpp').innerHTML = [0, 1, 2, 3, 4, 5, 6].map(i => { const c = COL[i]; const u = shown[c] < used[c] && (shown[c]++, true); return cube(c, v.oppDist ? v.oppDist[i] : null, u ? 'used' : '', 'disabled'); }).join('');
+        $('grOpLeft').textContent = v.phase === 'setup' ? (v.oppReady ? '배치 완료' : '배치 중…') : `남은 통: ${[0, 1, 2, 3].map(c => `${CNAME[c]} ${POS[c].length - used[c]}`).join(' · ')}`;
+        // 가운데
+        const t = v.table; let tb = '';
+        if (t) { const slot = (i, mine) => i == null ? '<span class="grb empty"><span>?</span></span>' : cube(COL[i], mine ? v.myDist[i] : null, 'big', 'disabled');
+          const oppSlot = t.oppColor == null ? '<span class="grb empty"><span>?</span></span>' : cube(t.oppColor, null, 'big', 'disabled');
+          tb = `<div class="duel"><div><small>나</small>${slot(t.mine, true)}</div><span class="vs">VS</span><div><small>${esc(oppName)}</small>${oppSlot}</div></div>`; }
+        if (v.hist.length && (!t || (t.mine == null && t.oppColor == null))) { const l = v.hist[v.hist.length - 1];
+          tb = `<div class="duel"><div><small>나</small>${cube(COL[l.pos[0]], l.x[0], 'big', 'disabled')}</div><span class="vs">${l.r === 0 ? '승' : l.r === 1 ? '패' : '무'}</span><div><small>${esc(oppName)}</small>${cube(COL[l.pos[1]], l.x[1], 'big', 'disabled')}</div></div>`; }
         $('grTable').innerHTML = tb;
         // 내 통
-        const setup = D.phase === 'setup' && meIn;
-        const myTurn = t && meIn && ((t.first === 0 && t.a == null) || (t.first === 1 && t.a != null && t.b == null));
+        const setup = v.phase === 'setup' && !v.myDist;
+        const myTurn = t && t.mine == null && (t.first === 0 || t.oppColor != null);
         let mh = '';
         for (let i = 0; i < 7; i++) {
-          if (setup) mh += cube(COL[i], D.draft[i], i === D.sel ? 'sel' : '', `data-s="${i}"`);
-          else if (meIn && D.dist[0]) mh += cube(COL[i], D.dist[0][i], D.used[0].has(i) ? 'used' : myTurn ? 'can' : '', D.used[0].has(i) || !myTurn ? 'disabled' : `data-p="${i}"`);
-          else mh += cube(COL[i], D.dist[0] ? D.dist[0][i] : null, D.used[0].has(i) ? 'used' : '', 'disabled');
+          if (setup) mh += cube(COL[i], draft[i], i === sel ? 'sel' : '', `data-s="${i}"`);
+          else if (v.myDist) { const u = v.myUsed.includes(i); mh += cube(COL[i], v.myDist[i], u ? 'used' : myTurn ? 'can' : '', u || !myTurn ? 'disabled' : `data-p="${i}"`); }
+          else mh += cube(COL[i], null, '', 'disabled');
         }
         $('grMine').innerHTML = mh;
-        $('grMine').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { D.sel = +b.dataset.s; render(); });
-        $('grMine').querySelectorAll('[data-p]').forEach(b => b.onclick = () => humanPlay(+b.dataset.p));
-        $('grSum').textContent = setup ? `합 ${vsum(D.draft.filter(x => x != null))} / 30` : meIn && D.dist[0] ? `합 ${vsum(D.dist[0])}` : '';
+        $('grSum').textContent = setup ? `합 ${vsum(draft.filter(x => x != null))} / 30` : v.myDist ? `합 ${vsum(v.myDist)}` : '';
         $('grPool').hidden = !setup; $('grSetBtns').hidden = !setup;
         if (setup) $('grPool').innerHTML = [...Array(10).keys()].map(d => `<button type="button" class="grd" data-d="${d}" ${poolLeft(d) <= 0 ? 'disabled' : ''}>${d}<small>${'•'.repeat(poolLeft(d))}</small></button>`).join('');
-        $('grPool').querySelectorAll('[data-d]').forEach(b => b.onclick = () => placeDigit(+b.dataset.d));
-        // 안내
-        const lastC = t && t.first === 1 && t.a != null ? CNAME[COL[t.a]] : '';
-        $('grMsg').textContent = G.over ? '게임 끝 — 상대 배치를 공개해요'
-          : !meIn ? `${names[0]}와 ${names[1]}의 대결 결과를 계산했어요. 다음 대결을 기다려요…`
-          : setup ? (draftProblem() || '배치를 마쳤으면 "배치 완료"를 누르세요') + ' · 통을 누르고 아래 숫자를 고르면 담겨요'
-          : !t ? (D.round >= 7 ? '대결 끝' : '') : t.first === 0 && t.a == null ? '내가 선이에요. 낼 통을 고르세요'
-          : t.first === 1 && t.a == null ? '상대가 고르는 중…' : t.b == null && t.first === 1 ? `상대가 ${lastC} 통을 냈어요. 맞받아칠 통을 고르세요` : '공개 중…';
-        // 기록표
-        $('grHist').innerHTML = D.hist.length ? `<table><tr><th>R</th>${D.hist.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr><tr><td>${esc(names[0])}</td>${D.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[0]]]}"></span>${x.x[0]}${x.first === 0 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>${esc(names[1])}</td>${D.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[1]]]}"></span>${x.x[1]}${x.first === 1 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>결과</td>${D.hist.map(x => `<td>${x.r === 0 ? '◀' : x.r === 1 ? '▶' : '='}</td>`).join('')}</tr></table>` : '';
-        $('grLog').innerHTML = G.log.slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
+        $('grMsg').textContent = v.phase === 'over' ? (v.winner === 0 ? `이겼어요! ${v.score[0]} : ${v.score[1]}` : `졌어요. ${v.score[0]} : ${v.score[1]}`) + ' — 상대 배치를 공개해요'
+          : v.phase === 'setup' ? (v.myDist ? `${oppName}의 배치를 기다리는 중…` : (draftProblem() || '배치를 마쳤으면 "배치 완료"를 누르세요') + ' · 통을 누르고 아래 숫자를 고르면 담겨요')
+          : !t ? '' : myTurn ? (t.first === 0 ? '내가 선이에요. 낼 통을 고르세요' : `${oppName}가 ${CNAME[t.oppColor]} 통을 냈어요. 맞받아칠 통을 고르세요`)
+          : t.first === 1 ? `${oppName}가 고르는 중…` : `${oppName}가 맞받아칠 통을 고르는 중…`;
+        $('grAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
+        $('grHist').innerHTML = v.hist.length ? `<table><tr><th>R</th>${v.hist.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr><tr><td>나</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[0]]]}"></span>${x.x[0]}${x.first === 0 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>${esc(oppName)}</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[1]]]}"></span>${x.x[1]}${x.first === 1 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>결과</td>${v.hist.map(x => `<td>${x.r === 0 ? '승' : x.r === 1 ? '패' : '='}</td>`).join('')}</tr></table>` : '';
+        $('grLog').innerHTML = [...logs, ...v.log].slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
-      LAB.ready(root, start);
-      return () => T.clear();
+      if (roomLink) start(); else LAB.ready(root, start);
+      return () => { T.clear(); if (net) net.close(); };
     }
   });
 })();
