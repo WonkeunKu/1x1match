@@ -18,6 +18,7 @@
   .cf-lots{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:420px}
   .cf-lots span{padding:10px 14px;border-radius:999px;background:#163d35;border:2px solid rgba(241,238,228,.14);font-weight:700;font-size:16px;transition:background .08s,border-color .08s,transform .08s}
   .cf-lots span.hi{background:#f3b641;color:#1a1405;border-color:#f3b641;transform:scale(1.08)}
+  .cf-lots span.win{transform:scale(1.18);box-shadow:0 0 0 4px rgba(243,182,65,.35)}
   @media (prefers-reduced-motion:reduce){.cf-coin{transition:none!important}}`;
   function addCss() { if (document.getElementById('cf-css')) return; const s = document.createElement('style'); s.id = 'cf-css'; s.textContent = css; document.head.appendChild(s); }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -41,7 +42,9 @@
       } else {
         const spans = [...ov.querySelectorAll('.cf-lots span')], n = spans.length; let k = 0, step = 0;
         const steps = n * 3 + ((winner - (n * 3) % n) % n + n) % n; // winner에서 멈추도록
-        const tick = () => { spans.forEach(s => s.classList.remove('hi')); spans[k % n].classList.add('hi'); if (step >= steps) return; step++; k++; setTimeout(tick, 40 + step * step * (DUR / (steps * steps * 2.2))); };
+        // 칸마다 머무는 시간을 점점 늘리되, 전체가 정확히 DUR 안에 끝나도록 맞춤 (그래야 결과 글자가 뜰 때 불빛이 멈춰 있음)
+        const w = Array.from({ length: steps }, (_, j) => 1 + 7 * Math.pow((j + 1) / steps, 2.2)), tw = w.reduce((a, b) => a + b, 0);
+        const tick = () => { spans.forEach(s => s.classList.remove('hi')); spans[k % n].classList.add('hi'); if (step >= steps) { spans[k % n].classList.add('win'); return; } setTimeout(tick, DUR * w[step] / tw); step++; k++; };
         tick();
       }
       setTimeout(() => { res.textContent = names[winner] === '나' ? `내가 ${suffix}!` : `${names[winner]}${josa(names[winner])} ${suffix}!`; res.classList.add('on'); }, DUR);
