@@ -135,10 +135,16 @@
           if (r >= 0) { s.score[r]++; s.lead = r; }
           s.hist.push({ pos, x, r, first: t.first });
           if (s.round >= 7) {
-            if (s.score[0] === s.score[1]) { s.log.push(`${s.score[0]}:${s.score[1]} 동점 → 다시 배치해서 재대결`); s.lastDuel = { hist: s.hist, dist: s.dist }; Object.assign(s, { phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, table: null, hist: [], tie: s.tie + 1 }); }
+            if (s.score[0] === s.score[1]) { s.log.push(`${s.score[0]}:${s.score[1]} 동점 → 재대결`); s.phase = 'tied'; s.table = null; s.rematch = [false, false]; } // 결과를 보여 주고 둘 다 '재대결'을 눌러야 다시 배치
             else { s.phase = 'over'; s.winner = s.score[0] > s.score[1] ? 0 : 1; s.table = null; }
           } else { s.round++; s.table = { first: s.lead, a: null, b: null }; }
         }
+        return;
+      }
+      if (a.type === 'rematch') {
+        if (s.phase !== 'tied') fail('지금은 재대결할 수 없어요.');
+        s.rematch[seat] = true;
+        if (s.rematch[0] && s.rematch[1]) { s.lastDuel = { hist: s.hist, dist: s.dist }; Object.assign(s, { phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, table: null, hist: [], tie: s.tie + 1, rematch: null }); }
         return;
       }
       fail('알 수 없는 행동이에요.');
@@ -147,12 +153,13 @@
       const o = 1 - seat, t = s.table, rel = h => ({ pos: [h.pos[seat], h.pos[o]], x: [h.x[seat], h.x[o]], r: h.r < 0 ? -1 : h.r === seat ? 0 : 1, first: h.first === seat ? 0 : 1 });
       let table = null;
       if (t) { const mf = t.first === seat, myPick = mf ? t.a : t.b, oppPick = mf ? t.b : t.a; table = { first: mf ? 0 : 1, mine: myPick, oppColor: oppPick == null ? null : COL[oppPick] }; }
-      return { phase: s.phase, round: s.round, score: [s.score[seat], s.score[o]], myDist: s.dist[seat], oppReady: !!s.dist[o], oppDist: s.phase === 'over' ? s.dist[o] : null,
+      return { phase: s.phase, round: s.round, score: [s.score[seat], s.score[o]], myDist: s.dist[seat], oppReady: !!s.dist[o], oppDist: s.phase === 'over' || s.phase === 'tied' ? s.dist[o] : null, rematch: s.rematch ? [s.rematch[seat], s.rematch[o]] : null,
         myUsed: s.used[seat], oppReveals: s.reveals[o], table, hist: s.hist.map(rel), mid: s.mid, starter: (s.firstOfMatch ?? s.lead) === seat ? 0 : 1, winner: s.winner < 0 ? -1 : s.winner === seat ? 0 : 1, tie: s.tie, log: s.log.slice(-10) };
     },
     // AI(자리 seat)가 지금 할 행동. 자기 화면(view)에 보이는 것만 씀
     ai(v, lv) {
       if (v.phase === 'setup' && !v.myDist) return { type: 'dist', v: aiDistribution(lv) };
+      if (v.phase === 'tied') return v.rematch && !v.rematch[0] ? { type: 'rematch' } : null;
       const t = v.table; if (v.phase !== 'play' || !t || t.mine != null) return null;
       if (t.first === 1 && t.oppColor == null) return null;
       return { type: 'pick', i: aiChoose(lv, { v: v.myDist, used: new Set(v.myUsed) }, v.oppReveals, t.first === 0 ? null : t.oppColor) };
@@ -261,6 +268,7 @@
         const d = e.target.closest('[data-d]'); if (d && !d.disabled) { const k = +d.dataset.d; if (fitSet().has(k)) { draft[sel] = k; const nx = draft.findIndex(x => x == null); if (nx >= 0) sel = nx; rerender(); } return; }
         const p = e.target.closest('[data-p]'); if (p && !p.disabled) { send({ type: 'pick', i: +p.dataset.p }); return; }
         if (e.target.closest('[data-again]')) send({ type: 'again' });
+        if (e.target.closest('[data-rematch]')) send({ type: 'rematch' });
       });
       let lastArgs = null; const rerender = () => lastArgs && show(...lastArgs);
 
@@ -269,7 +277,7 @@
         lastArgs = [v, oppName, room];
         if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         $('grOpN').textContent = oppName; $('grMe').textContent = v.score[0]; $('grOp').textContent = v.score[1];
-        $('grRound').textContent = v.phase === 'over' ? '게임 끝' : v.phase === 'setup' ? '배치 단계' : `${v.round}/7 라운드`;
+        $('grRound').textContent = v.phase === 'over' ? '게임 끝' : v.phase === 'tied' ? '동점' : v.phase === 'setup' ? '배치 단계' : `${v.round}/7 라운드`;
         $('grSub').textContent = v.table ? `${v.table.first === 0 ? '내가' : oppName + '가'} 선` : v.tie ? `재대결 ${v.tie}회째` : '';
         // 상대 통: 색만, 낸 만큼 흐리게 (같은 색 중 어느 쪽인지는 모름)
         const used = [0, 0, 0, 0]; v.oppReveals.forEach(r => used[r.c]++);
@@ -297,11 +305,11 @@
         $('grSum').textContent = setup ? `합 ${vsum(draft.filter(x => x != null))} / 30` : v.myDist ? `합 ${vsum(v.myDist)}` : '';
         $('grPool').hidden = !setup; $('grSetBtns').hidden = !setup;
         if (setup) { const fit = fitSet(); $('grPool').innerHTML = [...Array(10).keys()].map(d => `<button type="button" class="grd" data-d="${d}" ${fit.has(d) ? '' : 'disabled'}>${d}<small>${'•'.repeat(poolLeft(d))}</small></button>`).join(''); }
-        $('grMsg').textContent = v.phase === 'over' ? (v.winner === 0 ? `이겼어요! ${v.score[0]} : ${v.score[1]}` : `졌어요. ${v.score[0]} : ${v.score[1]}`) + ' — 상대 배치를 공개해요'
+        $('grMsg').textContent = v.phase === 'tied' ? `${v.score[0]} : ${v.score[1]} 동점이에요 — 상대 배치를 공개해요. 처음부터 다시 배치해서 재대결해요` : v.phase === 'over' ? (v.winner === 0 ? `이겼어요! ${v.score[0]} : ${v.score[1]}` : `졌어요. ${v.score[0]} : ${v.score[1]}`) + ' — 상대 배치를 공개해요'
           : v.phase === 'setup' ? (v.myDist ? `${oppName}의 배치를 기다리는 중…` : (draftProblem() || '배치를 마쳤으면 "배치 완료"를 누르세요') + ' · 통을 누르고 아래 숫자를 고르면 담겨요')
           : !t ? '' : myTurn ? (t.first === 0 ? '내가 선이에요. 낼 통을 고르세요' : `${oppName}가 ${CNAME[t.oppColor]} 통을 냈어요. 맞받아칠 통을 고르세요`)
           : t.first === 1 ? `${oppName}가 고르는 중…` : `${oppName}가 맞받아칠 통을 고르는 중…`;
-        $('grAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
+        $('grAgain').innerHTML = v.phase === 'tied' ? (v.rematch && v.rematch[0] ? `<p class="muted" style="text-align:center">${esc(oppName)}가 재대결을 누르길 기다리는 중…</p>` : `<div class="row"><button type="button" class="primary" data-rematch>재대결${v.rematch && v.rematch[1] ? ` (${esc(oppName)} 준비 완료)` : ''}</button></div>`) : room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
         $('grHist').innerHTML = v.hist.length ? `<table><tr><th>R</th>${v.hist.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr><tr><td>나</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[0]]]}"></span>${x.x[0]}${x.first === 0 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>${esc(oppName)}</td>${v.hist.map(x => `<td><span class="dot" style="background:${GRAD[COL[x.pos[1]]]}"></span>${x.x[1]}${x.first === 1 ? '<sup>선</sup>' : ''}</td>`).join('')}</tr><tr><td>결과</td>${v.hist.map(x => `<td>${x.r === 0 ? '승' : x.r === 1 ? '패' : '='}</td>`).join('')}</tr></table>` : '';
         $('grLog').innerHTML = [...logs, ...v.log].slice().reverse().map(x => `<span>${esc(x)}</span>`).join('');
       }
