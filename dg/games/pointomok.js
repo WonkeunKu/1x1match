@@ -314,7 +314,7 @@
         const lastSet = new Map(); if (v.last) v.last.cells.forEach((i, k) => lastSet.set(i, v.last.own[k]));
         const choosing = v.phase === 'choose' && v.chooser === 0;
         const endSet = choosing && pickA != null ? new Set(ends(v.board, pickA).map(x => x.end)) : new Set();
-        const tri = v.triple || triple;
+        const tri = v.phase === 'over' ? null : v.triple || triple; // 끝난 뒤엔 마지막 착수 결과(돌)를 보여 줌
         for (let i = 0; i < NN; i++) { const [r, c] = rc(i), x = H + c * S, y = H + r * S, s = v.board[i];
           if (s != null) g += `<circle cx="${x}" cy="${y}" r="8.6" class="po-s c${s} ${lastSet.has(i) ? 'last' : ''}"/>`;
           else if (choosing) g += `<circle cx="${x}" cy="${y}" r="9.5" class="po-hit ${pickA === i ? 'a' : ''} ${endSet.has(i) ? 'end' : ''}" data-i="${i}"/>`;
@@ -333,7 +333,7 @@
         } else if (v.phase === 'bet') { betHtml = `<p class="po-left">내 베팅: ${v.myBet.join(' · ')}</p>`; msg = `${oppName}의 베팅을 기다리는 중…`; }
         else if (choosing) { msg = triple ? '이 세 지점으로 할까요?' : pickA != null ? '같은 줄로 두 칸 떨어진 끝 점(초록)을 누르세요' : '연속된 빈 교차점 3개를 고르세요: 한쪽 끝 점을 누르고 반대쪽 끝 점을 누르면 돼요'; if (triple) btn = '<button type="button" data-a="cancel">다시 고르기</button><button type="button" class="primary" data-a="pick">이 지점으로 선택</button>'; }
         else if (v.phase === 'choose') msg = `${oppName}가 세 지점을 고르는 중…`;
-        else if (v.phase === 'over') msg = (v.winner === 0 ? '승리! ' : v.winner === 1 ? '패배 — ' : '무승부 — ') + v.endWhy;
+        else if (v.phase === 'over') msg = (v.winner === 0 ? '승리! ' : v.winner === 1 ? '패배 — ' : '무승부 — ') + v.endWhy + (v.last ? ` · 마지막 라운드: ${v.last.own.map(o => o === 0 ? '나' : oppName).join(' · ')} 돌` : '');
         if (v.last && v.phase !== 'over' && !betting && !choosing) msg = `지난 라운드: ${v.last.own.map(o => o === 0 ? '나' : oppName).join(' · ')} 돌이 놓였어요 · ` + msg;
         $('poBet').innerHTML = betHtml; $('poBtns').innerHTML = btn; $('poMsg').textContent = msg;
         $('poAgain').innerHTML = room && v.phase === 'over' ? LAB.duelAgain(room) : room && !room.oppOnline ? '<p class="muted">상대 연결이 끊겼어요. 다시 들어오면 이어서 해요.</p>' : '';
