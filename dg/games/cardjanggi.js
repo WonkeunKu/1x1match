@@ -324,7 +324,7 @@
           const x = v.board[r][cc]; sel = x && x.o === 0 ? [r, cc] : null; show(...lastArgs); return;
         }
         const b = e.target.closest('[data-c]'); if (b && !b.disabled) { if (arr.length < v.myNeed && !arr.includes(b.dataset.c)) arr.push(b.dataset.c); show(...lastArgs); return; }
-        if (e.target.closest('[data-undo]')) { arr.pop(); show(...lastArgs); return; }
+        const rm = e.target.closest('[data-rm]'); if (rm) { arr.splice(+rm.dataset.rm, 1); show(...lastArgs); return; }
         if (e.target.closest('[data-ok]')) { if (arr.length === v.myNeed) { const order = arr.slice(); arr = []; send({ type: 'arrange', order }); } return; }
         if (e.target.closest('[data-pass]')) { send({ type: 'pass' }); return; }
         if (e.target.closest('[data-again]')) send({ type: 'again' });
@@ -353,9 +353,10 @@
         $('cjOppQ').innerHTML = v.oppNeed ? '<span class="muted">배치 중…</span>' : v.oppQueue.map((c, k) => k < v.oppIdx ? cardHtml(c, 'used', 'disabled') : k === v.oppIdx ? cardHtml(c, 'now', 'disabled') : cardHtml(null)).join('');
         if (arranging) {
           $('cjArr').hidden = false;
-          $('cjArr').innerHTML = `<div class="cj-slots">${Array.from({ length: v.myNeed }, (_, k) => arr[k] ? cardHtml(arr[k], 'sm', 'disabled') : `<span class="cjc slot">${k + 1}</span>`).join('')}</div>
+          $('cjArr').innerHTML = `<div class="cj-slots">${Array.from({ length: v.myNeed }, (_, k) => arr[k] ? cardHtml(arr[k], 'sm rm', `data-rm="${k}" aria-label="${k + 1}번째 카드 빼기" title="누르면 빠져요"`) : `<span class="cjc slot">${k + 1}</span>`).join('')}</div>
             <div class="cj-row">${CARDS.map(c => cardHtml(c, arr.includes(c) ? 'used' : '', `data-c="${c}" ${arr.includes(c) || arr.length >= v.myNeed ? 'disabled' : ''}`)).join('')}</div>
-            <div class="row"><button type="button" data-undo ${arr.length ? '' : 'disabled'}>하나 빼기</button><button type="button" class="primary" data-ok ${arr.length === v.myNeed ? '' : 'disabled'}>이 순서로 확정</button></div>`;
+            <p class="cj-hint">${arr.length ? '놓은 카드를 누르면 빠져요' : '아래 카드를 쓸 순서대로 누르세요'}</p>
+            <div class="row"><button type="button" class="primary" data-ok ${arr.length === v.myNeed ? '' : 'disabled'}>이 순서로 확정</button></div>`;
         } else $('cjArr').hidden = true;
         const oppNext = v.oppQueue && v.oppQueue[v.oppIdx];
         const noMove = canMove && !movable.size;
