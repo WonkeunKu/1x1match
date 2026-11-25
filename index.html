@@ -311,6 +311,8 @@ footer.site-foot { border-top: 1px solid var(--line); padding-top: 14px; display
   </footer>
 </div>
 <script>
+// 폴더마다 공개된 게임을 위에, 공개 예정(관리자 전용)은 맨 아래로 (순서는 그대로 유지)
+document.querySelectorAll('.fview .games').forEach(box => box.querySelectorAll(':scope > .gw.soon').forEach(w => box.appendChild(w)));
 // 홈: 폴더 목록 ↔ 폴더 안 게임 목록 (#baseball, #devils, #deathgame, #blood, #genius)
 function route() {
   const h = location.hash.replace('#', '');
