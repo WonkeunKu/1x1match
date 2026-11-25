@@ -52,10 +52,13 @@
     btn.addEventListener('click', go, true);
   };
   // 게임마다 정리할 타이머 모음
+  // 선후공 연출: names 중 winner가 선. 멈춘 미리보기(LAB.paused) 중에는 안 보여 줌
+  LAB.coin = (names, winner, o = {}) => { if (LAB.paused || !window.CoinFlip) return Promise.resolve(); return CoinFlip.show({ names, winner, ...o }); };
   LAB.timers = () => {
     const ids = new Set();
     return {
-      set(fn, ms) { if (LAB.paused) return 0; const id = setTimeout(() => { ids.delete(id); fn(); }, ms); ids.add(id); return id; },
+      // 선후공 동전 던지기가 돌아가는 동안 예약된 AI 행동은 끝난 뒤로 미룸
+      set(fn, ms) { if (LAB.paused) return 0; const hold = window.CoinFlip ? Math.max(0, CoinFlip.busyUntil - Date.now()) : 0; const id = setTimeout(() => { ids.delete(id); fn(); }, ms + hold); ids.add(id); return id; },
       every(fn, ms) { if (LAB.paused) return 0; const id = setInterval(fn, ms); ids.add(id); return id; },
       clear() { ids.forEach(id => { clearTimeout(id); clearInterval(id); }); ids.clear(); }
     };

@@ -52,6 +52,7 @@
         const nm2 = cfg.mode === 2;
         G = { phase: 'setup', mines: [new Set(), new Set()], bombs: [[], []], need: nm2 ? 12 : 15, pos: START.slice(), score: [0, 0], scored: new Set(), treasures: new Set(TREASURE), found: 0,
           turn: rnd(2), turns: 0, log: [], armed: [], obs: [], placingBomb: false, over: false, boom: [] };
+        LAB.coin(['나', 'AI'], G.turn);
         // AI 지뢰: 보물 가는 길목과 상대(나) 출발 쪽에 많이
         const cand = shuffle(ALLOWED.slice()).sort((a, b) => (cheb(a, START[0]) + Math.min(...TREASURE.map(t => cheb(a, t))) * .6) - (cheb(b, START[0]) + Math.min(...TREASURE.map(t => cheb(b, t))) * .6) + (Math.random() - .5) * 6);
         cand.slice(0, G.need).forEach(i => G.mines[1].add(i));

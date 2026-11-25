@@ -40,7 +40,7 @@
       $('bbLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pendLv = v));
       $('bbNew').onclick = start;
       const who = p => p ? 'AI' : '나';
-      function start() { T.clear(); lv = pendLv; G = { chips: [30, 30], round: 0, lead: rnd(2), log: [], over: false }; newRound(); }
+      function start() { T.clear(); lv = pendLv; G = { chips: [30, 30], round: 0, lead: rnd(2), log: [], over: false }; LAB.coin(['나', 'AI'], G.lead); newRound(); }
       function newRound() {
         G.round++; G.turnNo = 0; G.open = [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]];
         G.deck = [shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]), shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])];

@@ -114,6 +114,7 @@
       function start() {
         T.clear(); Object.assign(cfg, pend);
         const first = rnd(2) + 1; // 선 플레이어
+        LAB.coin([who(1), who(2)], first - 1);
         G = { s: { tile: new Int8Array(NT).fill(1), pc: new Int8Array(NT), turn: 3 - first, moves: [0, 0], count: [0, 0] }, first, phase: 'place', placed: [0, 0], sel: null, pendMove: null, log: [`${who(first)}가 선, ${who(3 - first)}부터 말을 놓아요`], over: false };
         $('qN0').textContent = cfg.opp === 'ai' ? '나 (파랑)' : '파랑'; $('qN1').textContent = cfg.opp === 'ai' ? 'AI (빨강)' : '빨강';
         render(); aiMaybe();

@@ -124,7 +124,7 @@
         G.sel = null; render(); aiMaybe();
       };
       const human = () => !G.roundOver && (cfg.opp === 'local' || G.turn === 1);
-      function start() { T.clear(); Object.assign(cfg, pend); G = { round: 0, wins: [0, 0], first: rnd(2) + 1, log: [] }; $('hN1').textContent = cfg.opp === 'ai' ? 'AI (주황)' : '주황'; $('hN0').textContent = cfg.opp === 'ai' ? '나 (검정)' : '검정'; newRound(); }
+      function start() { T.clear(); Object.assign(cfg, pend); G = { round: 0, wins: [0, 0], first: rnd(2) + 1, log: [] }; LAB.coin([who(1), who(2)], G.first - 1); $('hN1').textContent = cfg.opp === 'ai' ? 'AI (주황)' : '주황'; $('hN0').textContent = cfg.opp === 'ai' ? '나 (검정)' : '검정'; newRound(); }
       function newRound() {
         G.round++; G.b = initBoard(); G.turn = G.round === 1 ? G.first : (G.first + G.round - 1 - 1) % 2 + 1; G.sel = null; G.hist = []; G.roundOver = false; G.last = null;
         G.log.push(`— ${G.round}라운드 (${G.turn === 1 ? (cfg.opp === 'ai' ? '나' : '검정') : (cfg.opp === 'ai' ? 'AI' : '주황')} 선) —`);

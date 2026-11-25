@@ -50,6 +50,7 @@
         T.clear(); Object.assign(cfg, pend);
         const mines = new Set(); for (let r = 0; r < N; r++) shuffle([0, 1, 2, 3, 4, 5]).slice(0, 3).forEach(c => mines.add(r * N + c));
         G = { board: Array(N * N).fill(null), hand: [7, 7], turn: rnd(2), mines, known: new Set(), aiMem: new Set(), lastMoved: [null, null], sel: null, log: [], over: false, nid: 0, ply: 0, flash: null };
+        LAB.coin(['나', 'AI'], G.turn); // 선후공 동전 던지기
         G.log.push(`선: ${G.turn === 0 ? '나 (흑)' : 'AI (백)'}`);
         render(); aiMaybe();
       }

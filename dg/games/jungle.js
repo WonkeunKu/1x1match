@@ -69,6 +69,7 @@
         T.clear(); cfg = { ...pend };
         const b = newBoard();
         G = { t: b.t, spare: b.spare, pos: START.slice(), order: [shuffle([0, 1, 2, 3]), shuffle([0, 1, 2, 3])], got: [0, 0], turn: rnd(2), phase: 'push', last: null, log: [], over: false };
+        LAB.coin(['나', 'AI'], G.turn);
         G.log.push(`선: ${who(G.turn)}`); render(); aiMaybe();
       }
       const targetCell = p => { if (G.got[p] >= 4) return START[p]; const s = G.order[p][G.got[p]]; const i = G.t.findIndex(x => x.sym === s); return i; }; // -1이면 여분 타일에 있음

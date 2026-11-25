@@ -110,7 +110,7 @@
   // ---------- 1:1 대결 규칙 (AI 대전과 온라인 대전이 같이 씀. 서버도 이 코드를 불러 판정) ----------
   const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
   const DUEL = {
-    init(prev) { return { phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, lead: prev ? 1 - prev.firstOfMatch : rnd(2), firstOfMatch: null, table: null, hist: [], winner: -1, tie: 0, log: [] }; },
+    init(prev) { return { mid: Math.random().toString(36).slice(2, 9), phase: 'setup', dist: [null, null], used: [[], []], reveals: [[], []], score: [0, 0], round: 0, lead: prev ? 1 - prev.firstOfMatch : rnd(2), firstOfMatch: null, table: null, hist: [], winner: -1, tie: 0, log: [] }; },
     act(s, seat, a) {
       if (a.type === 'dist') {
         if (s.phase !== 'setup' || s.dist[seat]) fail('지금은 배치할 수 없어요.');
@@ -148,7 +148,7 @@
       let table = null;
       if (t) { const mf = t.first === seat, myPick = mf ? t.a : t.b, oppPick = mf ? t.b : t.a; table = { first: mf ? 0 : 1, mine: myPick, oppColor: oppPick == null ? null : COL[oppPick] }; }
       return { phase: s.phase, round: s.round, score: [s.score[seat], s.score[o]], myDist: s.dist[seat], oppReady: !!s.dist[o], oppDist: s.phase === 'over' ? s.dist[o] : null,
-        myUsed: s.used[seat], oppReveals: s.reveals[o], table, hist: s.hist.map(rel), winner: s.winner < 0 ? -1 : s.winner === seat ? 0 : 1, tie: s.tie, log: s.log.slice(-10) };
+        myUsed: s.used[seat], oppReveals: s.reveals[o], table, hist: s.hist.map(rel), mid: s.mid, starter: (s.firstOfMatch ?? s.lead) === seat ? 0 : 1, winner: s.winner < 0 ? -1 : s.winner === seat ? 0 : 1, tie: s.tie, log: s.log.slice(-10) };
     },
     // AI(자리 seat)가 지금 할 행동. 자기 화면(view)에 보이는 것만 씀
     ai(v, lv) {
@@ -180,7 +180,7 @@
     mount(root) {
       const T = LAB.timers();
       const roomLink = LAB.roomParam();
-      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, V = null, net = null, draft = Array(7).fill(null), sel = 0, busy = false;
+      let shownMid = null; let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, V = null, net = null, draft = Array(7).fill(null), sel = 0, busy = false;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
@@ -259,6 +259,7 @@
       const cube = (c, x, cls = '', attrs = '') => `<button type="button" class="grb c${c} ${cls}" style="--bg:${GRAD[c]};--ink:${INK[c]}" ${attrs}><span>${x == null ? '' : x}</span></button>`;
       function show(v, oppName, room) {
         lastArgs = [v, oppName, room];
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         $('grOpN').textContent = oppName; $('grMe').textContent = v.score[0]; $('grOp').textContent = v.score[1];
         $('grRound').textContent = v.phase === 'over' ? '게임 끝' : v.phase === 'setup' ? '배치 단계' : `${v.round}/7 라운드`;
         $('grSub').textContent = v.table ? `${v.table.first === 0 ? '내가' : oppName + '가'} 선` : v.tie ? `재대결 ${v.tie}회째` : '';

@@ -52,7 +52,7 @@
       function start() {
         T.clear(); cfg = { ...pend };
         G = { walls: makeWalls(), known: new Set(), aiMem: new Set(), pos: [START, START], turn: rnd(2), steps: 0, limit: 3, dbl: [true, true], log: [], over: false, flash: null };
-        G.log.push(`선: ${who(G.turn)}`); render(); aiMaybe();
+        G.log.push(`선: ${who(G.turn)}`); LAB.coin(['나', 'AI'], G.turn); render(); aiMaybe();
       }
       function step(p, to) {
         const from = G.pos[p], e = ek(from, to);

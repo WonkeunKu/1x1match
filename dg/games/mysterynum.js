@@ -42,6 +42,7 @@
         T.clear(); cfg = { ...pend };
         const pile = shuffle(Array.from({ length: 40 }, (_, i) => i % 10 + 1));
         G = { pile, hand: [pile.splice(0, 5), pile.splice(0, 5)], score: [0, 0], seen: [], aiSeen: [], turn: rnd(2), log: [], over: false, sums: null, streak: false, notIn: [new Set(), new Set()] };
+        LAB.coin(['나', 'AI'], G.turn);
         G.log.push(`선: ${G.turn === 0 ? '나' : 'AI'}`);
         render(); next();
       }

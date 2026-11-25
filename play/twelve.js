@@ -149,7 +149,7 @@
       $('twUndo').onclick = () => { if (!hist.length || busy || over) return; do { const x = hist.pop(); S = x.s; log.length = x.l; } while (hist.length && cfg.opp === 'ai' && S.turn !== 0); sel = null; render(); aiMaybe(); };
       const who = p => cfg.opp === 'ai' ? (p === 0 ? '나' : 'AI') : (p === 0 ? '초록' : '주황');
       const human = () => !over && !busy && (cfg.opp === 'local' || S.turn === 0);
-      function start() { T.clear(); Object.assign(cfg, pend); S = init(); first = rnd(2); S.turn = first; sel = null; over = false; log = [`${who(first)} 선`]; hist = []; busy = false; render(); aiMaybe(); }
+      function start() { T.clear(); Object.assign(cfg, pend); S = init(); first = rnd(2); S.turn = first; LAB.coin([who(0), who(1)], first); sel = null; over = false; log = [`${who(first)} 선`]; hist = []; busy = false; render(); aiMaybe(); }
       const cellName = i => 'ABC'[i % W] + (Math.floor(i / W) + 1);
       function play(m) {
         hist.push({ s: clone(S), l: log.length });

@@ -51,7 +51,7 @@
       $('ipNew').onclick = start;
       const who = p => p ? 'AI' : '나';
       const fullDeck = () => shuffle(Array.from({ length: cfg.mode === 'holdem' ? 40 : 20 }, (_, i) => i % 10 + 1));
-      function start() { T.clear(); cfg = { ...pend }; G = { chips: [30, 30], deck: fullDeck(), seen: [], hand: 0, lead: rnd(2), log: [], over: false }; newHand(); }
+      function start() { T.clear(); cfg = { ...pend }; G = { chips: [30, 30], deck: fullDeck(), seen: [], hand: 0, lead: rnd(2), log: [], over: false }; LAB.coin(['나', 'AI'], G.lead); newHand(); }
       function draw() { if (!G.deck.length) { G.deck = fullDeck(); G.seen = []; G.log.push('덱을 다시 섞었어요'); } return G.deck.pop(); }
       function newHand() {
         if (G.chips[0] <= 0 || G.chips[1] <= 0) return finish();

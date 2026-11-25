@@ -38,7 +38,7 @@
       function start() {
         T.clear(); cfg = { ...pend };
         G = { phase: 'place', cnt: Array(P).fill(null), first: rnd(2), step: 0, tokens: [10, 10], mem: Array(P).fill(null), open: [], reveal: null, round: 0, log: [], over: false, deadline: 0 };
-        G.turn = G.first; G.log.push(`선: ${G.first === 0 ? '나' : 'AI'}`);
+        G.turn = G.first; G.log.push(`선: ${G.first === 0 ? '나' : 'AI'}`); LAB.coin(['나', 'AI'], G.first);
         render(); T.every(tick, 250); nextPlace();
       }
       const who = p => p ? 'AI' : '나';

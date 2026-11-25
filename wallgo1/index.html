@@ -11,6 +11,7 @@
 <title>벽바둑 Ⅰ · 1x1 MATCH</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/coin.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
@@ -679,7 +680,7 @@ setInterval(()=>{
     if(seat.kind==='ai'&&!aiBusy){ aiBusy=true; const tn=G.turnNo, t0=Date.now(), lv=G.opts.ai;
       // 사람처럼 보이게 생각 시간을 둔다: 2~4초
       const aiDelay=2000+Math.random()*2000;
-      const done=a=>{ if(!G||G.turnNo!==tn){aiBusy=false;return;} const wait=Math.max(0,aiDelay-(Date.now()-t0)); setTimeout(()=>{ if(G&&G.turnNo===tn) hostApply(G.turn,a||{type:'pass'},true); else aiBusy=false; },wait); };
+      const done=a=>{ if(!G||G.turnNo!==tn){aiBusy=false;return;} const wait=Math.max(0,aiDelay-(Date.now()-t0),window.CoinFlip?CoinFlip.busyUntil-Date.now():0); setTimeout(()=>{ if(G&&G.turnNo===tn) hostApply(G.turn,a||{type:'pass'},true); else aiBusy=false; },wait); };
       if(G.phase==='place') done(aiPlace(G,G.turn,lv));
       else if(lv===0) done(aiChoose(G,G.turn,0));
       else aiThink(lightClone(G),G.turn,AIMS[lv],AIDEPTH[lv]).then(done); }
@@ -709,6 +710,15 @@ function render(){
   show('game'); renderGame(V);
 }
 function seg(key,vals,labels,cur,dis){ return `<div class="seg">${vals.map((v,i)=>`<button ${dis?'disabled':''} class="${v===cur?'on':''}" data-opt="${key}" data-v="${v}">${labels[i]}</button>`).join('')}</div>`; }
+// 게임이 새로 시작되면(첫 차례, 아직 아무것도 안 둠) 선을 정하는 연출. 게임마다 한 번
+const coinSeen=new Set();
+function coinMaybe(V){
+  if(!window.CoinFlip||V.turnNo!==1||(V.log||[]).length>1) return;
+  const key=(Net.code||'local')+':'+V.first+':'+V.seats.map(x=>x.name).join(',');
+  if(coinSeen.has(key)) return; coinSeen.add(key);
+  const mine=Net.mode==='local'?-1:V.seats.findIndex(x=>x.kind==='human'&&x.cid===myCid);
+  CoinFlip.show({names:V.seats.map((x,i)=>i===mine?'나':(x.name||('플레이어 '+(i+1)))),winner:V.first,title:V.seats.length>2?'선 플레이어 추첨':'선공 정하기',suffix:'선'});
+}
 function renderLobby(V){
   const host=Net.isHost, online=Net.mode!=='local';
   $('#codeBox').classList.toggle('hidden',!online);
@@ -737,6 +747,7 @@ function renderLobby(V){
 }
 function tint(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; }
 function renderGame(V){
+  coinMaybe(V);
   const ctl=iControl(V), turnSeat=V.seats[V.turn];
   const R=regions(V), VO=voronoi(V);
   // top

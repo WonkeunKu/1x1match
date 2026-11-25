@@ -10,6 +10,7 @@
 <title>연봉 블라인드 경매 온라인</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/coin.js?v=1"></script>
 <script src="/rallypick.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -389,6 +390,11 @@ function connect() {
     const d = JSON.parse(e.data);
     if (d.kicked) { es.close(); es = null; V = null; history.replaceState(null, '', location.pathname); code = ''; renderEntry('연결이 오래 끊겨서 방에서 빠졌어요. 다시 들어가 주세요.'); return; }
     V = d; connected = true;
+    // 게임이 새로 시작되면(아직 연 카드 없음) 첫 카드를 열 사람 추첨 연출. 게임마다 한 번
+    if (V.phase === 'play' && V.tiles && V.tiles.every(t => !t) && V.firstOpener != null && window.CoinFlip) {
+      const key = 'aucoin:' + V.code + ':' + V.gameNo; let seen = false; try { seen = sessionStorage.getItem(key); sessionStorage.setItem(key, '1'); } catch (e) {}
+      if (!seen) CoinFlip.show({ names: V.players.map((p, k) => k === V.me ? '나' : p.name), winner: V.firstOpener, title: '첫 카드를 열 사람 추첨', suffix: '먼저 열어요' });
+    }
     deadlineAt = V.turnLeftMs === null ? null : Date.now() + V.turnLeftMs;
     render();
   };

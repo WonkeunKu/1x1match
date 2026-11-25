@@ -167,7 +167,7 @@
   const fail = m => { throw Object.assign(new Error(m), { duel: true }); };
   const rot = ([r, c]) => [N - 1 - r, N - 1 - c];
   const DUEL = {
-    init(prev) { const s = { score: [0, 0], roundNo: 0, log: [], winner: -1, lastRoundWinner: -1 }; return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true); },
+    init(prev) { const s = { mid: Math.random().toString(36).slice(2, 9), score: [0, 0], roundNo: 0, log: [], winner: -1, lastRoundWinner: -1 }; return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true); },
     newRound(s, first, isMatchStart) {
       s.R = newRound(first); s.roundFirst = first; s.phase = 'arrange'; s.need = [first === 0 ? 5 : 4, first === 1 ? 5 : 4]; s.roundNo++;
       if (isMatchStart) s.matchFirst = first;
@@ -215,7 +215,7 @@
       const L = R.last && (R.last.pass ? { pass: true, mine: R.last.p === seat } : { from: seat === 1 ? rot(R.last.from) : R.last.from, to: seat === 1 ? rot(R.last.to) : R.last.to, mine: R.last.p === seat });
       const oq = R.queue[o] || [], oi = R.idx[o];
       const rel = x => x < 0 ? -1 : x === seat ? 0 : 1;
-      return { phase: s.phase, score: [s.score[seat], s.score[o]], roundNo: s.roundNo, first: rel(R.first), turn: rel(R.turn), moves: R.moves,
+      return { mid: s.mid, starter: rel(s.matchFirst), phase: s.phase, score: [s.score[seat], s.score[o]], roundNo: s.roundNo, first: rel(R.first), turn: rel(R.turn), moves: R.moves,
         board: B, myQueue: R.queue[seat], myIdx: R.idx[seat], myNeed: s.need[seat], oppNeed: s.need[o], oppLen: oq.length,
         oppQueue: oq.map((c, k) => k < oi || (k === oi && !s.need[o]) ? c : null), oppIdx: oi, winner: rel(s.winner), lastRoundWinner: rel(s.lastRoundWinner), last: L,
         log: s.log.slice(-24).map(x => x.p != null ? { ...x, p: rel(x.p) } : x.w != null ? { ...x, w: rel(x.w) } : x) };
@@ -260,7 +260,7 @@
     mount(root) {
       const T = LAB.timers();
       const roomLink = LAB.roomParam();
-      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, sel = null, arr = [], busy = false, lastArgs = null;
+      let shownMid = null; let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, sel = null, arr = [], busy = false, lastArgs = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
@@ -332,6 +332,7 @@
 
       function show(v, oppName, room) {
         lastArgs = [v, oppName, room];
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         $('cjOpN').textContent = `${oppName} (빨강)`; $('cjOpLab').textContent = `${oppName} 카드`;
         $('cjMe').textContent = v.score[0]; $('cjAi').textContent = v.score[1];
         $('cjRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}판 · 3판 2선승`;

@@ -50,7 +50,7 @@
       const $ = id => wrap.querySelector('#' + id);
       $('bwLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pendLv = v));
       $('bwNew').onclick = start;
-      function start() { T.clear(); lv = pendLv; G = { round: 0, score: [0, 0], used: [[], []], lead: rnd(2), hist: [], aiView: [], over: false }; next(); }
+      function start() { T.clear(); lv = pendLv; G = { round: 0, score: [0, 0], used: [[], []], lead: rnd(2), hist: [], aiView: [], over: false }; LAB.coin(['나', 'AI'], G.lead); next(); }
       function next() {
         if (G.round >= 9) return finish();
         G.round++; G.table = { first: G.lead, a: null, b: null }; render();

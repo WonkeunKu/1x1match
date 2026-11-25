@@ -11,6 +11,7 @@
 <title>9이닝 홈런 흑과 백</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
+<script src="/coin.js?v=1"></script>
 <script src="/rallypick.js?v=1"></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -528,7 +529,14 @@ function renderResult() {
     <div class="leftover">${leftover}</div>`;
 }
 
+// 새 경기가 시작되면 선공을 동전 던지기로 보여 줌 (이미 정해진 S.lead)
+function maybeCoin() {
+  if (S.coinShown || S.innings.length || S.pend.some(x => x !== null)) return;
+  S.coinShown = true; save();
+  if (window.CoinFlip) CoinFlip.show({ names: S.names, winner: S.lead, title: '1이닝 선공 정하기' });
+}
 function render() {
+  maybeCoin();
   renderHeader();
   const res = S.phase === 'result';
   document.getElementById('mainView').hidden = res;
@@ -693,7 +701,8 @@ function aiStep() {
   if (S.mode !== 'ai' || S.phase !== 'play' || S.showLast || over()) return;
   if (S.pend[AI] !== null) return;
   if (S.lead !== AI && S.pend[1 - AI] === null) return;
-  aiTimer = setTimeout(() => { S.pend[AI] = aiChoose(); save(); render(); }, 900);
+  const hold = window.CoinFlip ? Math.max(0, CoinFlip.busyUntil - Date.now()) : 0; // 동전 던지기 뒤에 AI가 냄
+  aiTimer = setTimeout(() => { S.pend[AI] = aiChoose(); save(); render(); }, 900 + hold);
 }
 document.getElementById('modeBtn').addEventListener('click', () => {
   commit(); S = fresh(S.names.slice(), S.mode === 'ai' ? 'duo' : 'ai', S.level); closeModal(); save(); render();

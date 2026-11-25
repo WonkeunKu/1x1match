@@ -59,7 +59,7 @@
       $('sdLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pendLv = v));
       $('sdNew').onclick = start;
       const total = card => Object.values(card).reduce((a, b) => a + (b || 0), 0);
-      function start() { T.clear(); lv = pendLv; G = { round: 1, first: rnd(2), half: 0, card: [{}, {}], fix3: [true, true], log: [], over: false }; G.log.push(`선: ${G.first === 0 ? '나' : 'AI'}`); newTurn(); }
+      function start() { T.clear(); lv = pendLv; G = { round: 1, first: rnd(2), half: 0, card: [{}, {}], fix3: [true, true], log: [], over: false }; G.log.push(`선: ${G.first === 0 ? '나' : 'AI'}`); LAB.coin(['나', 'AI'], G.first); newTurn(); }
       const main = () => (G.first + G.half) % 2;
       function newTurn() {
         G.dice = [1, 2, 3].map(() => rnd(6) + 1); G.fixed = []; G.phase = 'fix'; G.mine = []; G.ai = []; G.reveal = null;

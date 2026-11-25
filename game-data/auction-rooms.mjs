@@ -145,7 +145,8 @@ function startGame(room) {
   room.pool = players.concat(CARDS.filter(c => c.type === 'chance').map(c => c.id));
   room.opened = {};
   room.players.forEach(p => Object.assign(p, { cubes: START_CUBES, cards: [], chances: [], pendingRelease: null }));
-  room.opener = 0; // 1라운드는 1번(방장)이 열고, 이후 2·3·4·1번… 순서로 한 칸씩 넘어감. 입찰도 연 사람부터 시계방향
+  room.opener = randomInt(SEATS); // 첫 카드를 열 사람은 추첨(화면에 추첨 연출), 이후 다음 자리… 순서로 한 칸씩 넘어감. 입찰도 연 사람부터 시계방향
+  room.firstOpener = room.opener; room.startHold = Date.now() + 2800; // 추첨 연출 동안 봇이 기다림
   room.cur = null;
   room.tradeUsed = false;
   room.log = [];
@@ -426,7 +427,7 @@ function viewFor(room, seat) {
     lastEvent: room.lastEvent || null
   };
   if (room.phase === 'lobby') return v;
-  v.opener = room.opener;
+  v.opener = room.opener; v.firstOpener = room.firstOpener; v.gameNo = room.gameNo || 0;
   v.tiles = room.deck.map((id, i) => room.opened[i] ? Object.assign({ card: publicCard(id) }, room.opened[i]) : null);
   if (room.cur) {
     const cur = room.cur;
@@ -567,7 +568,7 @@ function scheduleBots(room) {
   room.botTimer = setTimeout(() => {
     room.botTimer = null;
     try { const msg = botAct(room); bump(room, msg); } catch (e) { console.error(e); }
-  }, BOT_DELAY + randomInt(BOT_DELAY + 1));
+  }, BOT_DELAY + randomInt(BOT_DELAY + 1) + Math.max(0, (room.startHold || 0) - Date.now()));
   room.botTimer.unref?.();
 }
 

@@ -60,6 +60,7 @@
       function start() {
         T.clear(); mode = pend.mode; lv = pend.lv;
         G = { set: 1, duel: 0, score: [0, 0], first: rnd(2), log: [], uses: [{}, {}], lastSet: [[], []], overtime: false, over: false };
+        LAB.coin(['나', 'AI'], G.first);
         for (const p of [0, 1]) for (const n of ALL) G.uses[p][n] = RED(n) ? 3 : 2;
         G.maxSet = mode === 1 ? 4 : 6;
         beginSet();

@@ -133,7 +133,7 @@
   const DUEL = {
     init(prev, opts) {
       const N = [6, 7, 8].includes(Number(opts && opts.n)) ? Number(opts.n) : prev ? prev.N : 7;
-      const s = { N, score: [0, 0], roundNo: 0, log: [], winner: -1 };
+      const s = { mid: Math.random().toString(36).slice(2, 9), N, score: [0, 0], roundNo: 0, log: [], winner: -1 };
       return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true);
     },
     newRound(s, first, isMatchStart) {
@@ -184,7 +184,7 @@
     },
     view(s, seat) {
       const R = s.R, rel = x => x == null || x < 0 ? -1 : x === seat ? 0 : 1;
-      return { phase: s.phase, N: s.N, score: [s.score[seat], s.score[1 - seat]], roundNo: s.roundNo, cells: R.cells, turn: rel(R.turn), first: rel(R.first), turnNo: R.turnNo, need: need(R),
+      return { mid: s.mid, starter: rel(s.matchFirst), phase: s.phase, N: s.N, score: [s.score[seat], s.score[1 - seat]], roundNo: s.roundNo, cells: R.cells, turn: rel(R.turn), first: rel(R.first), turnNo: R.turnNo, need: need(R),
         last: R.last || [], prover: rel(s.prover), declarer: rel(s.declarer), chooser: rel(s.chooser), shown: s.shown, winner: s.winner === 2 ? 2 : rel(s.winner),
         log: s.log.slice(-24).map(x => ({ ...x, p: x.p != null ? rel(x.p) : undefined, w: x.w != null ? rel(x.w) : undefined })) };
     },
@@ -220,7 +220,7 @@
     mount(root) {
       const T = LAB.timers();
       const roomLink = LAB.roomParam();
-      let pend = { lv: 1, n: 7, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, pick = null, placing = [], proof = null, busy = false, lastArgs = null;
+      let shownMid = null; let pend = { lv: 1, n: 7, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, pick = null, placing = [], proof = null, busy = false, lastArgs = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
@@ -314,6 +314,7 @@
 
       function show(v, oppName, room) {
         lastArgs = [v, oppName, room];
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         const N = v.N;
         $('clOpN').textContent = oppName; $('clMe').textContent = v.score[0]; $('clAi').textContent = v.score[1];
         $('clRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}라운드 · 3점 선승`;

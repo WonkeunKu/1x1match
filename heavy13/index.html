@@ -12,6 +12,7 @@
 <script src="/pv.js?v=1" defer></script>
 <meta name="description" content="데블스플랜 감옥 매치 무거운 13을 온라인으로. 5~7인, 빈자리는 AI가 채워요.">
 <script src="/freeplay.js?v=4"></script>
+<script src="/coin.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -324,6 +325,12 @@ function copyLink() {
 
 function renderGame() {
   const v = V, g = v.game, mine = g.players.find(p => p.id === v.me), pl = g.place;
+  // 게임이 새로 시작되면(1라운드 제출 단계) 선 플레이어 추첨 연출. 게임마다 한 번
+  if (g.round === 1 && g.phase === 'submit' && window.CoinFlip) {
+    const key = 'h13coin:' + v.code + ':' + (g.log[0] ? g.log[0].seq + ':' + g.log[0].text : '');
+    let seen = false; try { seen = sessionStorage.getItem(key); sessionStorage.setItem(key, '1'); } catch (e) {}
+    if (!seen) CoinFlip.show({ names: g.players.map(p => p.id === v.me ? '나' : p.name), winner: g.startIdx, title: '선 플레이어 추첨', suffix: '선' });
+  }
   const pgame = prev && prev.game;
   const pcard = (p, i) => {
     let st = '', cls = '';

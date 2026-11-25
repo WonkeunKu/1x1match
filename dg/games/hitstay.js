@@ -210,7 +210,7 @@
         T.clear(); cfg = { ...pend };
         const names = ['나', ...['AI 1', 'AI 2', 'AI 3', 'AI 4'].slice(0, cfg.n - 1)];
         S = ENG.newGame(names, cfg.chips, names.map((_, i) => i !== ME), cfg.lv);
-        S.log.push(`추첨으로 첫 선: ${S.players[S.first].name}`);
+        S.log.push(`추첨으로 첫 선: ${S.players[S.first].name}`); LAB.coin(S.players.map(p => p.name), S.first, { title: '선 플레이어 추첨', suffix: '선' });
         round();
       }
       function round() {
