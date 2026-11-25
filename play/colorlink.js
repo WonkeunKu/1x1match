@@ -162,12 +162,14 @@
   }
   const DUEL = {
     init(prev, opts) {
-      const B = boardOf(opts && SHAPES[opts.n] ? opts.n : randomShape(prev && prev.shape)); // 매 게임 판 모양을 무작위로
-      const s = { mid: Math.random().toString(36).slice(2, 9), N: B.N, walls: B.walls, shape: B.shape, score: [0, 0], roundNo: 0, log: [], winner: -1 };
+      const s = { mid: Math.random().toString(36).slice(2, 9), fixed: opts && SHAPES[opts.n] ? opts.n : null, used: prev && prev.shape ? [prev.shape] : [], score: [0, 0], roundNo: 0, log: [], winner: -1 };
       return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true);
     },
     newRound(s, first, isMatchStart) {
-      s.roundNo++; s.R = newRound(s.N, first, s.walls || []); s.phase = 'place'; s.prover = -1; s.declarer = -1; s.shown = null; s.chooser = -1;
+      // 라운드마다 판을 새로 뽑되, 한 게임 안에서는 같은 판이 다시 나오지 않게
+      const key = s.fixed || (() => { const left = SHAPE_KEYS.filter(k => !s.used.includes(k)); const pool = left.length ? left : SHAPE_KEYS; return pool[rnd(pool.length)]; })();
+      const B = boardOf(key); s.shape = B.shape; s.N = B.N; s.walls = B.walls; s.used = isMatchStart ? [key] : [...s.used, key];
+      s.roundNo++; s.R = newRound(s.N, first, s.walls); s.phase = 'place'; s.prover = -1; s.declarer = -1; s.shown = null; s.chooser = -1;
       if (isMatchStart) s.matchFirst = first;
       return s;
     },
@@ -245,7 +247,7 @@
       <li>경로는 상하좌우로 이어진 칸들이고, <b>말이 있는 칸을 포함해 6칸 이상</b>이어야 해요. 다른 말이 있는 칸은 지날 수 없어요. 아직 하나만 놓인 색도 앞으로 놓일 짝과 이어질 수 있어야 해요.</li>
       <li>상대가 놓은 뒤 더는 다 이을 수 없다고 보면 <b>불가능 선언</b>! 직전에 놓은 사람이 모든 경로(혼자인 말은 짝 위치까지)를 그려 증명하면 증명한 쪽이, 못 하면 선언한 쪽이 1점.</li>
       <li>5라운드, <b>먼저 3점</b>을 따면 승리. 다음 라운드 선후는 직전 라운드에 진 쪽이 정해요.</li>
-      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요. 판은 <b>매 게임 무작위</b>로 정해져요: 소용돌이, 도넛, 십자, 다이아몬드, 기둥 숲, 모래시계, 계단, 네 방, 하트, H, 미로, 액자, 화살표, 지그재그 등 14가지(9×9~11×11, 소용돌이는 방송에 나온 판). 빗금 친 막힌 칸에는 말을 놓거나 경로를 지나갈 수 없어요. 시간 제한은 없어요.</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요. 판은 <b>라운드마다 무작위</b>로 바뀌고, 한 게임 안에서는 같은 판이 다시 나오지 않아요: 소용돌이, 도넛, 십자, 다이아몬드, 기둥 숲, 모래시계, 계단, 네 방, 하트, H, 미로, 액자, 화살표, 지그재그 등 14가지(9×9~11×11, 소용돌이는 방송에 나온 판). 빗금 친 막힌 칸에는 말을 놓거나 경로를 지나갈 수 없어요. 시간 제한은 없어요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
