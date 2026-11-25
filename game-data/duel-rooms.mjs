@@ -51,7 +51,7 @@ export function joinRoom(code, game, tok, user) {
   const free = room.st ? -1 : room.seats.findIndex(x => !x);
   if (free < 0) fail(room.multi ? '이미 시작했거나 자리가 꽉 찬 방이에요.' : '이미 두 사람이 들어간 방이에요.');
   const token = tokenNew(); room.seats[free] = { token, uid: user.id, name: uniqName(room, String(user.nickname || '플레이어').slice(0, 10)) };
-  if (room.seats.every(Boolean)) startGame(room); else bump(room);
+  if (!room.multi && room.seats.every(Boolean)) startGame(room); else bump(room); // 여럿이 하는 방은 방장이 '게임 시작'을 눌러야 시작
   return { code: room.code, token, seat: free };
 }
 function uniqName(room, nm) { let x = nm, k = 2; while (room.seats.some(s => s && s.name === x)) x = nm + k++; return x; }
@@ -63,7 +63,16 @@ function startGame(room, prev = null) {
 export function act(code, tok, body) {
   const room = getRoom(code), seat = seatOf(room, tok); if (seat < 0) fail('이 방의 참가자가 아니에요.');
   if (!room.st) {
-    if (room.multi && body.type === 'start') { if (seat !== 0) fail('방을 만든 사람만 시작할 수 있어요.'); if (room.seats.filter(Boolean).length < 2) fail('한 명 이상 더 들어와야 시작할 수 있어요.'); startGame(room); return; }
+    if (room.multi && body.type === 'start') { if (seat !== 0) fail('방장만 시작할 수 있어요.'); startGame(room); return; } // 빈자리는 AI가 채움
+    if (room.multi && body.type === 'settings') {
+      if (seat !== 0) fail('방장만 설정을 바꿀 수 있어요.');
+      const G = GAMES[room.game];
+      if (body.n != null) { const n = G.seats({ n: body.n }), people = room.seats.filter(Boolean); if (n < people.length) fail(`이미 ${people.length}명이 들어와 있어요.`); room.seats = [...people, ...Array(n - people.length).fill(null)]; room.again = Array(n).fill(false); room.opts.n = n; }
+      if ([10, 20, 30, 50].includes(Number(body.chips))) room.opts.chips = Number(body.chips);
+      if ([0, 1, 2].includes(Number(body.lv))) room.opts.lv = Number(body.lv);
+      bump(room); return;
+    }
+    if (room.multi && body.type === 'leave') { if (seat === 0) fail('방장은 나갈 수 없어요. 방을 닫으려면 그냥 나가면 돼요.'); room.seats[seat] = null; room.seats = [...room.seats.filter(Boolean), ...room.seats.filter(x => !x)]; bump(room); return; }
     fail('상대를 기다리는 중이에요.');
   }
   if (body.type === 'again') {

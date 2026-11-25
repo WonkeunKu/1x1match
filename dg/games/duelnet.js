@@ -16,7 +16,7 @@
     function connect() {
       if (es) es.close();
       es = new EventSource(`/api/duel/${code}/events?token=${token}`);
-      es.onmessage = e => { const v = JSON.parse(e.data); last = v; if (!v.st) waitRoom(v); o.onView(v); };
+      es.onmessage = e => { const v = JSON.parse(e.data); last = v; if (!v.st) (o.onWait ? o.onWait(v) : waitRoom(v)); o.onView(v); };
       es.onerror = () => { if (closed) return; };
       store.set('duel:' + code, token);
       if (!LAB.roomParam()) history.replaceState(null, '', `${location.pathname}?room=${code}${location.hash}`);
@@ -57,10 +57,12 @@
         o.el.querySelector('[data-make]').onclick = async () => { try { const d = await post('', { game, name: nm(), opts: o.opts ? o.opts() : {} }); code = d.code; token = d.token; connect(); } catch (e) { net.lobby(e.message); } };
         o.el.querySelector('[data-join]').onclick = () => net.join(o.el.querySelector('#dnCode').value.trim().toUpperCase(), nm());
       },
+      async create(name) { const d = await post('', { game, name: name || '손님', opts: o.opts ? o.opts() : {} }); code = d.code; token = d.token; connect(); }, // 직접 만든 시작 화면용
+      link, me: () => ME,
       async join(c, name) {
         if (!/^[A-Za-z0-9]{4}$/.test(c || '')) return net.lobby('방 코드 4자리를 넣어 주세요.');
         try { const d = await post(`/${c.toUpperCase()}/join`, { game, token: store.get('duel:' + c.toUpperCase()), name: name || (ME ? ME.nickname : store.get('duel:name')) || '손님' }); code = d.code; token = d.token; connect(); }
-        catch (e) { history.replaceState(null, '', location.pathname + location.hash); net.lobby(e.message); }
+        catch (e) { history.replaceState(null, '', location.pathname + location.hash); if (o.onJoinFail) o.onJoinFail(e.message); else net.lobby(e.message); }
       },
       start() { const r = LAB.roomParam(); if (r) { o.el.hidden = false; o.el.innerHTML = '<div class="dn-box"><b>방에 들어가는 중…</b></div>'; setTimeout(() => net.join(r), ME === null ? 300 : 0); } else net.lobby(); },
       async act(body) { try { await post(`/${code}/act`, { token, ...body }); return ''; } catch (e) { if (o.onError) o.onError(e.message); return e.message; } },
