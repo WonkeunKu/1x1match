@@ -290,7 +290,7 @@
           const oppSlot = t.oppColor == null ? '<span class="grb empty"><span>?</span></span>' : `<span class="grb c${t.oppColor} big played" style="--bg:${GRAD[t.oppColor]};--ink:${INK[t.oppColor]}"><span class="gr-cn">${CNAME[t.oppColor]}<br>?</span></span>`; // 숫자는 비공개, 색만 공개
           tb = `<div class="duel"><div><small>나</small>${slot(t.mine, true)}</div><span class="vs">VS</span><div><small>${esc(oppName)}</small>${oppSlot}</div></div>`; }
         if (v.hist.length && (!t || (t.mine == null && t.oppColor == null))) { const l = v.hist[v.hist.length - 1];
-          tb = `<div class="duel"><div><small>나</small>${cube(COL[l.pos[0]], l.x[0], 'big', 'disabled')}</div><span class="vs">${l.r === 0 ? '승' : l.r === 1 ? '패' : '무'}</span><div><small>${esc(oppName)}</small>${cube(COL[l.pos[1]], l.x[1], 'big', 'disabled')}</div></div>`; }
+          tb = `<div class="duel"><div><small>나</small>${cube(COL[l.pos[0]], l.x[0], 'big' + (l.r === 0 ? ' win' : ''), 'disabled')}</div><span class="vs">${l.r === 0 ? '승' : l.r === 1 ? '패' : '무'}</span><div><small>${esc(oppName)}</small>${cube(COL[l.pos[1]], l.x[1], 'big' + (l.r === 1 ? ' win' : ''), 'disabled')}</div></div>`; }
         $('grTable').innerHTML = tb;
         // 내 통
         const setup = v.phase === 'setup' && !v.myDist;
