@@ -239,6 +239,14 @@
       }
       // 배치
       const poolLeft = d => 2 - draft.filter(x => x === d).length;
+      // 고른 통(sel)에 d를 넣었을 때 나머지 빈 통을 채워 규칙(오름차순·합 30 이하·숫자마다 2개)을 만족할 수 있는지
+      const completable = d => ALLV.some(v => v[sel] === d && draft.every((x, j) => j === sel || x == null || v[j] === x));
+      function fitSet() {
+        const ok = new Set([...Array(10).keys()].filter(completable));
+        if (ok.size) return ok;
+        // 이미 놓은 숫자끼리 규칙이 어긋나 있으면(직접 바꾼 경우 등) 남은 개수만 따짐
+        return new Set([...Array(10).keys()].filter(d => poolLeft(d) > 0 || draft[sel] === d));
+      }
       function draftProblem() {
         if (draft.some(x => x == null)) return `통 ${draft.filter(x => x == null).length}개가 비어 있어요`;
         for (let i = 1; i < 7; i++) if (draft[i] < draft[i - 1]) return `왼쪽에서 오른쪽으로 오름차순이어야 해요 (${i}번째 ${draft[i - 1]} > ${i + 1}번째 ${draft[i]})`;
@@ -250,7 +258,7 @@
       $('grDone').onclick = () => { const p = draftProblem(); if (p) { $('grMsg').textContent = p; return; } send({ type: 'dist', v: draft.slice() }); draft = Array(7).fill(null); };
       wrap.addEventListener('click', e => {
         const s = e.target.closest('[data-s]'); if (s) { sel = +s.dataset.s; rerender(); return; }
-        const d = e.target.closest('[data-d]'); if (d && !d.disabled) { const k = +d.dataset.d; if (poolLeft(k) > 0) { draft[sel] = k; const nx = draft.findIndex(x => x == null); if (nx >= 0) sel = nx; rerender(); } return; }
+        const d = e.target.closest('[data-d]'); if (d && !d.disabled) { const k = +d.dataset.d; if (fitSet().has(k)) { draft[sel] = k; const nx = draft.findIndex(x => x == null); if (nx >= 0) sel = nx; rerender(); } return; }
         const p = e.target.closest('[data-p]'); if (p && !p.disabled) { send({ type: 'pick', i: +p.dataset.p }); return; }
         if (e.target.closest('[data-again]')) send({ type: 'again' });
       });
@@ -288,7 +296,7 @@
         $('grMine').innerHTML = mh;
         $('grSum').textContent = setup ? `합 ${vsum(draft.filter(x => x != null))} / 30` : v.myDist ? `합 ${vsum(v.myDist)}` : '';
         $('grPool').hidden = !setup; $('grSetBtns').hidden = !setup;
-        if (setup) $('grPool').innerHTML = [...Array(10).keys()].map(d => `<button type="button" class="grd" data-d="${d}" ${poolLeft(d) <= 0 ? 'disabled' : ''}>${d}<small>${'•'.repeat(poolLeft(d))}</small></button>`).join('');
+        if (setup) { const fit = fitSet(); $('grPool').innerHTML = [...Array(10).keys()].map(d => `<button type="button" class="grd" data-d="${d}" ${fit.has(d) ? '' : 'disabled'}>${d}<small>${'•'.repeat(poolLeft(d))}</small></button>`).join(''); }
         $('grMsg').textContent = v.phase === 'over' ? (v.winner === 0 ? `이겼어요! ${v.score[0]} : ${v.score[1]}` : `졌어요. ${v.score[0]} : ${v.score[1]}`) + ' — 상대 배치를 공개해요'
           : v.phase === 'setup' ? (v.myDist ? `${oppName}의 배치를 기다리는 중…` : (draftProblem() || '배치를 마쳤으면 "배치 완료"를 누르세요') + ' · 통을 누르고 아래 숫자를 고르면 담겨요')
           : !t ? '' : myTurn ? (t.first === 0 ? '내가 선이에요. 낼 통을 고르세요' : `${oppName}가 ${CNAME[t.oppColor]} 통을 냈어요. 맞받아칠 통을 고르세요`)
