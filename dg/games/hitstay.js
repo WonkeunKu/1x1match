@@ -237,8 +237,10 @@
       const showAll = S.phase === 'result' || S.phase === 'over', me = S.players[seat];
       const bet = (S.phase === 'bet1' || S.phase === 'bet2') && S.bet && !bettingDone(S);
       return { mid: S.mid, me: seat, phase: S.phase, round: S.round, limit: S.limit, pot: S.phase === 'result' ? S.lastResult.pot : S.pot, base: S.base, cap: S.cap, deckLeft: S.deck ? S.deck.length : 0, first: S.first,
-        players: S.players.map(p => { const own = p.id === seat; const cards = p.cards.map((c, i) => own || showAll || i === p.shown || i >= 3 ? c : null);
-          return { id: p.id, name: p.name, ai: p.ai, chips: p.chips, put: p.put, out: p.out, folded: p.folded, stayed: p.stayed, shown: p.shown, cards }; }),
+        players: S.players.map(p => { const own = p.id === seat; // 공개 단계에서는 모두가 고를 때까지 다른 사람이 고른 카드를 숨김 (다 고르면 동시에 공개)
+          const hideShown = S.phase === 'reveal' && !own;
+          const cards = p.cards.map((c, i) => own || showAll || (!hideShown && i === p.shown) || i >= 3 ? c : null);
+          return { id: p.id, name: p.name, ai: p.ai, chips: p.chips, put: p.put, out: p.out, folded: p.folded, stayed: p.stayed, shown: hideShown ? -1 : p.shown, picked: p.shown >= 0, cards }; }),
         bettor: bet ? currentBettor(S) : -1, high: S.bet ? S.bet.high : 0, toCall: me && S.bet ? Math.min(toCall(S, me), me.chips) : 0, maxTo: me && S.bet ? maxRaiseTo(S, me) : 0,
         hitTurn: S.phase === 'hit' && !hitsDone(S) ? S.hitTurn : -1, lastResult: showAll ? S.lastResult : null, winner: S.winner,
         left: S.deadline && MULTI.actor(S).includes(seat) ? Math.max(0, S.deadline - Date.now()) : 0, log: S.log.slice(-80) };
@@ -256,7 +258,7 @@
     rules: `<ul>
       <li>숫자 카드 35장: <b>7×1, 6×2, 5×3, 4×4, 3×5, 2×6, 1×7, -1×7</b>. 각자 칩을 들고 시작해요(설정에서 정해요).</li>
       <li>라운드마다 모두 <b>기본 베팅</b>(1개, 10라운드마다 1개씩 늘어요)을 내고, 8면체 주사위로 <b>한계 숫자(5~12)</b>를 정해요.</li>
-      <li>카드 3장씩 받고 그중 <b>1장을 골라 공개</b>해요. 나머지 2장은 나만 봐요.</li>
+      <li>카드 3장씩 받고 그중 <b>공개할 1장</b>을 각자 몰래 골라요. 모두 고르면 <b>동시에 공개</b>돼요. 나머지 2장은 나만 봐요.</li>
       <li><b>1차 베팅</b>: 선부터 콜·레이즈·포기. 한 사람이 걸 수 있는 칩은 <b>칩이 가장 적은 사람의 칩 수</b>까지예요.</li>
       <li>선부터 돌아가며 카드를 더 받으면 <b>HIT</b>(공개), 그만 받으면 <b>STAY</b>. 모두 스테이하거나 카드가 떨어지면 <b>2차 베팅</b>.</li>
       <li>카드 합이 <b>한계 숫자 이하에서 가장 가까운</b> 사람이 판돈을 가져가요. 합이 같으면 카드가 많은 쪽, 한계를 넘으면 최하위. 그래도 같으면 나눠 갖고 남는 칩은 선에 가까운 사람이 가져요.</li>
@@ -355,8 +357,8 @@
             if (pick) return `<button type="button" class="hsc pick ${c < 0 ? 'neg' : ''}" data-a="show${i}">${c}</button>`;
             return c != null ? card(c, `${isMe && i < 3 && i !== p.shown ? 'secret' : ''} ${i >= 3 ? 'hit' : ''}`) : card(null, 'back');
           }).join('');
-          const st = p.out ? '탈락' : p.folded ? '포기' : p.stayed ? 'STAY' : '';
-          const turn = !p.out && (v.hitTurn === p.id || v.bettor === p.id || (v.phase === 'reveal' && p.shown < 0));
+          const st = p.out ? '탈락' : p.folded ? '포기' : p.stayed ? 'STAY' : v.phase === 'reveal' ? (p.picked ? '선택 완료' : '고르는 중') : '';
+          const turn = !p.out && (v.hitTurn === p.id || v.bettor === p.id || (v.phase === 'reveal' && !p.picked));
           const won = R && v.phase === 'result' && R.winners.includes(p.id);
           const over = (isMe || showAll) && p.cards.length && ENG.sum(p.cards) > v.limit;
           const off = room && room.players && room.players[p.id] && !room.players[p.id].online;
@@ -369,7 +371,7 @@
         let a = '', msg = '';
         if (v.phase === 'over') msg = v.winner === ME ? '최종 생존! 1위예요' : v.winner >= 0 ? `${P[v.winner].name} 최종 생존` : '게임 끝';
         else if (me.out) msg = '탈락했어요 · 남은 사람들의 게임을 지켜보는 중';
-        else if (v.phase === 'reveal') msg = me.shown < 0 ? '세 장 중 모두에게 공개할 카드 1장을 누르세요' : '다른 사람들이 공개할 카드를 고르는 중…';
+        else if (v.phase === 'reveal') msg = me.shown < 0 ? '세 장 중 모두에게 공개할 카드 1장을 누르세요 (모두 고르면 동시에 공개)' : '다른 사람들이 고르는 중… 모두 고르면 동시에 공개돼요';
         else if (v.bettor === ME) {
           const maxTo = v.maxTo;
           msg = `${v.phase === 'bet1' ? '1차' : '2차'} 베팅 — 내 차례`;
