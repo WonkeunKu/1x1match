@@ -2,32 +2,38 @@
 (function () {
   const COLORS = 'ABCDEFGHIJKLMN'.split('');
   const MINLEN = 6; // 경로 칸 수(양 끝 말 포함) 최소
-  // 판 모양: 정사각 6·7·8 + 특이한 판('#'은 막힌 칸). 소용돌이는 방송에 나온 11×11 판
+  // 판 모양: 매 게임 아래 판 중 하나를 무작위로 골라요('#'은 막힌 칸). 소용돌이는 방송에 나온 판
   const SHAPES = {
-    spiral: { name: '소용돌이 11×11', rows: [
-      '...........',
-      '.#########.',
-      '.#.......#.',
-      '.#.##.##.#.',
-      '.#.#...#.#.',
-      '.#.#.#.#.#.',
-      '.#.#...#.#.',
-      '.#.#####.#.',
-      '.#.......#.',
-      '.####.####.',
-      '...........'] },
+    spiral: { name: '소용돌이', rows: ['...........', '.#########.', '.#.......#.', '.#.##.##.#.', '.#.#...#.#.', '.#.#.#.#.#.', '.#.#...#.#.', '.#.#####.#.', '.#.......#.', '.####.####.', '...........'] },
+    donut: { name: '도넛', rows: ['.........', '.........', '.........', '...###...', '...###...', '...###...', '.........', '.........', '.........'] },
+    cross: { name: '십자', rows: ['###...###', '###...###', '###...###', '.........', '.........', '.........', '###...###', '###...###', '###...###'] },
+    diamond: { name: '다이아몬드', rows: ['#####.#####', '####...####', '###.....###', '##.......##', '#.........#', '...........', '#.........#', '##.......##', '###.....###', '####...####', '#####.#####'] },
+    pillars: { name: '기둥 숲', rows: ['.........', '.#..#..#.', '.........', '.........', '.#..#..#.', '.........', '.........', '.#..#..#.', '.........'] },
+    hourglass: { name: '모래시계', rows: ['.........', '#.......#', '##.....##', '###...###', '###...###', '###...###', '##.....##', '#.......#', '.........'] },
+    stairs: { name: '계단', rows: ['...######', '....#####', '.....####', '......###', '.......##', '........#', '.........', '#........', '##.......'] },
+    rooms: { name: '네 방', rows: ['.....#.....', '.....#.....', '...........', '.....#.....', '...........', '#####.#####', '...........', '.....#.....', '...........', '.....#.....', '.....#.....'] },
+    heart: { name: '하트', rows: ['##..###..##', '#....#....#', '...........', '...........', '...........', '...........', '#.........#', '##.......##', '###.....###', '####...####', '#####.#####'] },
+    hshape: { name: 'H', rows: ['...###...', '...###...', '...###...', '.........', '.........', '.........', '...###...', '...###...', '...###...'] },
+    maze: { name: '미로', rows: ['...........', '.###.#.###.', '.#...#...#.', '.#.#####.#.', '...#...#...', '##.#.#.#.##', '...#.#.#...', '.#.......#.', '.#.##.##.#.', '...#...#...', '.#...#...#.'] },
+    frame: { name: '액자', rows: ['..........', '..........', '..######..', '..#....#..', '..#....#..', '..#....#..', '..#....#..', '..###.##..', '..........', '..........'] },
+    arrow: { name: '화살표', rows: ['####.#####', '###..#####', '##...#####', '#.........', '..........', '..........', '#.........', '##...#####', '###..#####', '####.#####'] },
+    zigzag: { name: '지그재그', rows: ['.........#', '.........#', '#######..#', '#........#', '#..#######', '#.........', '#.........', '#######..#', '.........#', '.........#'] },
   };
+  const SHAPE_KEYS = Object.keys(SHAPES);
   function boardOf(shape) { // {N, walls:[칸...]}
     const S = SHAPES[shape];
     if (S) { const N = S.rows.length, walls = []; S.rows.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') walls.push(r * N + c); })); return { N, walls, shape }; }
     const N = [6, 7, 8].includes(Number(shape)) ? Number(shape) : 7; return { N, walls: [], shape: N };
   }
+  // 직전 게임과 다른 판을 무작위로
+  const randomShape = prev => { const ks = SHAPE_KEYS.filter(k => k !== prev); return ks[rnd(ks.length)]; };
   const rnd = n => Math.floor(Math.random() * n);
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   // ---------- 풀이기: 모든 색을 겹치지 않게 이을 수 있는지 ----------
   // pieces: { 색: [칸, 칸?] }  반환 { ok, paths:{색:[칸...]}, exhaustive }
-  function solve(N, pieces, budget, walls) {
+  function solve(N, pieces, budget, walls, ms) { // ms: 시간 제한(넘으면 '모름'으로 끝냄)
+    const t0 = Date.now(), lim = ms || 1e9;
     const NN = N * N, piece = new Int16Array(NN).fill(-1), used = new Uint8Array(NN);
     if (walls) for (const w of walls) used[w] = 1; // 막힌 칸은 처음부터 '쓴 칸'
     const cols = Object.keys(pieces).filter(c => pieces[c].length);
@@ -69,7 +75,7 @@
       const start = p[0], target = p.length === 2 ? p[1] : null;
       const path = [start];
       function grow(head) {
-        if (++steps > budget) { aborted = true; return false; }
+        if (++steps > budget || ((steps & 255) === 0 && Date.now() - t0 > lim)) { aborted = true; return false; }
         if (aborted) return false;
         const len = path.length;
         // 혼자인 말은 6칸이 되면 여기서 끝낼 수 있음(끝 칸에 짝을 놓음)
@@ -117,13 +123,14 @@
     const tries = [6, 12, 16][lv], look = [0, 0, 6][lv], t0 = Date.now(), limitMs = [400, 900, 1600][lv];
     let best = null, bv = -1e9, found = 0;
     for (let t = 0; t < tries * 3 && t < 200; t++) {
+      if (Date.now() - t0 > limitMs * 2) break; // 넓은 판에서도 한 수에 오래 걸리지 않게
       const pl = randomPlacement(R); if (!pl) break;
-      const R2 = withPlacement(R, pl), s = solve(R.N, piecesOf(R2), BUD[lv], R.walls);
+      const R2 = withPlacement(R, pl), s = solve(R.N, piecesOf(R2), BUD[lv], R.walls, 120);
       if (!s.ok) continue;
       // 좋은 수: 판을 빡빡하게(짝 놓기, 남은 빈칸 줄이기) + 상대가 둘 수 있는 안전한 수가 적게
       let v = Math.random() * .5;
       for (const { c } of pl) if (countOf(R, c) === 1) v += 1.2; // 짝을 채우면 경로가 굳어짐
-      if (look) { let safe = 0; for (let q = 0; q < look; q++) { const op = randomPlacement({ ...R2, turnNo: R2.turnNo + 1, placedThisTurn: [] }); if (!op) continue; if (solve(R.N, piecesOf(withPlacement(R2, op)), 2500, R.walls).ok) safe++; } v -= safe / look * 3; }
+      if (look) { let safe = 0; for (let q = 0; q < look; q++) { const op = randomPlacement({ ...R2, turnNo: R2.turnNo + 1, placedThisTurn: [] }); if (!op) continue; if (solve(R.N, piecesOf(withPlacement(R2, op)), 2500, R.walls, 40).ok) safe++; } v -= safe / look * 3; }
       if (v > bv) { bv = v; best = pl; }
       if (++found >= tries || (best && Date.now() - t0 > limitMs)) break;
     }
@@ -131,7 +138,7 @@
   }
   // 상대가 놓은 뒤 불가능 선언할지. 끝까지 따져 봐서 확실히 불가능할 때만(쉬움은 가끔 놓침)
   function aiShouldDeclare(R, lv) {
-    const s = solve(R.N, piecesOf(R), [8000, 60000, 200000][lv], R.walls);
+    const s = solve(R.N, piecesOf(R), [8000, 60000, 200000][lv], R.walls, [250, 600, 900][lv]);
     if (s.ok || !s.exhaustive) return false;
     return Math.random() < [.55, .9, 1][lv];
   }
@@ -155,7 +162,7 @@
   }
   const DUEL = {
     init(prev, opts) {
-      const B = boardOf(opts && opts.n != null ? opts.n : prev ? prev.shape : 7);
+      const B = boardOf(opts && SHAPES[opts.n] ? opts.n : randomShape(prev && prev.shape)); // 매 게임 판 모양을 무작위로
       const s = { mid: Math.random().toString(36).slice(2, 9), N: B.N, walls: B.walls, shape: B.shape, score: [0, 0], roundNo: 0, log: [], winner: -1 };
       return DUEL.newRound(s, prev ? 1 - prev.matchFirst : rnd(2), true);
     },
@@ -196,7 +203,7 @@
       }
       if (a.type === 'giveup') {
         if (s.phase !== 'prove' || seat !== s.prover) fail('증명할 차례가 아니에요.');
-        const sol = solve(s.N, piecesOf(R), 300000, R.walls); s.shown = sol.ok ? sol.paths : null;
+        const sol = solve(s.N, piecesOf(R), 300000, R.walls, 2000); s.shown = sol.ok ? sol.paths : null;
         DUEL.roundWin(s, s.declarer, sol.ok ? '증명 포기 (사실은 이을 수 있었어요)' : '증명 포기 (정말 불가능한 판이었어요)'); return;
       }
       if (a.type === 'choose') {
@@ -207,14 +214,14 @@
     },
     view(s, seat) {
       const R = s.R, rel = x => x == null || x < 0 ? -1 : x === seat ? 0 : 1;
-      return { mid: s.mid, starter: rel(s.matchFirst), phase: s.phase, N: s.N, walls: s.walls || [], shape: s.shape, score: [s.score[seat], s.score[1 - seat]], roundNo: s.roundNo, cells: R.cells, turn: rel(R.turn), first: rel(R.first), turnNo: R.turnNo, need: need(R),
+      return { mid: s.mid, starter: rel(s.matchFirst), phase: s.phase, N: s.N, walls: s.walls || [], shape: s.shape, shapeName: SHAPES[s.shape] ? SHAPES[s.shape].name : `${s.N}×${s.N}`, score: [s.score[seat], s.score[1 - seat]], roundNo: s.roundNo, cells: R.cells, turn: rel(R.turn), first: rel(R.first), turnNo: R.turnNo, need: need(R),
         last: R.last || [], prover: rel(s.prover), declarer: rel(s.declarer), chooser: rel(s.chooser), shown: s.shown, winner: s.winner === 2 ? 2 : rel(s.winner),
         log: s.log.slice(-24).map(x => ({ ...x, p: x.p != null ? rel(x.p) : undefined, w: x.w != null ? rel(x.w) : undefined })) };
     },
     ai(v, lv) {
       const R = { N: v.N, walls: v.walls || [], cells: v.cells.slice(), turnNo: v.turnNo, placedThisTurn: [], turn: 0 };
       if (v.phase === 'choose' && v.chooser === 0) return { type: 'choose', first: false };
-      if (v.phase === 'prove' && v.prover === 0) { const s = solve(v.N, piecesOf(R), 400000, R.walls); return s.ok ? { type: 'proof', paths: s.paths } : { type: 'giveup' }; }
+      if (v.phase === 'prove' && v.prover === 0) { const s = solve(v.N, piecesOf(R), 400000, R.walls, 2500); return s.ok ? { type: 'proof', paths: s.paths } : { type: 'giveup' }; }
       if (v.phase === 'place' && v.turn === 0) {
         if (v.turnNo > 0 && aiShouldDeclare(R, lv)) return { type: 'declare' };
         const pl = aiPlace(R, lv); return pl ? { type: 'place', cells: pl } : null;
@@ -223,7 +230,7 @@
     },
   };
 
-  const ENG = { COLORS, MINLEN, SHAPES, boardOf, solve, newRound, piecesOf, countOf, need, canPlace, legalAny, aiPlace, aiShouldDeclare, randomPlacement, withPlacement, checkProof, DUEL };
+  const ENG = { COLORS, MINLEN, SHAPES, SHAPE_KEYS, randomShape, boardOf, solve, newRound, piecesOf, countOf, need, canPlace, legalAny, aiPlace, aiShouldDeclare, randomPlacement, withPlacement, checkProof, DUEL };
   if (typeof module !== 'undefined' && module.exports) { module.exports = ENG; return; }
   if (typeof LAB === 'undefined') return;
 
@@ -238,7 +245,7 @@
       <li>경로는 상하좌우로 이어진 칸들이고, <b>말이 있는 칸을 포함해 6칸 이상</b>이어야 해요. 다른 말이 있는 칸은 지날 수 없어요. 아직 하나만 놓인 색도 앞으로 놓일 짝과 이어질 수 있어야 해요.</li>
       <li>상대가 놓은 뒤 더는 다 이을 수 없다고 보면 <b>불가능 선언</b>! 직전에 놓은 사람이 모든 경로(혼자인 말은 짝 위치까지)를 그려 증명하면 증명한 쪽이, 못 하면 선언한 쪽이 1점.</li>
       <li>5라운드, <b>먼저 3점</b>을 따면 승리. 다음 라운드 선후는 직전 라운드에 진 쪽이 정해요.</li>
-      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요. 판 모양은 정사각형 6×6·7×7·8×8과 막힌 칸이 있는 <b>소용돌이 11×11</b>(방송에 나온 판) 중에서 골라요. 막힌 칸에는 말을 놓거나 경로를 지나갈 수 없어요. 시간 제한은 없어요.</li>
+      <li>상대는 <b>AI</b> 또는 <b>사람</b>(각자 자기 기기로 같은 방에 들어와 1:1)이에요. 판은 <b>매 게임 무작위</b>로 정해져요: 소용돌이, 도넛, 십자, 다이아몬드, 기둥 숲, 모래시계, 계단, 네 방, 하트, H, 미로, 액자, 화살표, 지그재그 등 14가지(9×9~11×11, 소용돌이는 방송에 나온 판). 빗금 친 막힌 칸에는 말을 놓거나 경로를 지나갈 수 없어요. 시간 제한은 없어요.</li>
     </ul>`,
     mount(root) {
       const T = LAB.timers();
@@ -250,7 +257,7 @@
           <div class="dn-lobby" id="clLobby" hidden></div>
           <div id="clGame">
           <div class="dp-score"><div><small>나</small><b id="clMe">0</b></div><div class="dp-mid"><span id="clRound"></span><small id="clSub"></small></div><div><small id="clOpN">상대</small><b id="clAi">0</b></div></div>
-          <div class="cl-wrap"><div class="cl-board" id="clB"></div><svg class="cl-svg" id="clSvg"></svg></div>
+          <p class="cl-shape" id="clShape"></p><div class="cl-wrap"><div class="cl-board" id="clB"></div><svg class="cl-svg" id="clSvg"></svg></div>
           <p class="g-msg" id="clMsg"></p>
           <div class="cl-pal" id="clPal"></div>
           <div class="row" id="clBtns"></div>
@@ -263,18 +270,18 @@
       root.appendChild(wrap);
       const $ = id => wrap.querySelector('#' + id);
       // 시작 화면·대기실은 모든 대결 게임 공통 (무거운13·슬리더링크와 같은 흐름)
-      const front = LAB.duelFront({ el: $('clLobby'), gameEl: $('clGame'), soloOpts: [{ key: 'n', label: '판 모양', opts: [[6, '6×6'], [7, '7×7'], [8, '8×8'], ['spiral', '소용돌이 11×11']], def: 7 }, { key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [{ key: 'n', label: '판 모양', opts: [[6, '6×6'], [7, '7×7'], [8, '8×8'], ['spiral', '소용돌이 11×11']], def: 7 }],
+      const front = LAB.duelFront({ el: $('clLobby'), gameEl: $('clGame'), soloOpts: [{ key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }], roomOpts: [],
         onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => { T.clear(); if (net) { net.close(); net = null; } } });
       function start() {
         T.clear(); cfg = { ...pend }; pick = null; placing = []; proof = null; lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('clGame').hidden = true;
-          net = LAB.duel('colorlink', { front, el: $('clLobby'), opts: () => ({ n: cfg.n }), onView: v => { if (!v.st) { $('clGame').hidden = true; return; } net.hideLobby(); $('clGame').hidden = false; if (v.st.phase !== 'prove' || v.st.prover !== 0) proof = null; show(v.st, v.opp || '상대', v); }, onError: m => { $('clMsg').textContent = m; } });
+          net = LAB.duel('colorlink', { front, el: $('clLobby'), onView: v => { if (!v.st) { $('clGame').hidden = true; return; } net.hideLobby(); $('clGame').hidden = false; if (v.st.phase !== 'prove' || v.st.prover !== 0) proof = null; show(v.st, v.opp || '상대', v); }, onError: m => { $('clMsg').textContent = m; } });
           net.start(); return;
         }
         $('clLobby').hidden = true; $('clGame').hidden = false;
-        st = DUEL.init(null, { n: cfg.n }); local(); aiStep();
+        st = DUEL.init(null, {}); local(); aiStep();
       }
       const local = () => show(DUEL.view(st, 0), 'AI', null);
       function aiStep() {
@@ -333,7 +340,7 @@
         if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         const N = v.N;
         $('clOpN').textContent = oppName; $('clMe').textContent = v.score[0]; $('clAi').textContent = v.score[1];
-        $('clRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}라운드 · 3점 선승`;
+        $('clRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}라운드 · 3점 선승`; $('clShape').textContent = `판: ${v.shapeName} (${v.N}×${v.N})`;
         $('clSub').textContent = `${v.turnNo + 1}번째 차례 · ${v.turn === 0 ? '내' : oppName} 차례`;
         $('clB').style.setProperty('--n', N); $('clB').classList.toggle('walls', !!(v.walls && v.walls.length));
         const lastSet = new Set((v.last || []).map(x => x.i));
