@@ -64,6 +64,8 @@
 .clc.can { background: rgba(243,182,65,.18); cursor: pointer; } .clc.pth { background: color-mix(in srgb, var(--pc) 32%, var(--slot)); }
 .clp { width: 76%; aspect-ratio: 1; border-radius: 50%; background: var(--pc); color: #10302a; display: grid; place-items: center; font-weight: 800; font-size: clamp(11px, 3vw, 16px); position: relative; z-index: 2; }
 .clp.single { box-shadow: 0 0 0 2px #f1eee4; } .clp.last { outline: 2px dashed #f1eee4; outline-offset: 2px; } .clp.new { outline: 3px solid var(--amber); outline-offset: 1px; }
+.clc.wall { background: repeating-linear-gradient(45deg, #040c0a 0 4px, #0a1916 4px 8px); pointer-events: none; }
+.cl-board.walls .clc:not(.wall) { background: #23514a; } .cl-board.walls .clc.can { background: #4d5a36; } .cl-board.walls .clc.pth { background: color-mix(in srgb, var(--pc) 40%, #23514a); }
 .cl-svg { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); pointer-events: none; z-index: 1; }
 .cl-svg polyline { fill: none; stroke-width: .26; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
 .cl-pal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }

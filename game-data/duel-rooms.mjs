@@ -26,7 +26,7 @@ const wrap = D => ({
   view: (st, seat) => D.view(st, seat),
   tick: D.tick ? (st, t) => D.tick(st, t) : null,
 });
-const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: { ...wrap(CL.DUEL), settings: (o, b) => { if ([6, 7, 8].includes(Number(b.n))) o.n = Number(b.n); } }, signal: wrap(SG.DUEL), pointomok: wrap(PO.DUEL),
+const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: { ...wrap(CL.DUEL), settings: (o, b) => { if ([6, 7, 8].includes(Number(b.n))) o.n = Number(b.n); else if (CL.SHAPES[b.n]) o.n = b.n; } }, signal: wrap(SG.DUEL), pointomok: wrap(PO.DUEL),
   // 여럿이 하는 게임: 자리 수가 설정에 따라 달라지고, 빈자리는 방장이 시작할 때 AI로 채움
   hitstay: { ...wrap(HS.MULTI), multi: true, seats: o => HS.MULTI.seats(o), init: (prev, opts, seats) => HS.MULTI.init(prev, opts, seats), tick: (st, t) => HS.MULTI.tick(st, t) } };
 
