@@ -323,7 +323,7 @@ export async function logPageView(vid, user, page, device, region) {
 /* ---------- 비회원 무료 1판 (게임마다) ----------
    비회원은 브라우저 번호(vid)마다 게임별로 한 판(playId 하나)만 무료. 같은 판을 이어서 하는 건 계속 허용.
    기록은 match_history 에 '_free' 로 남김 (개인정보 없음). */
-export const FREE_GAMES = ['auction', 'auction-ai', 'blackwhite', 'blackwhite-online', 'slither', 'wallgo1', 'wallgo', 'heavy13', 'horse', 'mines', 'dinner', 'twelve', 'colorturn'];
+export const FREE_GAMES = ['auction', 'auction-ai', 'blackwhite', 'blackwhite-online', 'slither', 'wallgo1', 'wallgo', 'heavy13', 'horse', 'mines', 'dinner', 'twelve', 'colorturn', 'gradation', 'hitstay', 'cardjanggi', 'colorlink', 'signal', 'pointomok'];
 const freeCache = new Map(); // vid|game -> playId
 export async function freePlay(vid, game, playId) {
   if (ACCOUNTS_DISABLED) return { ok: true };

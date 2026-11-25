@@ -140,6 +140,7 @@
         return; }
       const b = e.target.closest('[data-fm]'); if (!b || b.disabled) return;
       const k = b.dataset.fm;
+      if ((k === 'solo' || k === 'create' || k === 'join') && LAB.beforeStart && !(await LAB.beforeStart())) return; // 공개 페이지: 비회원은 게임마다 한 판
       if (k === 'solo') { F.solo(); c.onStart('ai', { ...solo }); }
       else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
       else if (k === 'join') { if (needName()) return; const code = (c.el.querySelector('#dfCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) return F.menu('4자리 코드를 입력하세요'); pending = { join: code, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
