@@ -1,4 +1,4 @@
-// 1:1 온라인 대결 방 (그라데이션 · 카드 장기 · 컬러 링크 · 수식 신호등)
+// 1:1 온라인 대결 방 (그라데이션 · 카드 장기 · 컬러 링크 · 수식 신호등 · 포인트 오목)
 // 숨긴 정보가 있는 게임이라 판정과 상태는 모두 서버가 들고, 각 사람에게는 자기가 봐도 되는 것만 보냄.
 // 게임 규칙 함수는 브라우저용 게임 파일(dg/games 또는 play)을 그대로 불러 씀.
 import { randomBytes, randomInt } from 'node:crypto';
@@ -17,15 +17,16 @@ function loadEngine(file) {
   }
   throw new Error('engine not found ' + file);
 }
-const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js');
+const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js'), PO = loadEngine('pointomok.js');
 
 /* ---------------- 게임별 규칙: 각 게임 파일의 DUEL(init/act/view)을 그대로 씀 ---------------- */
 const wrap = D => ({
   init: (prev, opts) => D.init(prev, opts),
   act(st, seat, a) { try { D.act(st, seat, a); } catch (e) { if (e && e.duel) throw new GameError(e.message); throw e; } },
   view: (st, seat) => D.view(st, seat),
+  tick: D.tick ? (st, t) => D.tick(st, t) : null,
 });
-const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: wrap(CL.DUEL), signal: wrap(SG.DUEL) };
+const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: wrap(CL.DUEL), signal: wrap(SG.DUEL), pointomok: wrap(PO.DUEL) };
 
 /* ---------------- 방 ---------------- */
 function newCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c; do { c = Array.from({ length: 4 }, () => A[randomInt(A.length)]).join(''); } while (rooms.has(c)); return c; }
@@ -85,4 +86,7 @@ export function results(room) { // 기록용: 자리별 결과
   return room.seats.map((s, k) => ({ uid: s && s.uid, name: s && s.name, result: w === 2 || w < 0 ? 'draw' : w === k ? 'win' : 'lose', opp: room.seats[1 - k] && room.seats[1 - k].name }));
 }
 setInterval(() => { const t = now(); for (const r of rooms.values()) if (t - r.touched > 6 * 3600e3 || (!r.clients.size && t - r.touched > 30 * 60e3)) { for (const c of r.clients) { try { c.res.end(); } catch {} } rooms.delete(r.code); } }, 5 * 60e3).unref();
+// 시간제한 있는 게임(포인트 오목): 1초마다 마감 확인
+setInterval(() => { const t = now(); for (const r of rooms.values()) { const G = GAMES[r.game]; if (!G.tick || !r.st || r.st.phase === 'over') continue;
+  try { if (G.tick(r.st, t)) { if (r.st.phase === 'over' && !r.recorded) { r.recorded = true; finishHook && finishHook(r); } bump(r); } } catch (e) { console.error('tick', e); } } }, 1000).unref();
 export { GameError, GAMES };

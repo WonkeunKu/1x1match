@@ -44,7 +44,7 @@
         const tick = () => { spans.forEach(s => s.classList.remove('hi')); spans[k % n].classList.add('hi'); if (step >= steps) return; step++; k++; setTimeout(tick, 40 + step * step * (DUR / (steps * steps * 2.2))); };
         tick();
       }
-      setTimeout(() => { res.textContent = `${names[winner]}${josa(names[winner])} ${suffix}!`; res.classList.add('on'); }, DUR);
+      setTimeout(() => { res.textContent = names[winner] === '나' ? `내가 ${suffix}!` : `${names[winner]}${josa(names[winner])} ${suffix}!`; res.classList.add('on'); }, DUR);
       setTimeout(() => { ov.style.transition = 'opacity .25s'; ov.style.opacity = '0'; setTimeout(() => { ov.remove(); done(); }, 250); }, total);
     });
   }
