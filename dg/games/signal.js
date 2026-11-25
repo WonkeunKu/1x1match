@@ -229,7 +229,7 @@
     mount(root) {
       const T = LAB.timers();
       const roomLink = LAB.roomParam();
-      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, input = [], busy = false, lastArgs = null;
+      let pend = { lv: 1, opp: roomLink ? 'net' : 'ai' }, cfg = { ...pend }, st = null, net = null, input = Array(9).fill(null), pos = 0, busy = false, lastArgs = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
@@ -257,7 +257,7 @@
       $('sgLv').appendChild(seg([[0, '쉬움'], [1, '보통'], [2, '어려움']], 1, v => pend.lv = v));
       $('sgNew').onclick = start;
       function start() {
-        T.clear(); cfg = { ...pend }; input = []; lastArgs = null;
+        T.clear(); cfg = { ...pend }; clearIn(); lastArgs = null;
         if (net) { net.close(); net = null; }
         if (cfg.opp === 'net') {
           $('sgGame').hidden = true;
@@ -280,15 +280,22 @@
         try { DUEL.act(st, 0, a); } catch (e) { $('sgMsg').textContent = e.message; return e.message; }
         local(); aiStep(); afterLocal(); return '';
       }
-      const type = c => { const v = lastArgs && lastArgs[0]; if (!v || v.phase === 'over' || v.waiting || (v.phase === 'secret' && v.mySecret)) return; if (input.length < L) input.push(c); show(...lastArgs); };
+      // 입력: 아무 칸이나 눌러 고른 뒤 채움. 채우면 다음 빈칸으로 이동
+      function clearIn() { input = Array(L).fill(null); pos = 0; }
+      const full = () => input.every(x => x != null);
+      const nextEmpty = from => { for (let k = 1; k <= L; k++) { const j = (from + k) % L; if (input[j] == null) return j; } return from; };
+      const type = c => { const v = lastArgs && lastArgs[0]; if (!v || v.phase === 'over' || v.waiting || (v.phase === 'secret' && v.mySecret)) return; input[pos] = c; pos = nextEmpty(pos); show(...lastArgs); };
+      $('sgInput').addEventListener('click', e => { const b = e.target.closest('[data-pos]'); if (b) { pos = +b.dataset.pos; lastArgs && show(...lastArgs); } });
       $('sgKeys').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) type(b.dataset.k); });
-      $('sgDel').onclick = () => { input.pop(); lastArgs && show(...lastArgs); };
-      $('sgRand').onclick = () => { input = randomSecret(); lastArgs && show(...lastArgs); };
+      $('sgDel').onclick = () => { // 고른 칸이 차 있으면 그 칸을, 비어 있으면 왼쪽에서 가장 가까운 찬 칸을 지움
+        if (input[pos] == null) { for (let j = pos - 1; j >= 0; j--) if (input[j] != null) { pos = j; break; } }
+        input[pos] = null; lastArgs && show(...lastArgs); };
+      $('sgRand').onclick = () => { input = randomSecret(); pos = L - 1; lastArgs && show(...lastArgs); };
       $('sgGo').onclick = async () => {
         const v = lastArgs && lastArgs[0]; if (!v || v.phase === 'over') return;
-        if (v.phase === 'secret') { const err = check(input); if (err) { $('sgMsg').textContent = err; return; } const eq = input.slice(); input = []; const e = await send({ type: 'secret', eq }); if (e) input = eq; return; }
-        if (input.length !== L) { $('sgMsg').textContent = '9칸을 모두 채워 주세요'; return; }
-        const g = input.slice(); input = []; const e = await send({ type: 'guess', g }); if (e) { input = g; show(...lastArgs); }
+        if (v.phase === 'secret') { if (!full()) { $('sgMsg').textContent = '9칸을 모두 채워 주세요'; return; } const err = check(input); if (err) { $('sgMsg').textContent = err; return; } const eq = input.slice(); clearIn(); const e = await send({ type: 'secret', eq }); if (e) input = eq; return; }
+        if (!full()) { $('sgMsg').textContent = '9칸을 모두 채워 주세요'; return; }
+        const g = input.slice(); clearIn(); const e = await send({ type: 'guess', g }); if (e) { input = g; show(...lastArgs); }
       };
       wrap.addEventListener('click', e => { if (e.target.closest('[data-again]')) send({ type: 'again' }); });
       const row = r => `<div class="sg-row">${r.g.map((c, i) => `<span class="sgt f${r.f[i]}">${esc(c)}</span>`).join('')}</div>`;
@@ -303,13 +310,13 @@
         $('sgTheirs').innerHTML = v.theirs.map(row).join('') || '<span class="muted">아직 추측 없음</span>';
         $('sgMySecret').textContent = v.mySecret ? `(내 수식 ${v.mySecret.join('')})` : '';
         const typing = !(v.phase === 'over' || v.waiting || (v.phase === 'secret' && v.mySecret));
-        $('sgInput').innerHTML = Array.from({ length: L }, (_, i) => `<span class="sgt in ${typing && i === input.length ? 'cur' : ''}">${esc(input[i] || '')}</span>`).join('');
+        $('sgInput').innerHTML = Array.from({ length: L }, (_, i) => `<button type="button" class="sgt in ${typing && i === pos ? 'cur' : ''}" data-pos="${i}" aria-label="${i + 1}번째 칸">${esc(input[i] || '')}</button>`).join('');
         const bestc = {}; for (const r of v.mine) r.g.forEach((c, i) => { bestc[c] = Math.max(bestc[c] ?? -1, r.f[i]); });
         $('sgKeys').innerHTML = CH.map(c => `<button type="button" class="sgk ${bestc[c] != null && v.phase !== 'secret' ? 'f' + bestc[c] : ''} ${isD(c) ? '' : 'op'}" data-k="${c}">${c}</button>`).join('');
         $('sgKeys').hidden = $('sgBtns').hidden = !typing; $('sgInput').hidden = !typing;
         $('sgRand').hidden = v.phase !== 'secret';
         $('sgGo').textContent = v.phase === 'secret' ? '이 수식으로 제출' : '추측 제출';
-        const err = v.phase === 'secret' && input.length === L ? check(input) : '';
+        const err = v.phase === 'secret' && full() ? check(input) : '';
         $('sgMsg').textContent = v.phase === 'over' ? (v.winner === 0 ? `승리! ${v.turn}턴 만에 맞혔어요` : v.winner === 1 ? `패배 — ${oppName}가 먼저 맞혔어요` : '무승부') + (v.oppSecret ? ` · ${oppName} 수식: ${v.oppSecret.join('')}` : '')
           : v.phase === 'secret' ? (v.mySecret ? `${oppName}가 수식을 만드는 중…` : (err || `${oppName}가 맞힐 내 수식을 만드세요 (예: 48÷6+2=10)`))
           : v.waiting ? `${oppName}의 추측을 기다리는 중…` : `${oppName} 수식을 추측해 9칸을 채우세요 (성립하지 않아도 돼요)${v.oppWaiting ? ` · ${oppName}는 이미 냈어요` : ''}`;
