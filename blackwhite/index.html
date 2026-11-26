@@ -248,7 +248,7 @@ button.c { text-align: left; font: inherit; }
       <button class="btn" id="undoBtn" type="button">되돌리기</button>
       <button class="btn" id="newBtn" type="button">새 경기</button>
       <button class="btn full" id="modeBtn" type="button" hidden>AI와 대전하기</button>
-      <a class="btn full" href="/blackwhite/online/" style="text-align:center;text-decoration:none">사람과 대전하기 →</a>
+      <a class="btn full" href="/blackwhite/online/" style="text-align:center;text-decoration:none">← 처음 화면 (친구와 하기 · AI 대전)</a>
       <div class="seg full" id="levelSeg" role="group" aria-label="AI 난이도" hidden>
         <span>난이도</span>
         <button type="button" data-level="low">하</button>
@@ -713,6 +713,9 @@ document.getElementById('levelSeg').addEventListener('click', e => {
 });
 
 S = load();
+// 처음 화면(/blackwhite/online/)의 'AI와 하기'에서 난이도·이름을 골라 오면 새 경기로 시작
+{ const q = new URLSearchParams(location.search), lv = q.get('level');
+  if (['low', 'mid', 'high'].includes(lv)) { const nm = (q.get('name') || '').trim().slice(0, 10); S = fresh([nm || S.names[0] || DEFAULT_NAMES[0], S.names[1] || DEFAULT_NAMES[1]], 'ai', lv); save(); window.history.replaceState(null, '', location.pathname + location.hash); } }
 render();
 // 로그인했으면 내 자리 이름을 닉네임으로
 fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => {

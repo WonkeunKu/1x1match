@@ -259,7 +259,7 @@ function applyLogin() {
   });
 }
 
-const HDR = '<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1</div><h1>9이닝 홈런 흑과 백</h1></div></header>';
+const HDR = '<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 1:1 · AI 대전</div><h1>9이닝 홈런 흑과 백</h1></div></header>';
 
 async function post(path, body) {
   const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
@@ -277,7 +277,7 @@ function renderEntry(msg) {
   app.classList.add('narrow');
   const lastName = store.get('online:name') || store.get('auction-online:name') || '';
   app.innerHTML = `${HDR}
-    <p class="muted">2명이 각자 기기로 들어와서 1:1로 겨뤄요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만날 수 있어요. 혼자 연습하려면 <a href="/blackwhite/" style="color:var(--amber)">AI 대전</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
+    <p class="muted">2명이 각자 기기로 들어와서 1:1로 겨뤄요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만날 수 있어요. 혼자라면 AI와 붙어요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -289,6 +289,12 @@ function renderEntry(msg) {
       ${code ? '' : '<input type="text" id="cd" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters" style="text-transform:uppercase;font-family:var(--f-mono)">'}
       <button class="btn primary block" id="joinBtn" type="button">들어가기</button>
     </div>
+    ${code ? '' : `<div class="panel"><h2>AI와 하기</h2>
+      <div class="seg" style="grid-template-columns:repeat(3,1fr)" role="radiogroup" aria-label="AI 난이도">
+        ${['low', 'mid', 'high'].map(l => `<button type="button" role="radio" data-level="${l}" aria-checked="false">${({ low: '하', mid: '중', high: '상' })[l]}</button>`).join('')}
+      </div>
+      <p class="muted" id="lvNote"></p>
+      <button class="btn amber block" id="aiStart" type="button">AI와 시작하기</button></div>`}
     </div><div class="colR">
     ${code ? '' : `<div class="panel"><h2>모르는 사람과 하기</h2>
       <button class="btn amber block" id="quickBtn" type="button">빠른 입장</button>
@@ -315,6 +321,20 @@ function renderEntry(msg) {
       enter(r.code, r.token);
     } catch (e) { showErr(e); }
   };
+  const ai = document.getElementById('aiStart');
+  if (ai) {
+    let level = store.get('bw-ai:level') || 'mid';
+    const notes = { low: '하: AI가 대부분 아무 카드나 내요.', mid: '중: 이닝 상황을 보고 그럴듯한 카드를 내요.', high: "상: 남은 경기를 수백 번 가상으로 둬보고 카드를 내요." };
+    const setLv = l => { level = l; app.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.level === l))); document.getElementById('lvNote').textContent = notes[l]; };
+    app.querySelectorAll('[data-level]').forEach(b => b.onclick = () => setLv(b.dataset.level));
+    setLv(level);
+    ai.onclick = async () => {
+      try {
+        const n = nameOf(); store.set('bw-ai:level', level);
+        location.href = `/blackwhite/?level=${level}&name=${encodeURIComponent(n)}`;
+      } catch (e) { showErr(e); }
+    };
+  }
   const cb = document.getElementById('createBtn');
   if (!cb) return;
   let vis = 'private';

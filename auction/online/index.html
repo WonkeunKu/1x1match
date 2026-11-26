@@ -259,45 +259,11 @@ async function act(body) {
 }
 
 /* ---------- entry ---------- */
-function renderAiEntry(msg) {
-  app.classList.add('narrow');
-  const lastName = store.get('auction-online:name') || '';
-  let level = store.get('auction-ai:level') || 'mid';
-  app.innerHTML = `<header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 혼자 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
-    <p class="muted">나와 AI 3명이 겨뤄요. AI도 선수 연봉을 '대충' 알고 있어서, 난이도가 높을수록 실제 연봉에 가깝게 알고 큐브를 아껴 써요. 사람과 하려면 <a href="/auction/online/" style="color:var(--amber)">온라인 4인</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
-    <div class="entryGrid"><div class="colL"><div class="panel">
-      <label class="muted" for="nm">내 이름</label>
-      <input type="text" id="nm" maxlength="10" value="${esc(lastName)}" placeholder="예: Player1" autocomplete="nickname">
-      <p class="muted login-note" id="loginNote"></p>
-    </div></div><div class="colR"><div class="panel"><h2>AI 난이도</h2>
-      <div class="seg three" role="radiogroup" aria-label="AI 난이도">
-        ${['low', 'mid', 'high'].map(l => `<button type="button" role="radio" data-level="${l}" aria-checked="${l === level}">${LEVEL_KO[l]}</button>`).join('')}
-      </div>
-      <p class="muted" id="lvNote"></p>
-      <button class="btn amber block" id="aiStart" type="button">AI와 시작하기</button></div></div></div>
-    <p class="err" id="err">${esc(msg || '')}</p>`;
-  const notes = { low: '하: AI가 연봉을 ±50%까지 잘못 알고, 기분 따라 오버하거나 일찍 포기해요.', mid: '중: AI가 연봉을 ±25% 오차로 알고, 대체로 가치만큼만 입찰해요.', high: '상: AI가 연봉을 ±10% 오차로 알고, 남은 큐브와 카드를 계산해서 아껴 써요.' };
-  const setLv = l => { level = l; app.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.level === l))); document.getElementById('lvNote').textContent = notes[l]; };
-  app.querySelectorAll('[data-level]').forEach(b => b.onclick = () => setLv(b.dataset.level));
-  setLv(level);
-  applyLogin();
-  document.getElementById('aiStart').onclick = async () => {
-    try {
-      const n = document.getElementById('nm').value.trim();
-      if (!n) throw new Error('이름을 입력하세요.');
-      store.set('auction-online:name', n); store.set('auction-ai:level', level);
-      if (!(await FreePlay.ok('auction-ai', FreePlay.newId()))) return;
-      const r = await post('/api/auction/ai', { name: n, level });
-      enter(r.code, r.token);
-    } catch (e) { document.getElementById('err').textContent = e.message; }
-  };
-}
 function renderEntry(msg) {
-  if (AI_MODE) return renderAiEntry(msg);
   const lastName = store.get('auction-online:name') || '';
   app.innerHTML = `
-    <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인</div><h1>연봉 블라인드 경매</h1></div></header>
-    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 한 명이 방을 만들고, 나머지 3명은 방 코드나 링크로 들어오면 돼요. 혼자 연습하려면 <a href="/auction/ai/" style="color:var(--amber)">AI 대전</a>으로 가세요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
+    <header class="brand"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><div><div class="eyebrow">1x1 MATCH · 온라인 4인 · AI 대전</div><h1>연봉 블라인드 경매</h1></div></header>
+    <p class="muted">4명이 각자 폰으로 들어와서 플레이해요. 친구와는 방 코드로, 모르는 사람과는 빠른 입장으로 만나요. 혼자라면 AI 3명과 겨룰 수 있어요. <button type="button" class="rb-inline" data-rules>처음이에요? 규칙 보기</button></p>
     <div class="entryGrid"><div class="colL">
     <div class="panel">
       <label class="muted" for="nm">내 이름</label>
@@ -309,6 +275,12 @@ function renderEntry(msg) {
       ${code ? '' : '<input type="text" id="cd" maxlength="4" placeholder="방 코드 4자리" autocapitalize="characters" style="text-transform:uppercase;font-family:var(--f-mono)">'}
       <button class="btn primary block" id="joinBtn" type="button">들어가기</button>
     </div>
+    ${code ? '' : `<div class="panel"><h2>AI와 하기</h2>
+      <div class="seg three" role="radiogroup" aria-label="AI 난이도">
+        ${['low', 'mid', 'high'].map(l => `<button type="button" role="radio" data-level="${l}" aria-checked="false">${LEVEL_KO[l]}</button>`).join('')}
+      </div>
+      <p class="muted" id="lvNote"></p>
+      <button class="btn amber block" id="aiStart" type="button">AI와 시작하기</button></div>`}
     </div><div class="colR">
     ${code ? '' : `<div class="panel"><h2>모르는 사람과 하기</h2>
       <button class="btn amber block" id="quickBtn" type="button">빠른 입장</button>
@@ -337,6 +309,22 @@ function renderEntry(msg) {
       enter(r.code, r.token);
     } catch (e) { showErr(e); }
   };
+  const ai = document.getElementById('aiStart');
+  if (ai) {
+    let level = store.get('auction-ai:level') || 'mid';
+    const notes = { low: '하: AI가 연봉을 ±50%까지 잘못 알고, 기분 따라 오버하거나 일찍 포기해요.', mid: '중: AI가 연봉을 ±25% 오차로 알고, 대체로 가치만큼만 입찰해요.', high: '상: AI가 연봉을 ±10% 오차로 알고, 남은 큐브와 카드를 계산해서 아껴 써요.' };
+    const setLv = l => { level = l; app.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.level === l))); document.getElementById('lvNote').textContent = notes[l]; };
+    app.querySelectorAll('[data-level]').forEach(b => b.onclick = () => setLv(b.dataset.level));
+    setLv(level);
+    ai.onclick = async () => {
+      try {
+        const n = nameOf(); store.set('auction-ai:level', level);
+        if (!(await FreePlay.ok('auction-ai', FreePlay.newId()))) return;
+        const r = await post('/api/auction/ai', { name: n, level });
+        enter(r.code, r.token);
+      } catch (e) { showErr(e); }
+    };
+  }
   const cb = document.getElementById('createBtn');
   let vis = 'private';
   if (cb) {
