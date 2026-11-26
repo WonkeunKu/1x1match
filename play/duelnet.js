@@ -81,9 +81,10 @@
 
   // 모든 대결 게임 공통 시작 화면 (무거운13·슬리더링크와 같은 흐름)
   // 시작 화면: [친구와 하기: 방 만들기 / 코드로 참가] [혼자 AI와 연습: 옵션 + AI와 바로 시작] → 대기실(방장이 설정·시작) → 게임
-  // c = { el, gameEl, friendLabel, soloLabel, alone:{label,desc}(상대 없이 혼자 하는 칸, 선택), soloOpts:[{key,label,opts:[[v,l]],def}], roomOpts:[...], onStart(mode 'ai'|'alone'|'net', cfg), onLeave() }
+  // c = { el, gameEl, friendLabel, soloLabel, modeOpt:{key,label,opts,def,desc:{값:설명}}(맨 위 게임 모드, 선택), alone:{label,desc}(상대 없이 혼자 하는 칸, 선택), soloOpts:[{key,label,opts:[[v,l]],def}], roomOpts:[...], onStart(mode 'ai'|'alone'|'net', cfg), onLeave() }
   LAB.duelFront = c => {
     const solo = {}, roomCfg = {}; (c.soloOpts || []).forEach(x => { solo[x.key] = x.def; }); (c.roomOpts || []).forEach(x => { roomCfg[x.key] = x.def; });
+    const mode = c.modeOpt ? { [c.modeOpt.key]: c.modeOpt.def } : {}; // 모든 방식에 공통으로 붙는 게임 모드(선택)
     let pending = null, err = '', lastRoom = null;
     const segRow = (key, opts, cur, dis) => `<div class="seg" data-fk="${key}">${opts.map(([v, l]) => `<button type="button" class="${v === cur ? 'on' : ''}" data-v="${v}" ${dis ? 'disabled' : ''}>${l}</button>`).join('')}</div>`;
     const nameOf = () => ME ? ME.nickname : (store.get('duel:name') || '');
@@ -98,7 +99,9 @@
         err = msg || ''; lastRoom = null;
         if (F.net) { try { F.net.close(); } catch {} F.net = null; }
         c.gameEl.hidden = true; c.el.hidden = false;
+        const mo = c.modeOpt, mv = mo && mode[mo.key];
         c.el.innerHTML = `<div class="df-menu">
+          ${mo ? `<div class="df-box"><div class="df-lab">${esc(mo.label)}</div>${segRow('m:' + mo.key, mo.opts, mv)}${mo.desc && mo.desc[mv] ? `<p class="muted">${esc(mo.desc[mv])}</p>` : ''}</div>` : ''}
           <div class="df-box">${ME ? `<p class="muted">${esc(ME.nickname)} 님으로 참가해요</p>` : `<label class="df-lab" for="dfNm">내 이름</label><input id="dfNm" maxlength="10" placeholder="게임에서 보일 이름" value="${esc(nameOf())}" autocomplete="nickname">`}
             <div class="df-lab">${esc(c.friendLabel || '친구와 1:1 대결')}</div>
             <button type="button" class="primary" data-fm="create">방 만들기</button>
@@ -137,14 +140,15 @@
       const sg = e.target.closest('[data-fk] [data-v]');
       if (sg && !sg.disabled) { const [kind, key] = sg.parentElement.dataset.fk.split(':'), raw = sg.dataset.v, val = isNaN(+raw) ? raw : +raw;
         if (kind === 's') { solo[key] = val; sg.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === sg)); }
+        else if (kind === 'm') { mode[key] = val; roomCfg[key] = val; F.menu(err); }
         else if (F.net) { const er = await F.net.act({ type: 'settings', [key]: val }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }
         return; }
       const b = e.target.closest('[data-fm]'); if (!b || b.disabled) return;
       const k = b.dataset.fm;
       if ((k === 'solo' || k === 'alone' || k === 'create' || k === 'join') && LAB.beforeStart && !(await LAB.beforeStart())) return; // 공개 페이지: 비회원은 게임마다 한 판
-      if (k === 'solo') { F.solo(); c.onStart('ai', { ...solo }); }
-      else if (k === 'alone') { F.solo((c.alone && c.alone.label) || '혼자 하기'); c.onStart('alone', { ...solo }); }
-      else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
+      if (k === 'solo') { F.solo(); c.onStart('ai', { ...solo, ...mode }); }
+      else if (k === 'alone') { F.solo((c.alone && c.alone.label) || '혼자 하기'); c.onStart('alone', { ...solo, ...mode }); }
+      else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg, ...mode }); }
       else if (k === 'join') { if (needName()) return; const code = (c.el.querySelector('#dfCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) return F.menu('4자리 코드를 입력하세요'); pending = { join: code, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
       else if (k === 'start' && F.net) { const er = await F.net.act({ type: 'start' }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }
       else if (k === 'leave') F.leave();

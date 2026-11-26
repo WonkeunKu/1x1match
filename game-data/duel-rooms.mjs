@@ -28,7 +28,7 @@ const wrap = D => ({
 });
 const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: { ...wrap(CL.DUEL), settings: (o, b) => { if ([6, 7, 8].includes(Number(b.n))) o.n = Number(b.n); else if (CL.SHAPES[b.n]) o.n = b.n; } }, signal: wrap(SG.DUEL), pointomok: wrap(PO.DUEL),
   // 여럿이 하는 게임: 자리 수가 설정에 따라 달라지고, 빈자리는 방장이 시작할 때 AI로 채움
-  stock: { ...wrap(SK.MULTI), multi: true, seats: o => SK.MULTI.seats(o), init: (prev, opts, seats) => SK.MULTI.init(prev, opts, seats), tick: (st, t) => SK.MULTI.tick(st, t) },
+  stock: { ...wrap(SK.MULTI), multi: true, extraOpts: o => ({ kind: o.kind === 'player' ? 'player' : 'team' }), settings: (o, b) => { if (b.kind === 'team' || b.kind === 'player') o.kind = b.kind; }, seats: o => SK.MULTI.seats(o), init: (prev, opts, seats) => SK.MULTI.init(prev, opts, seats), tick: (st, t) => SK.MULTI.tick(st, t) },
   hitstay: { ...wrap(HS.MULTI), multi: true, seats: o => HS.MULTI.seats(o), init: (prev, opts, seats) => HS.MULTI.init(prev, opts, seats), tick: (st, t) => HS.MULTI.tick(st, t) } };
 
 /* ---------------- 방 ---------------- */
@@ -39,7 +39,7 @@ const seatOf = (room, tok) => room.seats.findIndex(x => x && x.token === tok);
 export function createRoom(game, user, opts = {}) {
   if (!GAMES[game]) fail('없는 게임이에요.');
   const G = GAMES[game], n = G.multi ? G.seats(opts) : 2;
-  const room = { code: newCode(), game, multi: !!G.multi, opts: G.multi ? { n, chips: [10, 20, 30, 50].includes(Number(opts.chips)) ? Number(opts.chips) : 30, lv: [0, 1, 2].includes(Number(opts.lv)) ? Number(opts.lv) : 1 } : { n: opts.n }, seats: Array(n).fill(null), st: null, clients: new Set(), touched: now(), again: Array(n).fill(false) };
+  const room = { code: newCode(), game, multi: !!G.multi, opts: G.multi ? { n, chips: [10, 20, 30, 50].includes(Number(opts.chips)) ? Number(opts.chips) : 30, lv: [0, 1, 2].includes(Number(opts.lv)) ? Number(opts.lv) : 1, ...(G.extraOpts ? G.extraOpts(opts) : {}) } : { n: opts.n }, seats: Array(n).fill(null), st: null, clients: new Set(), touched: now(), again: Array(n).fill(false) };
   rooms.set(room.code, room);
   const token = tokenNew(); room.seats[0] = { token, uid: user.id, name: String(user.nickname || '플레이어').slice(0, 10) };
   return { code: room.code, token, seat: 0 };
@@ -72,7 +72,8 @@ export function act(code, tok, body) {
         if (body.n != null) { const n = G.seats({ n: body.n }), people = room.seats.filter(Boolean); if (n < people.length) fail(`이미 ${people.length}명이 들어와 있어요.`); room.seats = [...people, ...Array(n - people.length).fill(null)]; room.again = Array(n).fill(false); room.opts.n = n; }
         if ([10, 20, 30, 50].includes(Number(body.chips))) room.opts.chips = Number(body.chips);
         if ([0, 1, 2].includes(Number(body.lv))) room.opts.lv = Number(body.lv);
-      } else if (G.settings) G.settings(room.opts, body);
+      }
+      if (G.settings) G.settings(room.opts, body);
       bump(room); return;
     }
     if (body.type === 'leave') { if (seat === 0) fail('방장은 나갈 수 없어요.'); room.seats[seat] = null; room.seats = [...room.seats.filter(Boolean), ...room.seats.filter(x => !x)]; bump(room); return; }
