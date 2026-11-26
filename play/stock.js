@@ -227,15 +227,14 @@
       const roomLink = LAB.roomParam();
       let pend = { n: 4, lv: 1, kind: 'team', opp: 'ai' }, S = null, net = null, V = null, M = TEAM, room = null, ended = false, sel = -1, cur = null;
       root.innerHTML = '';
-      const wrap = h(`<div class="g-wrap sk-wrap tab-trade">
+      const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
           <div class="dn-lobby" id="skLobby" hidden></div>
           <div id="skGame" hidden>
             <div class="sk-top"><div class="sk-box"><small id="skTotL">내 총자산</small><b id="skTot">-</b><span id="skTotS"></span></div><div class="sk-box"><small id="skStepL">진행 구간</small><b id="skStep">-</b><span id="skStepS"></span></div><div class="sk-btns"><button type="button" id="skUndo">되돌리기</button><button type="button" class="primary" id="skMain">거래 완료</button></div></div>
             <div class="sk-strip" id="skStrip"></div>
-            <div class="sk-body"><div class="sk-chart"><div class="sk-fig" id="skFig"><svg aria-label="종목별 주가와 내 계좌 추이"></svg></div><div class="sk-rep" id="skRep" aria-live="polite"></div></div>
-            <div class="sk-mk" id="skMk"></div></div>
-            <nav class="sk-nav" id="skNav" aria-label="화면 전환"><button type="button" data-tab="chart">그래프 · 결과</button><button type="button" data-tab="trade" aria-pressed="true">매수 · 매도</button></nav>
+            <div class="sk-chart"><div class="sk-fig" id="skFig"><svg aria-label="종목별 주가와 내 계좌 추이"></svg></div><div class="sk-rep" id="skRep" aria-live="polite"></div></div>
+            <div class="sk-mk" id="skMk"></div>
             <div id="skResult" hidden></div>
             <div id="skAgain"></div>
           </div>
@@ -258,12 +257,7 @@
         soloOpts: [{ key: 'n', label: '인원 (나 + AI)', opts: [[2, '2인'], [3, '3인'], [4, '4인']], def: 4 }, { key: 'lv', label: 'AI 실력', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }],
         roomOpts: [KIND, { key: 'n', label: '인원', opts: [[2, '2인'], [3, '3인'], [4, '4인']], def: 4 }, { key: 'lv', label: 'AI 실력 (빈자리를 채울 때)', opts: [[0, '쉬움'], [1, '보통'], [2, '어려움']], def: 1 }],
         onStart: (mode, c) => { Object.assign(pend, c, { opp: mode }); start(); }, onLeave: () => reset() });
-      function reset() { T2.clear(); if (net) { net.close(); net = null; } S = null; V = null; room = null; ended = false; sel = -1; seenStep = 0; setTab('trade'); closeSheet(); }
-      // 휴대폰: 아래 탭으로 '그래프 · 결과' / '매수 · 매도' 화면 전환 (아티팩트와 같은 구성). 결과가 공개되면 그래프 쪽으로 넘어감
-      let seenStep = 0;
-      function setTab(t) { wrap.classList.toggle('tab-chart', t === 'chart'); wrap.classList.toggle('tab-trade', t !== 'chart'); wrap.querySelectorAll('#skNav [data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === t)); requestAnimationFrame(draw); }
-      let scrolled = false;
-      const toGame = () => { if (scrolled) return; scrolled = true; requestAnimationFrame(() => { const r = $('skGame').getBoundingClientRect(); if (r.top < 0 || r.top > 120) window.scrollTo({ top: scrollY + r.top - 8, behavior: 'smooth' }); }); };
+      function reset() { T2.clear(); if (net) { net.close(); net = null; } S = null; V = null; room = null; ended = false; sel = -1; closeSheet(); }
       const kindName = k => k === 'player' ? '선수 주식' : '구단 주식';
       function start() {
         reset();
@@ -315,7 +309,6 @@
       new ResizeObserver(draw).observe(fig);
       function show(v) {
         V = v; M = marketOf(v.kind, v.picks);
-        if (v.step > seenStep) { seenStep = v.step; setTab('chart'); } toGame();
         const k = v.step, me = v.players[v.me], over = v.phase === 'over', multi = v.players.length > 1, nDone = v.players.filter(p => p.done).length;
         const r = me.value / START - 1;
         $('skTot').textContent = won(me.value); $('skTotS').innerHTML = `<span class="${cls(r)}">${pct(r)}</span> · 현금 ${won(me.cash)}`;
@@ -358,10 +351,10 @@
           return `<div class="sk-row${sel === i ? ' sel' : ''}${lv ? '' : ' off'}"><button type="button" class="sk-tm" data-sel="${i}" aria-pressed="${sel === i}"><i style="background:${M.colors[i]}"></i>${nm}</button>
             <span class="sk-px">${st === 'd' ? '0' : p.toLocaleString('ko-KR')}</span><span class="sk-ch ${m.c}">${m.t}</span>
             <span class="sk-rc">${rc}</span>
-            <span class="sk-hold${hd ? '' : ' none'}">${hd ? `<b>${hd.toLocaleString('ko-KR')}주</b> · ${won(hv)} <span class="${cls(pl)}">${pct(pl)}</span>` : '<span class="muted">미보유</span>'}</span>
+            <span class="sk-hold">${hd ? `<b>${hd.toLocaleString('ko-KR')}주</b> · ${won(hv)} <span class="${cls(pl)}">${pct(pl)}</span>` : '<span class="muted">미보유</span>'}</span>
             <span class="sk-act"><button type="button" class="buy" data-buy="${i}" ${lock || !lv || p <= 0 || me.cash < p ? 'disabled' : ''}>매수</button><button type="button" class="sell" data-sell="${i}" ${lock || !lv || !hd ? 'disabled' : ''}>매도</button></span></div>`; }).join('');
         // 결과
-        $('skResult').hidden = !over; wrap.classList.toggle('sk-done', over);
+        $('skResult').hidden = !over;
         if (over) $('skResult').innerHTML = resultHtml(v);
         $('skAgain').innerHTML = room && over ? (() => { const mine = room.players[v.me] && room.players[v.me].again, wait = room.players.filter(p => p && !p.bot && !p.again).map(p => p.name);
           return `<div class="dn-again">${mine ? `<span class="muted">${esc(wait.join(', '))} 기다리는 중…</span>` : '<button type="button" class="primary" data-again>다시 하기</button>'}</div>`; })() : room && !over && room.players ? (room.players.some(p => p && !p.bot && !p.online) ? '<p class="muted" style="text-align:center">연결이 끊긴 참가자가 있어요. 다시 들어오면 이어서 해요.</p>' : '') : '';
@@ -372,9 +365,9 @@
         const me = v.players[v.me], r = me.value / START - 1, g = grade(r);
         const order = v.players.map((p, i) => i).sort((a, b) => v.players[b].value - v.players[a].value);
         const rows = [['내 계좌', me.value, 1], ...bench(M).map(b => [b[0], b[1], 0])], mx = Math.max(...rows.map(x => x[1]));
-        return `<div class="sk-res"><div class="sk-res-a"><div class="sk-grade"><small>최종 등급 · ${M.label}</small><b>${g[1]}</b><p>${g[2]} 10만 원 → <b>${won(me.value)}</b> <span class="${cls(r)}">${pct(r)}</span></p></div>
+        return `<div class="sk-res"><div class="sk-grade"><small>최종 등급 · ${M.label}</small><b>${g[1]}</b><p>${g[2]} 10만 원 → <b>${won(me.value)}</b> <span class="${cls(r)}">${pct(r)}</span></p></div>
           ${v.players.length > 1 ? `<div class="sk-final">${order.map(i => { const p = v.players[i], rr = p.value / START - 1; return `<div class="sk-fr${i === v.me ? ' me' : ''}" style="--pc:${PCOL[i % 4]}"><b class="rk">${1 + v.players.filter(q => q.value > p.value).length}위</b><span>${esc(p.name)}</span><span class="mono">${won(p.value)}</span><span class="${cls(rr)}">${pct(rr)}</span><span class="chips">${M.ORD.map(t => p.hold[t] ? `<span class="tchip" style="--tc:${M.colors[t]}">${esc(M.names[t])} ${p.hold[t]}</span>` : '').join('') || '<span class="muted">현금만</span>'}</span></div>`; }).join('')}</div>` : ''}
-          <div class="sk-bench">${rows.map(x => `<div class="${x[2] ? 'me' : ''}"><span>${x[0]}</span><b class="${cls(x[1] / START - 1)}">${pct(x[1] / START - 1)}</b><i><em style="width:${Math.max(1, x[1] / mx * 100).toFixed(1)}%"></em></i></div>`).join('')}</div></div>
+          <div class="sk-bench">${rows.map(x => `<div class="${x[2] ? 'me' : ''}"><span>${x[0]}</span><b class="${cls(x[1] / START - 1)}">${pct(x[1] / START - 1)}</b><i><em style="width:${Math.max(1, x[1] / mx * 100).toFixed(1)}%"></em></i></div>`).join('')}</div>
           <div class="sk-tbl"><table><thead><tr><th>${M.unit}</th>${P.map(p => `<th>${p}</th>`).join('')}<th>최종가</th></tr></thead><tbody>${M.ORD.map(i => `<tr><td><i class="dot" style="background:${M.colors[i]}"></i>${esc(M.names[i])}${M.kind === 'player' ? `<small>${esc(sub(M, i))}</small>` : ''}</td>${P.map((_, k) => { const c = cell(M, k, i); return `<td><span class="${c.c}">${c.t}</span><small>${esc(c.sm)}</small></td>`; }).join('')}<td><b>${M.price[6][i].toLocaleString('ko-KR')}</b></td></tr>`).join('')}</tbody></table></div></div>`;
       }
       // ----- 거래 창 -----
@@ -411,7 +404,6 @@
         if (b.dataset.sel != null) { const i = +b.dataset.sel; sel = sel === i ? -1 : i; show(V); }
         else if (b.dataset.buy != null) openSheet(+b.dataset.buy, 'buy'); else if (b.dataset.sell != null) openSheet(+b.dataset.sell, 'sell');
       });
-      $('skNav').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
       $('skUndo').onclick = () => send({ type: 'undo' });
       $('skMain').onclick = () => { if (!V) return; const me = V.players[V.me]; send({ type: me.done ? 'undone' : 'done' }); };
       wrap.addEventListener('click', e => { if (e.target.closest('[data-again]') && net) net.act({ type: 'again' }); });
