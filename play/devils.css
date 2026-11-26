@@ -205,3 +205,42 @@
   .sk-mk.player .sk-px { text-align: left; } .sk-mk.player .sk-hold { text-align: left; }
   .sk-mk.player .sk-rc { white-space: normal; } .sk-mk.player .sk-nm b { font-size: 15px; } .sk-mk.player .sk-nm small { font-size: 11px; }
 }
+
+/* KBO 주식시장 화면 구성: 넓은 화면은 한 화면(그래프 | 시장), 휴대폰은 아래 탭으로 전환 */
+.g-wrap.sk-wrap { grid-template-columns: minmax(0, 1fr); }
+.sk-wrap .g-side .log { max-height: 160px; }
+.sk-nav { display: none; }
+.sk-done .sk-mk, .sk-done .sk-nav { display: none !important; }
+.sk-res-a { display: grid; gap: 12px; align-content: start; min-width: 0; }
+@media (min-width: 900px) {
+  .sk-body { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 10px; align-items: start; }
+  .sk-done .sk-body { grid-template-columns: minmax(0, 1fr); }
+  .sk-body .sk-chart { grid-template-columns: 1fr; margin-bottom: 0; }
+  .sk-body .sk-fig { border-right: 0; border-bottom: 1px solid var(--line); height: clamp(220px, 34vh, 330px); }
+  .sk-done .sk-body .sk-chart { grid-template-columns: minmax(0, 1fr) 280px; } .sk-done .sk-body .sk-fig { border-bottom: 0; border-right: 1px solid var(--line); }
+  .sk-body .sk-rep { max-height: 30vh; overflow-y: auto; }
+  .sk-body .sk-row { grid-template-columns: 78px 66px 58px minmax(0, 1fr) minmax(0, .9fr) 104px; gap: 6px; min-height: 40px; font-size: 12.5px; }
+  .sk-body .sk-mk.player .sk-row { grid-template-columns: 112px 58px 66px minmax(0, 1fr) minmax(0, .8fr) 104px; }
+  .sk-body .sk-act button { padding: 5px 8px; }
+  .sk-body .sk-rc { white-space: normal; font-size: 11.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .sk-res { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); align-items: start; }
+  .sk-res .sk-tbl td, .sk-res .sk-tbl th { padding: 3px 4px; }
+  .sk-res .sk-bench { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .sk-top { gap: 6px; margin-bottom: 6px; } .sk-box { padding: 4px 10px; } .sk-box b { font-size: 17px; }
+  .sk-btns { gap: 6px; } .sk-btns button { padding: 6px 10px; }
+  .sk-box span { font-size: 11px; }
+  .sk-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-bottom: 6px; }
+  .sk-pc { padding: 3px 8px; border-top-width: 2px; } .sk-pc .n { font-size: 12.5px; } .sk-pc .rk { margin-right: 3px; } .sk-pc .sk-tag { font-size: 10px; padding: 0 4px; }
+  .sk-pc .v { font-size: 11.5px; }
+  .sk-mk.player .sk-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'tm px act' 'rc ch act' 'hold hold hold'; padding: 7px 0; }
+  .sk-mk.player .sk-px { text-align: right; } .sk-mk.player .sk-ch { text-align: right; } .sk-mk.player .sk-rc { font-size: 11.5px; }
+  .sk-hold.none { display: none; }
+  .sk-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; position: sticky; bottom: 0; z-index: 5; margin: 8px -4px 0; padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--board-2); border-top: 1px solid var(--line); }
+  .sk-nav button { padding: 10px 6px; font-weight: 700; }
+  .sk-nav button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: #10201b; }
+  .sk-wrap.tab-trade:not(.sk-done) .sk-chart { display: none; }
+  .sk-wrap.tab-chart:not(.sk-done) .sk-mk { display: none; }
+  .sk-fig { height: 240px; }
+}
