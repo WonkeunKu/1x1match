@@ -1,4 +1,4 @@
-// 온라인 대결 방 — 1:1(그라데이션 · 카드 장기 · 컬러 링크 · 수식 신호등 · 포인트 오목)과 여럿(HIT, STAY 2~5인)
+// 온라인 대결 방 — 1:1(그라데이션 · 카드 장기 · 컬러 링크 · 수식 신호등 · 포인트 오목)과 여럿(HIT, STAY 2~5인, KBO 주식시장 2~4인)
 // 숨긴 정보가 있는 게임이라 판정과 상태는 모두 서버가 들고, 각 사람에게는 자기가 봐도 되는 것만 보냄.
 // 게임 규칙 함수는 브라우저용 게임 파일(dg/games 또는 play)을 그대로 불러 씀.
 import { randomBytes, randomInt } from 'node:crypto';
@@ -17,7 +17,7 @@ function loadEngine(file) {
   }
   throw new Error('engine not found ' + file);
 }
-const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js'), PO = loadEngine('pointomok.js'), HS = loadEngine('hitstay.js');
+const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js'), PO = loadEngine('pointomok.js'), HS = loadEngine('hitstay.js'), SK = loadEngine('stock.js');
 
 /* ---------------- 게임별 규칙: 각 게임 파일의 DUEL(init/act/view)을 그대로 씀 ---------------- */
 const wrap = D => ({
@@ -28,6 +28,7 @@ const wrap = D => ({
 });
 const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: { ...wrap(CL.DUEL), settings: (o, b) => { if ([6, 7, 8].includes(Number(b.n))) o.n = Number(b.n); else if (CL.SHAPES[b.n]) o.n = b.n; } }, signal: wrap(SG.DUEL), pointomok: wrap(PO.DUEL),
   // 여럿이 하는 게임: 자리 수가 설정에 따라 달라지고, 빈자리는 방장이 시작할 때 AI로 채움
+  stock: { ...wrap(SK.MULTI), multi: true, seats: o => SK.MULTI.seats(o), init: (prev, opts, seats) => SK.MULTI.init(prev, opts, seats), tick: (st, t) => SK.MULTI.tick(st, t) },
   hitstay: { ...wrap(HS.MULTI), multi: true, seats: o => HS.MULTI.seats(o), init: (prev, opts, seats) => HS.MULTI.init(prev, opts, seats), tick: (st, t) => HS.MULTI.tick(st, t) } };
 
 /* ---------------- 방 ---------------- */

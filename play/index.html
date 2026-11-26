@@ -333,7 +333,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 .ready-btn.nudge { animation: rdNudge .6s ease; }
 @keyframes rdNudge { 0%,100% { transform: none; } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
 </style>
-<link rel="stylesheet" href="/play/devils.css?v=4">
+<link rel="stylesheet" href="/play/devils.css?v=6">
 </head>
 <body>
 
@@ -405,7 +405,7 @@ button.pcard.can { box-shadow: 0 0 0 2px var(--amber); } button.pcard:disabled {
 <script src="/play/dinner.js?v=11"></script>
 <script src="/play/twelve.js?v=12"></script>
 <script src="/play/colorturn.js?v=12"></script>
-<script src="/play/duelnet.js?v=10"></script>
+<script src="/play/duelnet.js?v=11"></script>
 <script src="/play/gradation.js?v=10"></script>
 <script src="/play/hitstay.js?v=10"></script>
 <script src="/play/cardjanggi.js?v=10"></script>
@@ -666,7 +666,7 @@ function show(id) {
   const gname = bagh ? '바그찰' : GAMES.find(x => x.id === id).name;
   document.title = gname + ' · 1x1 MATCH'; $('pageTitle').textContent = gname;
   const folder = bagh ? '데블스플랜' : (GAMES.find(x => x.id === id).show || '데스게임');
-  const back = { '데블스플랜': 'devils', '데스게임': 'deathgame', '피의 게임': 'blood', '더 지니어스': 'genius' }[folder] || 'deathgame';
+  const back = { '야구 게임': 'baseball', '데블스플랜': 'devils', '데스게임': 'deathgame', '피의 게임': 'blood', '더 지니어스': 'genius' }[folder] || 'deathgame';
   $('pageEyebrow').textContent = `1x1 MATCH · ${folder}`;
   $('backLink').href = '/#' + back; $('backLink').textContent = '← ' + folder;
   $('baghView').hidden = !bagh; $('rulesBox').hidden = !bagh; $('gameView').hidden = bagh; $('gameRules').hidden = bagh;

@@ -81,7 +81,7 @@
 
   // 모든 대결 게임 공통 시작 화면 (무거운13·슬리더링크와 같은 흐름)
   // 시작 화면: [친구와 하기: 방 만들기 / 코드로 참가] [혼자 AI와 연습: 옵션 + AI와 바로 시작] → 대기실(방장이 설정·시작) → 게임
-  // c = { el, gameEl, friendLabel, multi, soloOpts:[{key,label,opts:[[v,l]],def}], roomOpts:[...], onStart(mode 'ai'|'net', cfg), onLeave() }
+  // c = { el, gameEl, friendLabel, soloLabel, alone:{label,desc}(상대 없이 혼자 하는 칸, 선택), soloOpts:[{key,label,opts:[[v,l]],def}], roomOpts:[...], onStart(mode 'ai'|'alone'|'net', cfg), onLeave() }
   LAB.duelFront = c => {
     const solo = {}, roomCfg = {}; (c.soloOpts || []).forEach(x => { solo[x.key] = x.def; }); (c.roomOpts || []).forEach(x => { roomCfg[x.key] = x.def; });
     let pending = null, err = '', lastRoom = null;
@@ -103,7 +103,8 @@
             <div class="df-lab">${esc(c.friendLabel || '친구와 1:1 대결')}</div>
             <button type="button" class="primary" data-fm="create">방 만들기</button>
             <div class="df-join"><input id="dfCode" maxlength="4" placeholder="방 코드 4자리" autocomplete="off"><button type="button" data-fm="join">참가</button></div></div>
-          <div class="df-box"><div class="df-lab">혼자 AI와 연습</div>
+          ${c.alone ? `<div class="df-box"><div class="df-lab">${esc(c.alone.label || '혼자 하기')}</div>${c.alone.desc ? `<p class="muted">${esc(c.alone.desc)}</p>` : ''}<button type="button" data-fm="alone">혼자 시작</button></div>` : ''}
+          <div class="df-box"><div class="df-lab">${esc(c.soloLabel || '혼자 AI와 연습')}</div>
             ${(c.soloOpts || []).map(x => `<div class="df-lab sub">${esc(x.label)}</div>${segRow('s:' + x.key, x.opts, solo[x.key])}`).join('')}
             <button type="button" data-fm="solo">AI와 바로 시작</button></div>
           <p class="dn-err">${esc(err)}</p></div>`;
@@ -140,8 +141,9 @@
         return; }
       const b = e.target.closest('[data-fm]'); if (!b || b.disabled) return;
       const k = b.dataset.fm;
-      if ((k === 'solo' || k === 'create' || k === 'join') && LAB.beforeStart && !(await LAB.beforeStart())) return; // 공개 페이지: 비회원은 게임마다 한 판
+      if ((k === 'solo' || k === 'alone' || k === 'create' || k === 'join') && LAB.beforeStart && !(await LAB.beforeStart())) return; // 공개 페이지: 비회원은 게임마다 한 판
       if (k === 'solo') { F.solo(); c.onStart('ai', { ...solo }); }
+      else if (k === 'alone') { F.solo((c.alone && c.alone.label) || '혼자 하기'); c.onStart('alone', { ...solo }); }
       else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
       else if (k === 'join') { if (needName()) return; const code = (c.el.querySelector('#dfCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) return F.menu('4자리 코드를 입력하세요'); pending = { join: code, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
       else if (k === 'start' && F.net) { const er = await F.net.act({ type: 'start' }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }

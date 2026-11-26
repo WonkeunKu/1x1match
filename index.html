@@ -85,6 +85,7 @@ a.game.ai { border-top-color: var(--amber); }
 a.game.ai .go { color: var(--amber); }
 a.game.bwai { border-top-color: var(--amber); }
 a.game.bwai .go { color: var(--amber); }
+a.game.stock { border-top-color: var(--amber); } a.game.stock .go { color: var(--amber); }
 a.game.dp { border-top-color: #b8a6f2; }
 a.game.dp .go { color: #b8a6f2; }
 .lockchip { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 700; color: #1a1405; background: #b8a6f2; border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
@@ -179,7 +180,7 @@ footer.site-foot { border-top: 1px solid var(--line); padding-top: 14px; display
       <span class="ftag">FOLDER 01</span>
       <h2>야구 게임</h2>
       <p><span class="pl">야구를 많이 아는 사람이 이기는 게임. 연봉 블라인드 경매, 9이닝 홈런 흑과 백.</span><span class="ps">야구 지식으로 겨루는 연봉 경매와 홈런 흑과 백.</span></p>
-      <span class="fmeta"><b id="cntBaseball">4</b>개 게임 <span class="go">열기 →</span></span>
+      <span class="fmeta"><b id="cntBaseball">5</b>개 게임 <span class="go">열기 →</span></span>
     </a>
     <a class="folder fd" href="#devils" id="devilsFolder">
       <span class="ftag">FOLDER 02<span class="lockchip dvchip" id="devilsChip">10개 공개</span></span>
@@ -214,7 +215,7 @@ footer.site-foot { border-top: 1px solid var(--line); padding-top: 14px; display
   </section>
 
   <section class="fview" id="view-baseball" hidden>
-    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>야구 게임</h2><span class="fcount">4개 게임</span></div>
+    <div class="fhead"><a class="back" href="#">← 전체 폴더</a><h2>야구 게임</h2><span class="fcount">5개 게임</span></div>
     <div id="rpkHome"></div><script src="/rallypick.js?v=1"></script><script>document.getElementById('rpkHome').innerHTML = rallypickCTA('home');</script>
   <main class="games">
     <div class="gw"><a class="game online" href="auction/online/">
@@ -249,6 +250,14 @@ footer.site-foot { border-top: 1px solid var(--line); padding-top: 14px; display
       <div class="chips"><span class="chip">AI 하·중·상</span><span class="chip">연습용</span></div>
       <span class="go">AI와 대전하기 →</span>
     </a><a class="rl" href="blackwhite/#rules" aria-label="규칙 보기">? 규칙</a></div>
+    <div class="gw soon"><a class="game stock" data-href="dg/#stock" aria-disabled="true" tabindex="-1">
+      <span class="tag">GAME 03 · 친구 · 혼자 · AI</span>
+      <h2>KBO 주식시장</h2>
+      <div class="demo" aria-hidden="true"><i class="q">▲</i><i class="q">▼</i><i class="q">▲</i></div>
+      <p>10만 원으로 10개 구단 주식을 사고팔아요. 2026 시즌 실제 월별 성적대로 주가가 움직이고, 평소보다 잘한 팀이 올라요. 시즌이 끝났을 때 자산이 가장 많은 사람이 이겨요.</p>
+      <div class="chips"><span class="chip">온라인 방 2~4인</span><span class="chip">혼자 하기</span><span class="chip">AI 쉬움·보통·어려움</span></div>
+      <span class="go">주식 사러 가기 →</span>
+    </a><span class="soonchip">공개 예정</span></div>
   </main>
   </section>
 
