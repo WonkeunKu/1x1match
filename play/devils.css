@@ -301,3 +301,28 @@ html.in-game .df-bar:has(+ .g-one) { max-width: 760px; margin-inline: auto; widt
 .mp-slot .oth { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--blue); color: #06222e; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
 .mp-act { display: grid; justify-items: center; margin-top: 10px; min-height: 44px; }
 .mp-act button { min-width: 220px; padding: 12px 18px; }
+/* 러시안 룰렛 */
+.rr-stage { display: grid; place-items: center; }
+.rr-svg { width: min(100%, 420px); height: auto; }
+.rr-svg text { font-family: var(--f-mono); font-size: 11px; text-anchor: middle; fill: var(--chalk); pointer-events: none; }
+.rr-cyl { fill: #3a4440; stroke: #59645f; stroke-width: 3; }
+.rr-hole { fill: #1a2220; stroke: #6b7772; stroke-width: 2; }
+.rr-hole.b { fill: #c9a24a; stroke: #f3d27a; } .rr-hole.e { fill: #0d1513; stroke: var(--green); }
+.rr-hole.stale { opacity: .45; stroke-dasharray: 3 2; }
+.rr-ch { cursor: pointer; } .rr-ch.sel .rr-hole { stroke: var(--amber); stroke-width: 3.5; }
+.rr-pair { fill: none; stroke: var(--amber); stroke-width: 4; stroke-linecap: round; opacity: .7; pointer-events: none; }
+.rr-muz { stroke: var(--red); stroke-width: 5; stroke-linecap: round; } .rr-hub { fill: var(--red); }
+.rr-seat circle { fill: var(--board-2); stroke: var(--line); stroke-width: 2; }
+.rr-seat.me circle { stroke: var(--amber); } .rr-seat.turn circle { fill: var(--amber); } .rr-seat.turn > text:not(.nm) { fill: #1a1405; }
+.rr-seat.hit circle { fill: var(--red); } .rr-seat.safe circle { fill: #1f5a44; }
+.rr-seat .nm { font-family: var(--f-body); font-size: 10.5px; fill: var(--chalk-dim); }
+.rr-act { display: grid; gap: 8px; justify-items: center; margin-top: 6px; }
+.rr-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 520px; }
+.rr-btns button small, .rr-row button small { color: var(--amber); margin-left: 2px; }
+.rr-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; font-size: 13px; }
+.rr-row button { padding: 7px 12px; }
+.rr-hint { margin: 0; font-size: 12.5px; }
+.rr-k { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: 12px; color: var(--chalk-dim); margin-top: 8px; }
+.rr-k .rr-hole { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; }
+.rr-k .rr-hole.b { background: #c9a24a; border-color: #f3d27a; } .rr-k .rr-hole.e { background: #0d1513; border-color: var(--green); }
+@media (max-width: 480px) { .rr-btns { grid-template-columns: repeat(2, 1fr); } }
