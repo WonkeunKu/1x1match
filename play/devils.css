@@ -326,3 +326,23 @@ html.in-game .df-bar:has(+ .g-one) { max-width: 760px; margin-inline: auto; widt
 .rr-k .rr-hole { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; }
 .rr-k .rr-hole.b { background: #c9a24a; border-color: #f3d27a; } .rr-k .rr-hole.e { background: #0d1513; border-color: var(--green); }
 @media (max-width: 480px) { .rr-btns { grid-template-columns: repeat(2, 1fr); } }
+/* 돼지 저금통 */
+.pg-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.pg-seat { background: var(--board-2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; display: grid; gap: 6px; }
+.pg-seat.me { border-color: var(--amber); } .pg-seat.turn { box-shadow: 0 0 0 2px var(--amber); }
+.pg-nm { display: flex; align-items: baseline; gap: 6px; font-weight: 700; font-size: 14px; flex-wrap: wrap; } .pg-nm b { margin-left: auto; font-family: var(--f-mono); } .pg-nm small { width: 100%; font-size: 11px; color: var(--amber); font-weight: 500; }
+.pg-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .pg-slots > div { display: grid; justify-items: center; gap: 2px; } .pg-slots small { font-size: 10.5px; color: var(--chalk-dim); }
+.pg-pig { position: relative; width: 60px; height: 46px; display: grid; place-items: center; } .pg-pig svg { width: 100%; height: 100%; }
+.pg-pig b { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); font-family: var(--f-display); font-weight: 400; font-size: 17px; color: #5a2633; }
+.pg-pig.empty { border: 2px dashed var(--line); border-radius: 12px; height: 40px; }
+.pg-pig.hot { animation: pgHot .6s ease-in-out 3; } @keyframes pgHot { 50% { transform: translateY(-5px) rotate(-6deg); } }
+.pg-coin { display: inline-block; width: 13px; height: 13px; border-radius: 50%; vertical-align: -2px; border: 1.5px solid rgba(241,238,228,.5); }
+.pg-coin.b { background: #111; } .pg-coin.w { background: #f4f1e8; border-color: #999; }
+.pg-flash { min-height: 40px; display: grid; place-items: center; margin-top: 8px; }
+.pg-fl { padding: 8px 14px; border-radius: 999px; background: var(--slot); border: 1px solid var(--amber); font-size: 15px; } .pg-fl b { color: var(--amber); } .pg-fl.ok { border-color: var(--green); } .pg-fl.bad { border-color: var(--red); }
+.pg-act { display: grid; justify-items: center; margin-top: 8px; }
+.pg-box { display: grid; gap: 10px; justify-items: center; background: var(--slot); border: 1px solid var(--line); border-radius: 12px; padding: 12px; width: min(100%, 520px); text-align: center; }
+.pg-coins { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; } .pg-coins button { padding: 4px 12px; } .pg-coins b { min-width: 22px; font-family: var(--f-mono); font-size: 18px; } .pg-coins b.big { font-size: 32px; min-width: 44px; } .pg-coins small { color: var(--chalk-dim); }
+.pg-to { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pg-buzz { width: min(100%, 420px); padding: 16px; font-size: 20px; background: var(--red); border-color: var(--red); color: #fff; }
+.pg-reset { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 10px; font-size: 13px; } .pg-reset button { padding: 6px 12px; font-size: 13px; }
