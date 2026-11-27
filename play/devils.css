@@ -219,3 +219,49 @@ html.in-game .g-wrap.g-one { grid-template-columns: minmax(0, 1fr); max-width: 7
 html.in-game .g-wrap.g-one > .g-side { display: none; }
 @media (min-width: 1072px) { .df-bar { margin-inline: 0; padding-inline: 14px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; } }
 html.in-game .df-bar:has(+ .g-one) { max-width: 760px; margin-inline: auto; width: 100%; }
+
+/* ---------- 빠르게 맞히기 게임 공통 (큐브 세기·네모세기·만국기) ---------- */
+.qz-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--f-mono); font-size: 13px; color: var(--chalk-dim); }
+.qz-top > :last-child { justify-self: end; }
+.qz-time { font-family: var(--f-mono); font-size: 22px; color: var(--chalk); font-variant-numeric: tabular-nums; }
+.qz-stage { position: relative; display: grid; place-items: center; min-height: 240px; }
+.qz-cover { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(7,24,21,.55); border-radius: 12px; font-size: 18px; }
+.qz-cover b { font-family: var(--f-display); font-weight: 400; font-size: 44px; color: var(--amber); margin: 0 4px; }
+.qz-ans { display: grid; grid-template-columns: 1fr auto; gap: 8px; max-width: 420px; margin: 10px auto 0; }
+.qz-ans input { background: var(--board-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--chalk); font-size: 18px; font-family: var(--f-mono); min-width: 0; }
+.qz-ans input:disabled { opacity: .6; }
+.qz-ans button { padding: 12px 20px; font-size: 16px; }
+.qz-players { display: grid; gap: 6px; margin-top: 10px; }
+.qz-p { display: flex; align-items: center; gap: 10px; background: var(--board-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.qz-p .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.qz-p .st { font-size: 12.5px; color: var(--chalk-dim); }
+.qz-p b { font-family: var(--f-mono); min-width: 54px; text-align: right; }
+.qz-p.me { border-color: var(--amber); }
+.qz-p.ok .st { color: var(--green); }
+.cc-svg { width: min(100%, 460px); height: auto; aspect-ratio: 1.15; display: block; }
+.cc-svg .ct { fill: #f3c654; stroke: #8a5d12; stroke-width: .8; stroke-linejoin: round; }
+.cc-svg .cf1 { fill: #d99a2b; stroke: #7a5010; stroke-width: .8; stroke-linejoin: round; }
+.cc-svg .cf2 { fill: #b8781c; stroke: #6b440c; stroke-width: .8; stroke-linejoin: round; }
+/* 네모세기 */
+.rc-target { display: grid; justify-items: center; margin: 2px 0 8px; }
+.rc-target small { font-size: 12px; color: var(--chalk-dim); letter-spacing: .1em; }
+.rc-target b { font-family: var(--f-display); font-weight: 400; font-size: 44px; line-height: 1; color: var(--purple); }
+.rc-board { display: grid; gap: 6px; width: min(100%, 380px); }
+.rc-c, .rc-x { aspect-ratio: 1; border-radius: 8px; }
+.rc-c { padding: 0; background: #f1eee4; color: #10302a; border: 2px solid transparent; font-family: var(--f-display); font-weight: 400; font-size: clamp(20px, 6vw, 30px); position: relative; }
+.rc-c.blank { background: #d8d3c4; }
+.rc-c.mk { box-shadow: inset 0 0 0 100px rgba(243,182,65, calc(var(--m) * .14)); border-color: var(--amber); }
+.rc-c.pk { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(111,196,234,.45); }
+.rc-x { background: transparent; }
+.rc-tools { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: 13px; color: var(--chalk-dim); flex-wrap: wrap; }
+.rc-tools button { padding: 6px 10px; font-size: 13px; }
+.rc-tools b.hit { color: var(--green); }
+.rc-act { display: grid; justify-items: center; gap: 8px; margin-top: 10px; }
+.rc-buzz { width: min(100%, 420px); padding: 14px; font-size: 18px; }
+.rc-wait { padding: 12px; color: var(--chalk-dim); }
+.rc-in { width: min(100%, 300px); text-align: center; font-family: var(--f-mono); font-size: 28px; background: var(--slot); border: 1px solid var(--line); border-radius: 10px; padding: 6px; min-height: 48px; }
+.rc-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(100%, 300px); }
+.rc-keys button { padding: 12px 0; font-size: 18px; font-family: var(--f-mono); }
+.rc-life { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--purple); margin-left: 4px; }
+.rc-life.gone { background: transparent; border: 1.5px solid var(--purple); }
+.qz-time.warn { color: var(--red); }

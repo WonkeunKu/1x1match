@@ -58,6 +58,12 @@
     if (!window.GameFX || !n || was == null || n <= was || n < 2) return;
     GameFX.banner(`ROUND ${n}`, sub || '');
   };
+  // 여러 명 방(multi)에서 게임이 끝난 뒤 '다시 하기' (사람 모두 눌러야 새 판)
+  LAB.againHtml = (room, me) => {
+    if (!room || !room.players) return '';
+    const mine = room.players[me] && room.players[me].again, wait = room.players.filter(p => p && !p.bot && !p.again).map(p => p.name);
+    return `<div class="dn-again">${mine ? `<span class="muted">${LAB.esc(wait.join(', '))} 기다리는 중…</span>` : '<button type="button" class="primary" data-again>다시 하기</button>'}</div>`;
+  };
   LAB.ended = false; // 결과 창이 뜬 뒤면 나가기를 물어보지 않음
   // 결과 창 (index.html 의 #endOv 재사용)
   LAB.end = (title, sub, again) => {
