@@ -265,3 +265,20 @@ html.in-game .df-bar:has(+ .g-one) { max-width: 760px; margin-inline: auto; widt
 .rc-life { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--purple); margin-left: 4px; }
 .rc-life.gone { background: transparent; border: 1.5px solid var(--purple); }
 .qz-time.warn { color: var(--red); }
+/* 만국기 */
+.fg-stage { display: grid; place-items: center; min-height: 260px; }
+.fg-one { display: grid; justify-items: center; gap: 10px; }
+.fg-one .flag { width: min(78vw, 360px); height: auto; border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.fg-one small { font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); }
+.fg-wait { color: var(--chalk-dim); font-size: 16px; padding: 40px 0; }
+.fg-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.fg-c { padding: 4px; border-radius: 8px; background: var(--board-2); border: 2px solid transparent; display: grid; gap: 3px; justify-items: center; position: relative; }
+.fg-c .flag { width: 100%; height: auto; border-radius: 2px; display: block; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.fg-c small { font-size: 10.5px; color: var(--chalk-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.fg-c.sel { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(243,182,65,.35); }
+.fg-c.sel::after { content: "✓"; position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--amber); color: #1a1405; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.fg-c.ok { border-color: var(--green); }
+.fg-c.bad { border-color: var(--red); }
+.fg-c.dim { opacity: .45; }
+.fg-c:disabled { cursor: default; }
+@media (max-width: 480px) { .fg-grid { gap: 5px; } .fg-c { padding: 2px; } }
