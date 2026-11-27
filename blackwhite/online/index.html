@@ -10,7 +10,7 @@
 <title>9이닝 홈런 흑과 백 온라인</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
-<script src="/coin.js?v=2"></script>
+<script src="/coin.js?v=3"></script>
 <script src="/rallypick.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -228,7 +228,7 @@ button.hc:hover { box-shadow: 0 0 0 3px var(--amber); }
 .hist .w { color: var(--pc); font-weight: 700; }
 .hist .hr { font-family: var(--f-mono); font-weight: 600; margin-left: 4px; }
 </style>
-<script src="/fx.js?v=1"></script>
+<script src="/fx.js?v=2"></script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -246,7 +246,7 @@ const params = new URLSearchParams(location.search);
 let code = (params.get('room') || '').toUpperCase();
 let token = code ? store.get(KEY + code) : null;
 let deadlineAt = null;
-let V = null, es = null, connected = false, errMsg = '', listTimer = null;
+let innSeen = null, V = null, es = null, connected = false, errMsg = '', listTimer = null;
 /* 로그인 상태: 로그인했으면 이름 칸에 닉네임을 넣고 고정 */
 let ME = null;
 const meReady = fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => { ME = d.user; return ME; }).catch(() => null);
@@ -397,6 +397,15 @@ function connect() {
     if (V.phase === 'play' && V.innings && !V.innings.length && V.pend && V.pend.every(x => x === null) && window.CoinFlip) {
       const key = 'bwcoin:' + V.code + ':' + V.gameNo; let seen = false; try { seen = sessionStorage.getItem(key); sessionStorage.setItem(key, '1'); } catch (e) {}
       if (!seen) GameFX.countdown(`방 ${V.code} · 1:1`).then(() => CoinFlip.show({ names: V.players.map((p, k) => k === V.me ? '나' : p.name), winner: V.lead, title: '1이닝 선공 정하기' }));
+    }
+    // 이닝이 끝나면 두 카드를 테이블 위에서 동시에 공개 (참고: 데블스 플랜 팬메이드의 공개 연출)
+    if (window.GameFX && V.innings) {
+      if (innSeen == null || V.innings.length < innSeen) innSeen = V.innings.length;
+      else if (V.innings.length > innSeen) {
+        innSeen = V.innings.length; const x = V.innings[innSeen - 1];
+        const tile = k => { const c = x.cards[k]; return { html: `<span style="font:700 14px/1.25 'Noto Sans KR',sans-serif;padding:4px 2px;text-align:center">${esc(c.name || '')}<br><small style="font-weight:500;opacity:.75">${c.black ? '흑' : '백'}</small></span>`, big: true, style: c.black ? 'background:#0a0f0e;color:#f1eee4;border-color:rgba(241,238,228,.45);min-width:84px' : 'min-width:84px', tag: x.lead === k ? '선공' : null }; };
+        GameFX.reveal({ seats: [0, 1].map(k => ({ name: (V.players[k] || {}).name || '', me: k === V.me, items: [tile(k)] })), steps: [{ title: `${innSeen}이닝`, tags: true, ms: 450 }, { flip: 'all', ms: 900 }, { win: x.res === 'D' ? null : x.res, res: x.res === 'D' ? '무승부' : `${(V.players[x.res] || {}).name || ''} 승`, ms: 600 }] });
+      }
     }
     deadlineAt = V.turnLeftMs === null ? null : Date.now() + V.turnLeftMs;
     render();

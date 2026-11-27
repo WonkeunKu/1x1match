@@ -268,9 +268,17 @@
       let lastArgs = null; const rerender = () => lastArgs && show(...lastArgs);
 
       const cube = (c, x, cls = '', attrs = '') => `<button type="button" class="grb c${c} ${cls}" style="--bg:${GRAD[c]};--ink:${INK[c]}" ${attrs}><span>${x == null ? '' : x}</span></button>`;
+      let shownHist = 0;
       function show(v, oppName, room) {
         lastArgs = [v, oppName, room];
-        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; shownHist = v.hist.length; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
+        // 라운드마다 두 통을 테이블 위에서 동시에 공개 (참고: 데블스 플랜 팬메이드의 공개 연출)
+        if (v.hist.length > shownHist && window.GameFX) {
+          const h = v.hist[v.hist.length - 1], k = v.hist.length; shownHist = k;
+          const cube = i => { const c = COL[h.pos[i]]; return { html: String(h.x[i]), big: true, style: `background:${GRAD[c]};color:${c >= 2 ? '#10302a' : '#f1eee4'}`, tag: h.first === i ? '선' : null }; };
+          GameFX.reveal({ seats: [{ name: '나', me: true, items: [cube(0)] }, { name: oppName, items: [cube(1)] }],
+            steps: [{ title: `${k}라운드 공개`, sub: `${h.first === 0 ? '내가' : oppName + '가'} 선`, tags: true, ms: 500 }, { flip: 'all', ms: 800 }, { win: h.r === 0 ? 0 : h.r === 1 ? 1 : null, res: h.r === 0 ? '내가 1점!' : h.r === 1 ? `${oppName} 1점` : '무승부 · 점수 없음', ms: 600 }] });
+        }
         $('grOpN').textContent = oppName; $('grMe').textContent = v.score[0]; $('grOp').textContent = v.score[1];
         $('grRound').textContent = v.phase === 'over' ? '게임 끝' : v.phase === 'tied' ? '동점' : v.phase === 'setup' ? '배치 단계' : `${v.round}/7 라운드`;
         $('grSub').textContent = v.table ? `${v.table.first === 0 ? '내가' : oppName + '가'} 선` : v.tie ? `재대결 ${v.tie}회째` : '';

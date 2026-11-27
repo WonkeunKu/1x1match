@@ -11,7 +11,7 @@
 <title>9이닝 홈런 흑과 백</title>
 <script src="/pv.js?v=1" defer></script>
 <script src="/freeplay.js?v=4"></script>
-<script src="/coin.js?v=2"></script>
+<script src="/coin.js?v=3"></script>
 <script src="/rallypick.js?v=1"></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -234,7 +234,7 @@ button.c { text-align: left; font: inherit; }
 .leftover b { color: var(--chalk); }
 </style>
 
-<script src="/fx.js?v=1"></script>
+<script src="/fx.js?v=2"></script>
 </head>
 <body>
 <div class="stage" id="stage">
@@ -567,7 +567,12 @@ function act(a, t) {
     if (res !== 'D') S.lead = res;
     S.pend = [null, null]; S.showLast = true;
     if (over()) recordAiGame();
-    save(); render(); return;
+    save(); render();
+    // 이닝 결과를 테이블 위에서 동시에 공개 (참고: 데블스 플랜 팬메이드의 공개 연출)
+    if (window.GameFX) { const tile = p => { const c = C(S.innings[S.innings.length - 1].cards[p]), b = isBlack(S.innings[S.innings.length - 1].cards[p]); return { html: `<span style="font:700 14px/1.25 'Noto Sans KR',sans-serif;padding:4px 2px;text-align:center">${esc(c.name)}<br><small style="font-weight:500;opacity:.75">${b ? '흑' : '백'}</small></span>`, big: true, style: b ? 'background:#0a0f0e;color:#f1eee4;border-color:rgba(241,238,228,.45);min-width:84px' : 'min-width:84px', tag: S.innings[S.innings.length - 1].lead === p ? '선공' : null }; };
+      const n = S.innings.length, me = S.mode === 'ai' ? 0 : -1;
+      GameFX.reveal({ seats: [0, 1].map(p => ({ name: S.names[p], me: p === me, items: [tile(p)] })), steps: [{ title: `${n}이닝`, tags: true, ms: 450 }, { flip: 'all', ms: 900 }, { win: res === 'D' ? null : res, res: res === 'D' ? '무승부' : `${S.names[res]} 승`, ms: 600 }] }); }
+    return;
   }
   if (a === 'next') { commit(); S.showLast = false; save(); render(); return; }
   if (a === 'reveal') { commit(); S.phase = 'result'; save(); render(); return; }

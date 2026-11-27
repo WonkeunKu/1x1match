@@ -109,6 +109,7 @@
       }
       function render(light) {
         $('dMe').textContent = G.tokens[0]; $('dAi').textContent = G.tokens[1];
+        if (G.phase === 'play') LAB.roundBanner('dinner', G.round, `${who(G.turn)} 차례`);
         $('dPhase').textContent = G.phase === 'place' ? `배치 ${G.step + 1}/18` : G.phase === 'play' ? `${G.round}라운드 · ${who(G.turn)} 차례` : '게임 끝';
         $('dSub').textContent = G.phase === 'play' && G.turn === 0 && !G.reveal ? `남은 시간 ${Math.max(0, Math.ceil((G.deadline - Date.now()) / 1000))}초` : G.phase === 'place' ? `${who(G.turn)}: 토큰 ${amount()}개` : '';
         if (light && !(G.flash && G.flash.until > Date.now() - 300)) return;

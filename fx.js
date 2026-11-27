@@ -60,6 +60,41 @@
   @media (prefers-reduced-motion: no-preference) { .fx-num.pop { animation: fxPop .62s ease-out; } .fx-card { animation: fxCard .9s ease-out; } }
   @keyframes fxPop { 0% { opacity: 0; transform: scale(1.5); } 30% { opacity: 1; transform: scale(1); } 85% { opacity: 1; } 100% { opacity: .25; transform: scale(.92); } }
   @keyframes fxCard { 0% { opacity: 0; transform: scale(.94); } 25% { opacity: 1; transform: none; } }
+  /* 라운드 배너 */
+  .fx-bn { position: fixed; left: 0; right: 0; top: 38%; z-index: 1150; display: grid; justify-items: center; pointer-events: none; }
+  .fx-bn > div { display: grid; justify-items: center; gap: 4px; padding: 14px 44px 12px; background: linear-gradient(90deg, transparent, rgba(7,24,21,.94) 18%, rgba(7,24,21,.94) 82%, transparent); border-top: 1px solid rgba(243,182,65,.5); border-bottom: 1px solid rgba(243,182,65,.5); width: min(100%, 560px); text-align: center; color: #f1eee4; }
+  .fx-bn b { font: 400 clamp(28px, 8vw, 44px)/1.1 "Black Han Sans", "Noto Sans KR", sans-serif; letter-spacing: .04em; color: #f3b641; }
+  .fx-bn span { font-size: 14px; color: #d7dfd8; font-family: "Noto Sans KR", sans-serif; }
+  @media (prefers-reduced-motion: no-preference) { .fx-bn > div { animation: fxBn var(--t, 1.5s) ease-out forwards; } }
+  @keyframes fxBn { 0% { opacity: 0; transform: scaleX(.6); } 14% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+  /* 동시 공개 무대: 테이블에 둘러앉아 하나씩 뒤집기 */
+  .fx-rv { position: fixed; inset: 0; z-index: 1150; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 50%, #163d35, #05100e 75%); color: #f1eee4; font-family: "Noto Sans KR", sans-serif; animation: fxIn .25s ease-out; }
+  .fx-rv.out { opacity: 0; transition: opacity .35s ease; }
+  .fx-rv h3 { position: absolute; top: max(9vh, 40px); left: 0; right: 0; margin: 0; text-align: center; font: 400 clamp(24px, 6vw, 34px)/1.2 "Black Han Sans", "Noto Sans KR", sans-serif; }
+  .fx-rv h3.go { animation: fxSlide .4s ease-out; }
+  .fx-rv .sub { position: absolute; top: calc(max(9vh, 40px) + 46px); left: 0; right: 0; text-align: center; font-size: 14px; color: #a7bcb2; }
+  .fx-rv .tbl { position: relative; width: min(92vw, 560px); aspect-ratio: 1.35; }
+  .fx-rv .tbl::before { content: ""; position: absolute; inset: 18% 14%; border-radius: 50%; background: radial-gradient(ellipse, rgba(255,255,255,.05), rgba(255,255,255,.01) 70%); border: 1px solid rgba(255,255,255,.08); }
+  .fx-rv .tbl.two { aspect-ratio: 1.6; }
+  .fx-rv .seat { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 6px; min-width: 96px; }
+  .fx-rv .who { font-size: 13px; display: flex; align-items: center; gap: 5px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #a7bcb2; }
+  .fx-rv .seat.me .who { color: #f3b641; font-weight: 700; }
+  .fx-rv .seat.win .who::after { content: "WIN"; font: 600 10px/1 "IBM Plex Mono", monospace; letter-spacing: .1em; background: #f3b641; color: #1a1405; border-radius: 4px; padding: 2px 4px; margin-left: 4px; }
+  .fx-rv .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .fx-rv .items { display: flex; align-items: center; gap: 8px; }
+  .fx-rv .fl { perspective: 400px; position: relative; }
+  .fx-rv .fl > i { display: grid; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3,1.3,.5,1); }
+  .fx-rv .fl.on > i { transform: rotateY(180deg); }
+  .fx-rv .fl b, .fx-rv .fl u { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; text-decoration: none; min-width: 40px; height: 54px; border-radius: 7px; padding: 0 6px; }
+  .fx-rv .fl b { background: repeating-linear-gradient(45deg, #24443c 0 5px, #1b362f 5px 10px); border: 1.5px solid rgba(255,255,255,.2); }
+  .fx-rv .fl u { transform: rotateY(180deg); background: #f1eee4; color: #10302a; font: 700 22px/1 "IBM Plex Mono", ui-monospace, monospace; border: 1.5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+  .fx-rv .fl.big b, .fx-rv .fl.big u { min-width: 56px; height: 76px; font-size: 30px; }
+  .fx-rv .tag { position: absolute; top: -10px; right: -12px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: #f3b641; color: #1a1405; font: 700 12px/22px "IBM Plex Mono", monospace; text-align: center; transform: scale(0); transition: transform .3s cubic-bezier(.3,1.8,.5,1); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .fx-rv .tag.on { transform: scale(1); }
+  .fx-rv .res { position: absolute; bottom: max(14vh, 70px); left: 0; right: 0; text-align: center; font: 400 clamp(22px, 5.5vw, 30px)/1.2 "Black Han Sans", "Noto Sans KR", sans-serif; color: #f3b641; opacity: 0; transition: opacity .3s; }
+  .fx-rv .res.on { opacity: 1; }
+  .fx-rv .skip { position: absolute; bottom: max(5vh, 24px); left: 50%; transform: translateX(-50%); background: none !important; border: 0 !important; color: #6f8a80; font-size: 13px; text-decoration: underline; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .fx-rv .fl > i, .fx-rv .tag { transition: none; } }
   `;
   const st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
@@ -140,6 +175,40 @@
         let sx = null; stage.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
         stage.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
         document.addEventListener('keydown', key, true); document.body.appendChild(ov); draw(); next.focus();
+      });
+    },
+    // 라운드 배너: GameFX.banner('ROUND 3', '선: 나')
+    banner(title, sub, ms = 1500) {
+      const old = document.querySelector('.fx-bn'); if (old) old.remove();
+      const ov = el(`<div class="fx-bn" role="status" aria-live="polite" style="--t:${ms}ms"><div><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div></div>`);
+      document.body.appendChild(ov); setTimeout(() => ov.remove(), ms + 50);
+    },
+    // 동시 공개 무대. seats: [{ name, me, color, items: [{ html, big, tag }] , win }], steps: [{ title, sub, flip: 아이템 번호 | 'all', tags: true, res: '글' }]
+    reveal({ seats, steps, hold = 900 }) {
+      const old = document.querySelector('.fx-rv'); if (old) old.remove();
+      const n = seats.length, meIdx = Math.max(0, seats.findIndex(x => x.me));
+      const pos = seats.map((x, i) => { const k = (i - meIdx + n) % n, ang = Math.PI / 2 + k * 2 * Math.PI / n; return [50 + (n === 2 ? 0 : 40) * Math.cos(ang), 50 + (n === 2 ? 34 : 38) * Math.sin(ang)]; });
+      const ov = el(`<div class="fx-rv" role="status" aria-live="polite"><h3></h3><div class="sub"></div><div class="tbl ${n === 2 ? 'two' : ''}">${seats.map((x, i) => `<div class="seat ${x.me ? 'me' : ''}" data-s="${i}" style="left:${pos[i][0].toFixed(1)}%;top:${pos[i][1].toFixed(1)}%">
+        <div class="items">${x.items.map((it, j) => `<span class="fl ${it.big ? 'big' : ''}" data-j="${j}"><i><b>${it.back || ''}</b><u style="${it.style || ''}">${it.html}</u></i>${it.tag != null ? `<span class="tag">${esc(it.tag)}</span>` : ''}</span>`).join('')}</div>
+        <div class="who">${x.color ? `<i class="dot" style="background:${x.color}"></i>` : ''}${esc(x.me ? '나' : x.name)}</div></div>`).join('')}</div><div class="res"></div><button type="button" class="skip">건너뛰기</button></div>`);
+      document.body.appendChild(ov);
+      const q = quick(), timers = [];
+      return new Promise(res => {
+        const close = () => { timers.forEach(clearTimeout); ov.classList.add('out'); setTimeout(() => { ov.remove(); res(); }, 350); };
+        ov.querySelector('.skip').onclick = close;
+        let t = 250;
+        steps.forEach(st => {
+          timers.push(setTimeout(() => {
+            if (st.title) { const h = ov.querySelector('h3'); h.textContent = st.title; h.classList.remove('go'); void h.offsetWidth; h.classList.add('go'); }
+            ov.querySelector('.sub').textContent = st.sub || '';
+            if (st.flip != null) ov.querySelectorAll(st.flip === 'all' ? '.fl' : `.fl[data-j="${st.flip}"]`).forEach(f => f.classList.add('on'));
+            if (st.tags) ov.querySelectorAll('.tag').forEach((g, k) => timers.push(setTimeout(() => g.classList.add('on'), k * 160)));
+            if (st.win != null) [].concat(st.win).forEach(w => { const s2 = ov.querySelector(`.seat[data-s="${w}"]`); if (s2) s2.classList.add('win'); });
+            if (st.res) { const r = ov.querySelector('.res'); r.textContent = st.res; r.classList.add('on'); }
+          }, q ? Math.min(t, 300) : t));
+          t += st.ms || 1000;
+        });
+        timers.push(setTimeout(close, q ? 900 : t + hold));
       });
     },
     seen(key) { return !!store.get('fx-seen:' + key); },

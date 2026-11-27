@@ -330,6 +330,7 @@
         if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         $('cjOpN').textContent = `${oppName} (빨강)`; $('cjOpLab').textContent = `${oppName} 카드`;
         $('cjMe').textContent = v.score[0]; $('cjAi').textContent = v.score[1];
+        LAB.roundBanner('cardjanggi', v.phase === 'over' ? 0 : v.roundNo, '3판 2선승');
         $('cjRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}판 · 3판 2선승`;
         $('cjSub').textContent = `${v.first === 0 ? '내가' : oppName + '가'} 선공 · ${v.moves}수`;
         const arranging = !!v.myNeed;

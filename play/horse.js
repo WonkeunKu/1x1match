@@ -153,6 +153,7 @@
       const PAD = 22, S = 48, X = c => PAD + c * S;
       function render() {
         $('hS0').textContent = G.wins[0]; $('hS1').textContent = G.wins[1];
+        LAB.roundBanner('horse', G.round, '3판 2선승');
         $('hRound').textContent = `${G.round}라운드 · 3판 2선승`;
         $('hTurn').textContent = G.roundOver ? '라운드 끝' : `${who(G.turn)} 차례`;
         const ms = human() && !G.busy && G.sel != null ? moves(G.b, G.turn).filter(m => m.f === G.sel) : [];

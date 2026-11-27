@@ -299,6 +299,7 @@
         $('poMyStone').className = 'po-st c' + me; $('poOpStone').className = 'po-st c' + op;
         $('poOpN').textContent = oppName; $('poMyPt').textContent = v.myPts;
         const ph = PH[v.phase]; $('poPh').textContent = ph[0]; $('poPh').className = 'po-ph ' + ph[1];
+        LAB.roundBanner('pointomok', v.round, `선택권 ${v.chooser === 0 ? '나' : oppName}`);
         $('poRound').textContent = `${v.round}라운드 · 선택권 ${v.chooser === 0 ? '나' : oppName}`;
         paintTime();
         // 판

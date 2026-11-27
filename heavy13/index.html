@@ -12,8 +12,8 @@
 <script src="/pv.js?v=1" defer></script>
 <meta name="description" content="데블스플랜 감옥 매치 무거운 13을 온라인으로. 5~7인, 빈자리는 AI가 채워요.">
 <script src="/freeplay.js?v=4"></script>
-<script src="/coin.js?v=2"></script>
-<script src="/fx.js?v=1"></script>
+<script src="/coin.js?v=3"></script>
+<script src="/fx.js?v=2"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -277,6 +277,7 @@ function onView(v) {
   render();
   // 제출이 끝나 공개 단계로 넘어오면 테이블 공개 연출
   if (g && pg && pg.phase === 'submit' && g.phase === 'reveal' && pg.round === g.round) showReveal(v);
+  if (g && pg && g.round > pg.round && window.GameFX) { const f = g.players[g.startIdx]; GameFX.banner(`ROUND ${g.round}`, `${g.round === SET_ROUNDS + 1 ? '카드·칩을 다시 받아요 · ' : ''}선: ${f ? (f.id === v.me ? '나' : f.name) : ''}`); }
 }
 /* ---------- 공개 연출: 모두 테이블에 둘러앉아 칩 → 카드 → 올리는 순서 ---------- */
 let rvTimers = [];

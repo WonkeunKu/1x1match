@@ -342,6 +342,7 @@
         if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(['나', oppName], v.starter); } // 대결이 새로 시작될 때 선후공 연출
         const N = v.N;
         $('clOpN').textContent = oppName; $('clMe').textContent = v.score[0]; $('clAi').textContent = v.score[1];
+        LAB.roundBanner('colorlink', v.phase === 'over' ? 0 : v.roundNo, `판: ${v.shapeName} · 3점 선승`);
         $('clRound').textContent = v.phase === 'over' ? '게임 끝' : `${v.roundNo}라운드 · 3점 선승`; $('clShape').textContent = `판: ${v.shapeName} (${v.N}×${v.N})`;
         $('clSub').textContent = `${v.turnNo + 1}번째 차례 · ${v.turn === 0 ? '내' : oppName} 차례`;
         $('clB').style.setProperty('--n', N); $('clB').classList.toggle('walls', !!(v.walls && v.walls.length));

@@ -51,6 +51,13 @@
     };
   };
   window.addEventListener('hashchange', () => document.documentElement.classList.remove('in-game'));
+  // 라운드가 바뀌면 화면 가운데에 'ROUND n' 배너 (첫 라운드는 시작 연출이 있으니 생략)
+  const roundSeen = {};
+  LAB.roundBanner = (key, n, sub) => {
+    const was = roundSeen[key]; roundSeen[key] = n;
+    if (!window.GameFX || !n || was == null || n <= was || n < 2) return;
+    GameFX.banner(`ROUND ${n}`, sub || '');
+  };
   LAB.ended = false; // 결과 창이 뜬 뒤면 나가기를 물어보지 않음
   // 결과 창 (index.html 의 #endOv 재사용)
   LAB.end = (title, sub, again) => {

@@ -270,7 +270,7 @@
       const roomLink = LAB.roomParam();
       LAB.paused = false;
       // 시작 화면·대기실은 모든 대결 게임 공통 (LAB.duelFront, 무거운13·슬리더링크와 같은 흐름)
-      let pend = { n: 4, chips: 30, lv: 1, opp: 'ai' }, S = null, net = null, V = null, room = null, raiseTo = 0, shownMid = null, recvAt = 0, busy = false, ended = null;
+      let pend = { n: 4, chips: 30, lv: 1, opp: 'ai' }, S = null, net = null, V = null, room = null, raiseTo = 0, shownMid = null, fxKey = '', recvAt = 0, busy = false, ended = null;
       root.innerHTML = '';
       const wrap = h(`<div class="g-wrap">
         <div class="g-main card">
@@ -335,7 +335,20 @@
       let lastBetKey = '';
       function show(v) {
         V = v; const ME = v.me, P = v.players, me = P[ME], name = id => id === ME ? '나' : P[id].name;
-        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; LAB.coin(P.map(p => p.id === ME ? '나' : p.name), v.first, { title: '선 플레이어 추첨', suffix: '선' }); }
+        if (v.mid && v.mid !== shownMid) { shownMid = v.mid; fxKey = v.round + ':' + v.phase; LAB.coin(P.map(p => p.id === ME ? '나' : p.name), v.first, { title: '선 플레이어 추첨', suffix: '선' }); }
+        // 진행 연출 (참고: 데블스 플랜 팬메이드): 라운드 배너, 공개 카드 동시 공개, 쇼다운
+        const key = v.round + ':' + v.phase;
+        if (key !== fxKey && window.GameFX) {
+          const was = fxKey; fxKey = key;
+          const live = P.filter(p => !p.out), seat = p => ({ name: p.name, me: p.id === ME, items: [] });
+          if (v.phase === 'reveal' && v.round > 1) GameFX.banner(`ROUND ${v.round}`, `한계 숫자 ${v.limit} · 기본 베팅 ${v.base}`);
+          else if (v.phase === 'bet1' && was === v.round + ':reveal') GameFX.reveal({ seats: live.map(p => ({ ...seat(p), items: [{ html: String(p.cards[p.shown] ?? '?'), big: true }] })), steps: [{ title: '공개 카드', sub: `한계 숫자 ${v.limit}`, ms: 450 }, { flip: 'all', ms: 900 }] });
+          else if ((v.phase === 'result' || v.phase === 'over') && v.lastResult && !v.lastResult.single) {
+            const W = v.lastResult.winners, inn = live.filter(p => !p.folded || W.includes(p.id)), wi = inn.map((p, k) => W.includes(p.id) ? k : -1).filter(k => k >= 0);
+            GameFX.reveal({ seats: inn.map(p => ({ ...seat(p), items: [{ html: '합 ' + ENG.sum(p.cards), big: true, tag: p.stayed ? 'STAY' : null }] })),
+              steps: [{ title: '쇼다운', sub: `한계 숫자 ${v.limit} — 넘으면 버스트`, tags: true, ms: 450 }, { flip: 'all', ms: 900 }, { win: wi, res: W.length === 1 ? `${name(W[0])} 승리 · ${v.lastResult.pot}개` : `무승부 · ${v.lastResult.pot}개 나눔`, ms: 600 }] });
+          }
+        }
         const betKey = v.round + ':' + v.phase + ':' + v.high; if (v.bettor === ME && betKey !== lastBetKey) { lastBetKey = betKey; raiseTo = Math.min(v.maxTo, v.high + 1); }
         const showAll = v.phase === 'result' || v.phase === 'over', R = v.lastResult;
         $('hsLimit').textContent = v.limit ?? '?'; $('hsPot').textContent = v.pot; $('hsMine').textContent = me.chips;
