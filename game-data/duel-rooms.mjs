@@ -17,7 +17,7 @@ function loadEngine(file) {
   }
   throw new Error('engine not found ' + file);
 }
-const CC = loadEngine('cubecount.js'), RC = loadEngine('rectcount.js'), FG = loadEngine('flags.js'), MP = loadEngine('mempoker.js'), RR = loadEngine('roulette.js'), PG = loadEngine('piggy.js');
+const CC = loadEngine('cubecount.js'), RC = loadEngine('rectcount.js'), FG = loadEngine('flags.js'), MP = loadEngine('mempoker.js'), RR = loadEngine('roulette.js'), PG = loadEngine('piggy.js'), HL = loadEngine('hilo.js');
 const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js'), PO = loadEngine('pointomok.js'), HS = loadEngine('hitstay.js'), SK = loadEngine('stock.js');
 
 /* ---------------- 게임별 규칙: 각 게임 파일의 DUEL(init/act/view)을 그대로 씀 ---------------- */
@@ -34,6 +34,7 @@ const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: 
   stock: { ...wrap(SK.MULTI), multi: true, extraOpts: o => ({ kind: o.kind === 'player' ? 'player' : 'team' }), settings: (o, b) => { if (b.kind === 'team' || b.kind === 'player') o.kind = b.kind; }, seats: o => SK.MULTI.seats(o), init: (prev, opts, seats) => SK.MULTI.init(prev, opts, seats), tick: (st, t) => SK.MULTI.tick(st, t) },
   flags: multiG(FG),
   roulette: multiG(RR),
+  hilo: multiG(HL),
   piggy: multiG(PG, { extraOpts: o => ({ goal: [3, 5, 7].includes(Number(o.goal)) ? Number(o.goal) : 3 }), settings: (o, b) => { if ([3, 5, 7].includes(Number(b.goal))) o.goal = Number(b.goal); } }),
   mempoker: multiG(MP, { extraOpts: o => ({ mode: o.mode === 'one' ? 'one' : 'bo3' }), settings: (o, b) => { if (b.mode === 'one' || b.mode === 'bo3') o.mode = b.mode; } }),
   rectcount: multiG(RC, { extraOpts: o => ({ diff: [0, 1, 2].includes(Number(o.diff)) ? Number(o.diff) : 1 }), settings: (o, b) => { if ([0, 1, 2].includes(Number(b.diff))) o.diff = Number(b.diff); } }),
