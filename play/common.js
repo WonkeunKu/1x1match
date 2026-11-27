@@ -18,22 +18,39 @@
     }
     return box;
   };
-  // 게임 시작 직전 3·2·1 카운트다운 (화면 전체). 동작 줄이기 설정이면 짧게
-  LAB.countdown = () => new Promise(res => {
-    const quick = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const ov = LAB.h('<div class="cd-ov" role="status" aria-live="assertive"><b></b><span>준비하세요</span></div>'), num = ov.querySelector('b');
-    document.body.appendChild(ov);
-    let n = 3; const step = () => { if (n === 0) { ov.classList.add('out'); setTimeout(() => { ov.remove(); res(); }, quick ? 0 : 180); return; } num.textContent = n; num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); n--; setTimeout(step, quick ? 250 : 620); };
-    step();
-  });
-  // 화면 안 확인 창: LAB.ask('제목', '설명', [['그만하기','primary'],['계속하기']]) → 고른 번호(닫으면 -1)
-  LAB.ask = (title, sub, btns) => new Promise(res => {
-    const ov = LAB.h(`<div class="overlay ask-ov"><div class="modal ask"><b class="ask-t">${LAB.esc(title)}</b>${sub ? `<p class="muted">${LAB.esc(sub)}</p>` : ''}<div class="ask-b">${btns.map(([l, c], i) => `<button type="button" class="${c || ''}" data-i="${i}">${LAB.esc(l)}</button>`).join('')}</div></div></div>`);
-    const done = i => { ov.remove(); document.removeEventListener('keydown', key); res(i); };
-    const key = e => { if (e.key === 'Escape') done(-1); };
-    ov.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) done(+b.dataset.i); else if (e.target === ov) done(-1); });
-    document.addEventListener('keydown', key); document.body.appendChild(ov); ov.querySelector('button').focus();
-  });
+  // 화면 연출은 /fx.js(GameFX)를 같이 씀: 시작 카운트다운 · 확인 창 · 규칙 슬라이드 · 처음 하는 게임 안내
+  LAB.gameId = () => (location.hash || '').slice(1).split(/[?&]/)[0];
+  LAB.gameName = () => { const t = document.getElementById('pageTitle'); return t ? t.textContent : ''; };
+  LAB.countdown = sub => window.GameFX ? GameFX.countdown(sub) : Promise.resolve();
+  LAB.ask = (title, sub, btns) => window.GameFX ? GameFX.ask(title, sub, btns) : Promise.resolve(0);
+  LAB.showRules = () => { const b = document.getElementById('gameRulesBody'); return window.GameFX && b ? GameFX.rules(LAB.gameName(), b.innerHTML) : Promise.resolve(); };
+  LAB.firstTime = () => window.GameFX ? GameFX.firstTime('lab:' + LAB.gameId(), LAB.showRules) : Promise.resolve();
+  // 게임 중 위 막대 (게임 이름 · 판 정보 | 규칙 · 나가기). 게임 중에는 사이트 머리말·규칙 칸을 숨김
+  LAB.gameBar = (anchor, onLeave) => {
+    const bar = LAB.h('<div class="df-bar" hidden><div class="df-t"><b data-gn></b><span class="muted" data-lab></span></div><button type="button" data-fx="rules">규칙</button><button type="button" data-fx="leave">나가기</button></div>');
+    anchor.before(bar);
+    bar.addEventListener('click', async e => {
+      const b = e.target.closest('[data-fx]'); if (!b) return;
+      if (b.dataset.fx === 'rules') LAB.showRules();
+      else {
+        if (!LAB.ended) { const i = await LAB.ask('게임을 그만두시겠어요?', onLeave.net && onLeave.net() ? '나가면 이 판은 상대의 승리로 끝날 수 있어요.' : '지금 판은 기록되지 않아요.', [['계속하기'], ['그만하기', 'primary']]); if (i !== 1) return; }
+        const ov = document.getElementById('endOv'); if (ov) ov.hidden = true;
+        onLeave();
+      }
+    });
+    const gw = anchor.classList && anchor.classList.contains('g-wrap') ? anchor : null;
+    return {
+      el: bar,
+      label(t) { bar.querySelector('[data-lab]').textContent = t || ''; },
+      show(on) {
+        const was = document.documentElement.classList.contains('in-game');
+        document.documentElement.classList.toggle('in-game', on); bar.hidden = !on;
+        if (gw) { const side = gw.querySelector('.g-side'); gw.classList.toggle('g-one', on && !!side && ![...side.children].some(x => x.offsetParent !== null)); }
+        if (on) { bar.querySelector('[data-gn]').textContent = LAB.gameName(); if (!was) window.scrollTo(0, 0); }
+      },
+    };
+  };
+  window.addEventListener('hashchange', () => document.documentElement.classList.remove('in-game'));
   LAB.ended = false; // 결과 창이 뜬 뒤면 나가기를 물어보지 않음
   // 결과 창 (index.html 의 #endOv 재사용)
   LAB.end = (title, sub, again) => {
@@ -63,9 +80,14 @@
       if (!btn.dataset.ready) return;
       e.stopImmediatePropagation(); e.preventDefault();
       if (LAB.beforeStart && !(await LAB.beforeStart())) return;
+      await LAB.firstTime();
       delete btn.dataset.ready; btn.textContent = label; btn.classList.remove('ready-btn', 'nudge');
       block.remove(); if (io) io.disconnect(); btn.removeEventListener('click', go, true);
-      await LAB.countdown(); LAB.paused = false; LAB.ended = false; start();
+      // 게임 화면으로: 머리말을 숨기고 위 막대만. 나가기는 처음(설정 고르는 화면)으로
+      const bar = LAB.gameBar(root, () => { location.reload(); }); bar.show(true);
+      const mo = [...root.querySelectorAll('.g-side .seg button.on')].map(x => x.textContent).slice(0, 3).join(' · ');
+      bar.label(mo);
+      await LAB.countdown(mo); LAB.paused = false; LAB.ended = false; start();
     };
     btn.addEventListener('click', go, true);
   };

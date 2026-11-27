@@ -215,21 +215,6 @@ html.in-game .wrap { padding-top: 0; }
 .df-t .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--f-mono); font-size: 12px; }
 .df-bar button { padding: 6px 12px; font-size: 13px; flex: none; }
 html:not(:has(#gameRules)) .df-bar [data-fm="rules"] { display: none; }
-.cd-ov { position: fixed; inset: 0; z-index: 60; display: grid; place-content: center; justify-items: center; gap: 10px; background: radial-gradient(circle at 50% 45%, #163d35 0, #071815 70%); transition: opacity .18s ease; }
-.cd-ov.out { opacity: 0; }
-.cd-ov b { font-family: var(--f-display); font-weight: 400; font-size: clamp(120px, 34vw, 220px); line-height: 1; color: var(--amber); text-shadow: 0 0 40px rgba(243, 182, 65, .45); }
-.cd-ov span { font-family: var(--f-mono); font-size: 12px; letter-spacing: .3em; color: var(--chalk-dim); display: flex; align-items: center; gap: 10px; }
-.cd-ov span::before, .cd-ov span::after { content: ""; width: 34px; height: 1px; background: var(--line); }
-@media (prefers-reduced-motion: no-preference) { .cd-ov b.pop { animation: cdpop .62s ease-out; } }
-@keyframes cdpop { 0% { opacity: 0; transform: scale(1.5); } 30% { opacity: 1; transform: scale(1); } 85% { opacity: 1; } 100% { opacity: .2; transform: scale(.92); } }
-.ask-ov { z-index: 55; }
-.modal.ask { text-align: left; gap: 10px; max-width: 380px; }
-.ask-t { font-size: 18px; }
-.ask-b { display: grid; gap: 8px; margin-top: 6px; }
-.ask-b button { padding: 11px 14px; }
-.modal.rules-m { position: relative; max-width: 520px; max-height: min(80vh, 640px); overflow-y: auto; }
-.rules-m .x { position: absolute; top: 10px; right: 10px; padding: 4px 9px; }
-.rules-m .rules h3 { font-size: 18px; color: var(--chalk); margin: 0 0 8px; padding-right: 36px; }
 html.in-game .g-wrap.g-one { grid-template-columns: minmax(0, 1fr); max-width: 760px; width: 100%; margin-inline: auto; }
 html.in-game .g-wrap.g-one > .g-side { display: none; }
 @media (min-width: 1072px) { .df-bar { margin-inline: 0; padding-inline: 14px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; } }

@@ -197,7 +197,13 @@
     <div class="rb-body"><p class="rb-lede">${R.lede}</p>${R.sections.map(([h, b]) => `<section><h3>${h}</h3>${b}</section>`).join('')}</div>
   </div>`;
   let lastFocus = null;
-  function open() {
+  // 규칙은 한 장씩 넘겨 보는 슬라이드로 (/fx.js). fx.js가 없는 페이지면 불러옴
+  if (!window.GameFX && !document.querySelector('script[src^="/fx.js"]')) { const sc = document.createElement('script'); sc.src = '/fx.js?v=1'; document.head.appendChild(sc); }
+  const SLIDES = () => [{ h: '한눈에 보기', html: R.lede }, ...R.sections.map(([h, b]) => ({ h, html: b }))];
+  window.showGameRules = () => window.GameFX ? GameFX.rules(R.title, SLIDES()).then(() => { if (location.hash === '#rules') history.replaceState(null, '', location.pathname + location.search); }) : (open0(), Promise.resolve());
+  window.RULES_KEY = GAME;
+  function open() { return window.showGameRules(); }
+  function open0() {
     if (!ov.isConnected) document.body.appendChild(ov);
     lastFocus = document.activeElement;
     ov.classList.add('open');
@@ -234,7 +240,7 @@
     document.body.appendChild(ov);
     addButtons();
     new MutationObserver(addButtons).observe(document.body, { childList: true, subtree: true });
-    if (location.hash === '#rules') open();
+    if (location.hash === '#rules') { const t0 = Date.now(); const w = () => (window.GameFX || Date.now() - t0 > 1500) ? open() : setTimeout(w, 50); w(); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   window.addEventListener('hashchange', () => { if (location.hash === '#rules') open(); });

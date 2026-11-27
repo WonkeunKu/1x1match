@@ -89,21 +89,16 @@
     const segRow = (key, opts, cur, dis) => `<div class="seg" data-fk="${key}">${opts.map(([v, l]) => `<button type="button" class="${v === cur ? 'on' : ''}" data-v="${v}" ${dis ? 'disabled' : ''}>${l}</button>`).join('')}</div>`;
     const nameOf = () => ME ? ME.nickname : (store.get('duel:name') || '');
     // 게임 화면 위 막대: 지금 판 이름 + 나가기
-    // 게임 중에는 사이트 머리말·규칙 칸을 숨기고 이 막대만 위에 붙여 둠 (게임 이름 · 판 정보 | 규칙 · 나가기)
-    const bar = document.createElement('div'); bar.className = 'df-bar'; bar.innerHTML = '<div class="df-t"><b data-gn></b><span class="muted" data-lab></span></div><button type="button" data-fm="rules">규칙</button><button type="button" data-fm="leave">나가기</button>';
-    const gw = c.gameEl.closest('.g-wrap'); (gw || c.gameEl).before(bar); bar.hidden = true;
+    // 게임 화면 위 막대 (common.js LAB.gameBar): 게임 이름 · 판 정보 | 규칙 · 나가기
+    const gw = c.gameEl.closest('.g-wrap');
+    const GB = LAB.gameBar(gw || c.gameEl, Object.assign(() => F.leave(), { net: () => !!F.net }));
+    const bar = GB.el;
     let lobby = false; // 방 대기실을 거쳐 게임이 시작될 때만 카운트다운
-    const focus = on => {
-      const was = document.documentElement.classList.contains('in-game');
-      document.documentElement.classList.toggle('in-game', on); bar.hidden = !on;
-      // 옆 칸에 보이는 게 없으면 게임판을 가운데 한 줄로
-      if (gw) { const side = gw.querySelector('.g-side'); gw.classList.toggle('g-one', on && !!side && ![...side.children].some(x => x.offsetParent !== null)); }
-      if (on) { const t = document.getElementById('pageTitle'); bar.querySelector('[data-gn]').textContent = t ? t.textContent : ''; if (!was) window.scrollTo(0, 0); }
-    };
+    const focus = on => GB.show(on);
     const F = {
       net: null,
       take() { const p = pending; pending = null; return p; },
-      label(t) { bar.querySelector('[data-lab]').textContent = t; },
+      label(t) { GB.label(t); },
       menu(msg) {
         err = msg || ''; lastRoom = null;
         if (F.net) { try { F.net.close(); } catch {} F.net = null; }
@@ -137,19 +132,8 @@
             <button type="button" data-fm="leave">방 나가기</button></div>
           <p class="dn-err" data-ferr></p></div>`;
       },
-      playing(v) { lastRoom = v; const fresh = c.gameEl.hidden; c.el.hidden = true; c.gameEl.hidden = false; focus(true); F.label(`방 ${v.code}${v.multi ? ` · ${v.n}인` : ' · 1:1'}`); if (fresh) LAB.ended = false; if (fresh && lobby) { lobby = false; LAB.countdown(); } },
+      playing(v) { lastRoom = v; const fresh = c.gameEl.hidden; c.el.hidden = true; c.gameEl.hidden = false; focus(true); F.label(`방 ${v.code}${v.multi ? ` · ${v.n}인` : ' · 1:1'}`); if (fresh) LAB.ended = false; if (fresh && lobby) { lobby = false; LAB.countdown(`방 ${v.code}${v.multi ? ` · ${v.n}인` : ' · 1:1'}`); } },
       solo(text) { c.el.hidden = true; c.gameEl.hidden = false; focus(true); LAB.ended = false; F.label(text || 'AI와 연습'); },
-      async askLeave() {
-        if (!LAB.ended && !c.gameEl.hidden) { const i = await LAB.ask('게임을 그만두시겠어요?', F.net ? '나가면 이 판은 상대의 승리로 끝날 수 있어요.' : '지금 판은 기록되지 않아요.', [['그만하기', 'primary'], ['계속하기']]); if (i !== 0) return; }
-        document.getElementById('endOv') && (document.getElementById('endOv').hidden = true);
-        F.leave();
-      },
-      rules() {
-        const box = document.getElementById('gameRules'); if (!box) return;
-        const ov = LAB.h(`<div class="overlay ask-ov"><div class="modal ask rules-m"><button type="button" class="x" aria-label="닫기">✕</button><div class="rules">${box.innerHTML}</div><button type="button" class="primary" data-ok>확인</button></div></div>`);
-        ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.x,[data-ok]')) ov.remove(); });
-        document.body.appendChild(ov);
-      },
       leave() {
         if (F.net && lastRoom && !lastRoom.st && lastRoom.seat !== 0) F.net.act({ type: 'leave' });
         c.onLeave && c.onLeave(); F.menu();
@@ -166,16 +150,16 @@
       const b = e.target.closest('[data-fm]'); if (!b || b.disabled) return;
       const k = b.dataset.fm;
       if ((k === 'solo' || k === 'alone' || k === 'create' || k === 'join') && LAB.beforeStart && !(await LAB.beforeStart())) return; // 공개 페이지: 비회원은 게임마다 한 판
-      if (k === 'solo') { F.solo(); await LAB.countdown(); c.onStart('ai', { ...solo, ...mode }); }
-      else if (k === 'alone') { F.solo((c.alone && c.alone.label) || '혼자 하기'); await LAB.countdown(); c.onStart('alone', { ...solo, ...mode }); }
+      if (k === 'solo' || k === 'alone' || k === 'create' || k === 'join') await LAB.firstTime(); // 처음 하는 게임이면 규칙 안내
+      if (k === 'solo') { F.solo(); await LAB.countdown(bar.querySelector('[data-lab]').textContent); c.onStart('ai', { ...solo, ...mode }); }
+      else if (k === 'alone') { F.solo((c.alone && c.alone.label) || '혼자 하기'); await LAB.countdown(bar.querySelector('[data-lab]').textContent); c.onStart('alone', { ...solo, ...mode }); }
       else if (k === 'create') { if (needName()) return; pending = { create: true, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg, ...mode }); }
       else if (k === 'join') { if (needName()) return; const code = (c.el.querySelector('#dfCode').value || '').trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) return F.menu('4자리 코드를 입력하세요'); pending = { join: code, name: nameOf() || '손님' }; c.onStart('net', { ...roomCfg }); }
       else if (k === 'start' && F.net) { const er = await F.net.act({ type: 'start' }); const box = c.el.querySelector('[data-ferr]'); if (er && box) box.textContent = er; }
-      else if (k === 'leave') { if (b.closest('.df-bar')) F.askLeave(); else F.leave(); }
-      else if (k === 'rules') F.rules();
+      else if (k === 'leave') F.leave();
       else if (k === 'copy' && F.net) { const url = F.net.link(); try { await navigator.clipboard.writeText(url); b.textContent = '복사했어요'; } catch { b.textContent = url; } }
     };
-    c.el.addEventListener('click', onClick); bar.addEventListener('click', onClick);
+    c.el.addEventListener('click', onClick);
     return F;
   };
   // 게임 끝난 뒤 '다시 하기'(두 사람 모두 눌러야 새 판) 표시

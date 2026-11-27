@@ -13,6 +13,7 @@
 <meta name="description" content="데블스플랜 감옥 매치 무거운 13을 온라인으로. 5~7인, 빈자리는 AI가 채워요.">
 <script src="/freeplay.js?v=4"></script>
 <script src="/coin.js?v=2"></script>
+<script src="/fx.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -287,11 +288,11 @@ function renderMenu() {
   const err = m => { $('err').textContent = m; };
   const nm = $('nm'); if (nm) nm.oninput = () => { NAME = nm.value.trim(); lsSet('h13_name', NAME); };
   const needName = () => { if (ME || NAME) return false; err('이름을 입력하세요'); $('nm').focus(); return true; };
-  $('create').onclick = async () => { if (needName()) return; try { const r = await post('', {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
-  $('join').onclick = async () => { if (needName()) return; const c = $('code').value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) return err('4자리 코드를 입력하세요'); try { const r = await post(`/${c}/join`, {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('create').onclick = async () => { if (needName()) return; await GameFX.firstTime('heavy13', showRules); try { const r = await post('', {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('join').onclick = async () => { if (needName()) return; const c = $('code').value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(c)) return err('4자리 코드를 입력하세요'); await GameFX.firstTime('heavy13', showRules); try { const r = await post(`/${c}/join`, {}); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('soloSeg').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; soloCount = +b.dataset.n; renderMenu(); };
   $('soloLvSeg').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; soloLv = +b.dataset.n; renderMenu(); };
-  $('solo').onclick = async () => { if (needName()) return; if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60, aiLv: soloLv }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
+  $('solo').onclick = async () => { if (needName()) return; if (!(await FreePlay.ok('heavy13', FreePlay.newId()))) return; await GameFX.firstTime('heavy13', showRules); try { const r = await post('', { solo: true }); room = { code: r.code, token: r.token }; await post(`/${r.code}/act`, { token: r.token, type: 'settings', count: soloCount, submitSec: 180, decideSec: 60, aiLv: soloLv }); await post(`/${r.code}/act`, { token: r.token, type: 'start' }); enter(r.code, r.token); } catch (e) { err(e.message); } };
   $('rules').onclick = showRules;
 }
 function renderLobby() {
@@ -329,7 +330,8 @@ function renderGame() {
   if (g.round === 1 && g.phase === 'submit' && window.CoinFlip) {
     const key = 'h13coin:' + v.code + ':' + (g.log[0] ? g.log[0].seq + ':' + g.log[0].text : '');
     let seen = false; try { seen = sessionStorage.getItem(key); sessionStorage.setItem(key, '1'); } catch (e) {}
-    if (!seen) CoinFlip.show({ names: g.players.map(p => p.id === v.me ? '나' : p.name), winner: g.startIdx, title: '선 플레이어 추첨', suffix: '선' });
+    // 시작 연출: '잠시 후 게임이 시작돼요' → 3·2·1 → 선 플레이어 추첨
+    if (!seen) GameFX.countdown(`${g.players.length}인${v.solo ? ' · AI 대전' : ` · 방 ${v.code}`}`).then(() => CoinFlip.show({ names: g.players.map(p => p.id === v.me ? '나' : p.name), winner: g.startIdx, title: '선 플레이어 추첨', suffix: '선' }));
   }
   const pgame = prev && prev.game;
   const pcard = (p, i) => {
@@ -426,7 +428,7 @@ function logHTML(g) {
   }).join('');
 }
 function bindGame(v, mine) {
-  $('leave').onclick = () => { if (confirmLeave()) leave(); };
+  $('leave').onclick = async () => { if (await confirmLeave()) leave(); };
   const cp = $('copy'); if (cp) cp.onclick = copyLink;
   $('rules').onclick = showRules;
   const lg = document.querySelector('details.log'); if (lg) lg.ontoggle = () => store.set('h13_log', lg.open ? '1' : null);
@@ -439,10 +441,9 @@ function bindGame(v, mine) {
   const rs = $('result'); if (rs) rs.onclick = showResult;
 }
 let leaveArm = 0;
-function confirmLeave() {
+async function confirmLeave() {
   const g = V && V.game; if (!g || g.phase === 'over') return true;
-  if (Date.now() - leaveArm < 3000) return true;
-  leaveArm = Date.now(); toast('한 번 더 누르면 방을 나가요 (내 자리는 AI가 이어서 해요)', 'ok'); return false;
+  return (await GameFX.ask('게임을 그만두시겠어요?', '나가면 내 자리는 AI가 이어서 해요.', [['계속하기'], ['그만하기', 'primary']])) === 1;
 }
 function tickBar() {
   const bar = $('bar'); if (!bar || !V || !V.game) return;
@@ -464,7 +465,7 @@ function showResult() {
   $('closeM').onclick = closeModal;
 }
 function showRules() {
-  openModal(`<h3>무거운 13 규칙</h3><ol>
+  return GameFX.rules('무거운 13', `<ol>
     <li>각자 바위 카드 <b>0~6</b> 7장과 색깔 칩 빨강·초록·파랑 2개씩, <b>레인보우</b> 1개를 받아요.</li>
     <li>매 라운드 카드 1장과 칩 1개를 몰래 동시에 내요. 칩 색 = 올릴 받침대, 카드 숫자 = 바위 무게.</li>
     <li>올리는 순서: <b>레인보우</b> 낸 사람 → <b>큰 숫자</b> 순. 같으면 선 플레이어부터 시계방향.</li>
@@ -474,8 +475,7 @@ function showRules() {
     <li>마지막으로 벌점을 받은 사람이 다음 라운드 선 플레이어예요.</li>
     <li>7라운드 뒤 카드·칩을 다시 받고(받침대는 그대로) 14라운드까지 해요.</li>
     <li>벌점이 가장 적은 사람이 1위. 같으면 더 최근에 벌점을 받은 사람이 아래예요. (방송: 7인 기준 6·7위 탈락)</li>
-  </ol><p class="mute small" style="margin:0">시간 안에 못 고르거나 접속이 끊기면 AI가 대신 골라요. 같은 방에 다시 들어오면 이어서 할 수 있어요.</p><button class="btn-main" id="closeM">닫기</button>`);
-  $('closeM').onclick = closeModal;
+  </ol><p class="note">시간 안에 못 고르거나 접속이 끊기면 AI가 대신 골라요. 같은 방에 다시 들어오면 이어서 할 수 있어요.</p>`);
 }
 function openModal(html) { $('modal').innerHTML = html; $('ov').hidden = false; }
 function closeModal() { $('ov').hidden = true; }

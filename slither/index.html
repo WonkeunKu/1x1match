@@ -130,6 +130,7 @@ input.code{text-transform:uppercase;letter-spacing:4px;font-family:var(--f-mono)
 .chip.me{border-color:var(--amber)}
 @media (min-width:900px){.app{padding-block:22px 48px}}
 </style>
+<script src="/fx.js?v=1"></script>
 </head>
 <body>
 <div class="app">
@@ -787,14 +788,18 @@ async function startSolo(){
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
   $('cover').textContent='문제 만드는 중…';$('cover').classList.remove('hidden');
   const cl=await getPuzzle(size);
-  loadPuzzle(size,cl);$('cover').classList.add('hidden');startTimer();
+  loadPuzzle(size,cl);$('cover').textContent='';
+  if(window.GameFX)await GameFX.countdown(`${size}×${size} 퍼즐`);
+  $('cover').classList.add('hidden');startTimer();
 }
 // 경기 기록의 '다시 풀기': 주소 ?p=크기.문제 로 같은 문제를 다시 엶
 async function startReplay(n,str){
   if(!(await FreePlay.ok('slither',FreePlay.newId())))return;
   chal=null;multi=null;replaying=true;size=n;segSelect($('sizeSeg'),n);$('strip').classList.add('hidden');
   show('game');playing=false;finished=false;stopTimer();$('timer').textContent='00:00';
-  loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));$('cover').classList.add('hidden');startTimer();
+  loadPuzzle(n,Array.from(str,ch=>ch==='.'?-1:+ch));
+  if(window.GameFX)await GameFX.countdown(`${n}×${n} 다시 풀기`);
+  $('cover').classList.add('hidden');startTimer();
 }
 (()=>{ const m=/^(5|7|10|15)\.([.0-3]+)$/.exec(new URLSearchParams(location.search).get('p')||'');
   if(m&&m[2].length===m[1]*m[1]){ try{window.history.replaceState(null,'',location.pathname);}catch(e){} setTimeout(()=>startReplay(+m[1],m[2]),0); } })();
@@ -998,6 +1003,11 @@ try{const sv=JSON.parse(sessionStorage.getItem('sl_room')||'null');if(sv&&sv.cod
 
 })();
 </script>
-<script src="/rules.js?v=15" defer></script>
+<script src="/rules.js?v=16" defer></script>
+<script>
+// 처음 하는 게임이면 규칙 안내, 푸는 중 나가기는 확인
+GameFX.gate('slither', '#soloBtn, #createBtn, #joinBtn', () => window.showGameRules && showGameRules());
+GameFX.guardLeave('#quitBtn', () => playing && !finished, () => multi ? '나가면 이번 판은 포기로 처리돼요.' : '지금 푸는 기록은 남지 않아요.');
+</script>
 </body>
 </html>

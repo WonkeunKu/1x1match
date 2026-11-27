@@ -76,6 +76,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-heig
 
 /* top bar */
 .bar { display: flex; align-items: center; gap: 10px; }
+.bar .quit { flex: none; padding: 6px 12px; font-size: 13px; }
 .bar .title { font-family: var(--f-display); font-size: 20px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .code { font-family: var(--f-mono); font-weight: 600; background: var(--slot); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 13px; }
 .mycubes { font-family: var(--f-mono); font-size: 13px; }
@@ -212,6 +213,7 @@ input[readonly] { opacity: 0.85; border-style: dashed; }
 .rank { font-family: var(--f-mono); color: var(--amber); }
 .x2 { font-size: 10px; background: var(--amber); color: #1a1405; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
 </style>
+<script src="/fx.js?v=1"></script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -381,7 +383,7 @@ function connect() {
     // 게임이 새로 시작되면(아직 연 카드 없음) 첫 카드를 열 사람 추첨 연출. 게임마다 한 번
     if (V.phase === 'play' && V.tiles && V.tiles.every(t => !t) && V.firstOpener != null && window.CoinFlip) {
       const key = 'aucoin:' + V.code + ':' + V.gameNo; let seen = false; try { seen = sessionStorage.getItem(key); sessionStorage.setItem(key, '1'); } catch (e) {}
-      if (!seen) CoinFlip.show({ names: V.players.map((p, k) => k === V.me ? '나' : p.name), winner: V.firstOpener, title: '첫 카드를 열 사람 추첨', suffix: '먼저 열어요' });
+      if (!seen) GameFX.countdown(V.ai ? `AI 대전 · 난이도 ${LEVEL_KO[V.ai]}` : `방 ${V.code} · 4인`).then(() => CoinFlip.show({ names: V.players.map((p, k) => k === V.me ? '나' : p.name), winner: V.firstOpener, title: '첫 카드를 열 사람 추첨', suffix: '먼저 열어요' }));
     }
     deadlineAt = V.turnLeftMs === null ? null : Date.now() + V.turnLeftMs;
     render();
@@ -483,7 +485,7 @@ function playersHtml() {
 }
 function topBar() {
   const me = V.players[V.me];
-  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매${V.ai ? ` <span class="aichip">AI ${LEVEL_KO[V.ai]}</span>` : ''}</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span></div>
+  return `<div class="bar" style="--pc:${PC[V.me]}"><a class="logo" href="/" aria-label="1x1 MATCH 홈으로">1<span>x</span>1</a><span class="title">연봉 블라인드 경매${V.ai ? ` <span class="aichip">AI ${LEVEL_KO[V.ai]}</span>` : ''}</span><span class="code">방 ${esc(V.code)}</span><span class="mycubes">내 큐브 <b>${me.cubes}</b></span><button type="button" class="btn quit" data-a="leave">나가기</button></div>
     ${connected ? '' : '<span class="conn">연결이 끊겼어요. 다시 연결하는 중…</span>'}
     ${deadlineAt ? `<div class="timer"><span>${V.cur && V.cur.kind === 'auction' ? `${nameOf(V.cur.toAct)}님 차례` : V.cur && V.cur.kind === 'trade' ? `${nameOf(V.cur.by)}님 트레이드` : `${nameOf(V.opener)}님 카드 열기`}</span><b data-countdown>${Math.ceil((deadlineAt - Date.now()) / 1000)}</b><span>초</span><i style="--w:${Math.max(0, Math.min(100, (deadlineAt - Date.now()) / V.turnMs * 100))}%"></i></div>` : ''}
     ${V.lastEvent ? `<div class="event">${esc(V.lastEvent)}</div>` : ''}`;
@@ -579,6 +581,11 @@ setInterval(() => {
 }, 250);
 if (code && token) connect(); else renderEntry();
 </script>
-<script src="/rules.js?v=15" defer></script>
+<script src="/rules.js?v=16" defer></script>
+<script>
+// 처음 하는 게임이면 규칙 안내, 게임 중 나가기는 확인
+GameFX.gate('auction', '#aiStart, #createBtn, #joinBtn, #quickBtn, [data-join]', () => window.showGameRules && showGameRules());
+GameFX.guardLeave('.bar [data-a="leave"]', () => V && V.phase === 'play', () => V && V.ai ? '지금 판은 기록되지 않아요.' : '나가면 내 자리는 비워진 채로 경매가 이어져요.');
+</script>
 </body>
 </html>
