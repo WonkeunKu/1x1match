@@ -18,8 +18,26 @@
     }
     return box;
   };
+  // 게임 시작 직전 3·2·1 카운트다운 (화면 전체). 동작 줄이기 설정이면 짧게
+  LAB.countdown = () => new Promise(res => {
+    const quick = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ov = LAB.h('<div class="cd-ov" role="status" aria-live="assertive"><b></b><span>준비하세요</span></div>'), num = ov.querySelector('b');
+    document.body.appendChild(ov);
+    let n = 3; const step = () => { if (n === 0) { ov.classList.add('out'); setTimeout(() => { ov.remove(); res(); }, quick ? 0 : 180); return; } num.textContent = n; num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); n--; setTimeout(step, quick ? 250 : 620); };
+    step();
+  });
+  // 화면 안 확인 창: LAB.ask('제목', '설명', [['그만하기','primary'],['계속하기']]) → 고른 번호(닫으면 -1)
+  LAB.ask = (title, sub, btns) => new Promise(res => {
+    const ov = LAB.h(`<div class="overlay ask-ov"><div class="modal ask"><b class="ask-t">${LAB.esc(title)}</b>${sub ? `<p class="muted">${LAB.esc(sub)}</p>` : ''}<div class="ask-b">${btns.map(([l, c], i) => `<button type="button" class="${c || ''}" data-i="${i}">${LAB.esc(l)}</button>`).join('')}</div></div></div>`);
+    const done = i => { ov.remove(); document.removeEventListener('keydown', key); res(i); };
+    const key = e => { if (e.key === 'Escape') done(-1); };
+    ov.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b) done(+b.dataset.i); else if (e.target === ov) done(-1); });
+    document.addEventListener('keydown', key); document.body.appendChild(ov); ov.querySelector('button').focus();
+  });
+  LAB.ended = false; // 결과 창이 뜬 뒤면 나가기를 물어보지 않음
   // 결과 창 (index.html 의 #endOv 재사용)
   LAB.end = (title, sub, again) => {
+    LAB.ended = true;
     const ov = document.getElementById('endOv');
     document.getElementById('endTitle').textContent = title;
     document.getElementById('endSub').textContent = sub || '';
@@ -47,7 +65,7 @@
       if (LAB.beforeStart && !(await LAB.beforeStart())) return;
       delete btn.dataset.ready; btn.textContent = label; btn.classList.remove('ready-btn', 'nudge');
       block.remove(); if (io) io.disconnect(); btn.removeEventListener('click', go, true);
-      LAB.paused = false; start();
+      await LAB.countdown(); LAB.paused = false; LAB.ended = false; start();
     };
     btn.addEventListener('click', go, true);
   };
