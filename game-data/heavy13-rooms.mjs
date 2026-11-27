@@ -7,7 +7,7 @@ const COLORS = ['R','G','B'];
 const CN = {R:'빨강', G:'초록', B:'파랑', W:'레인보우'};
 const LIMIT = 13, SET_ROUNDS = 7, TOTAL_ROUNDS = 14;
 const HUES = ['#f5a524','#8e4ec6','#12a594','#e54666','#3e8ef7','#a18072','#d6409f'];
-const T = { REVEAL_MS: 2600, ROUND_END_MS: 3800, AUTO_PLACE_MS: 900, AI_DECIDE_MS: 1200 };
+const T = { REVEAL_MS: 4600, ROUND_END_MS: 3800, AUTO_PLACE_MS: 900, AI_DECIDE_MS: 1200 };
 
 function P(st, id){ return st.players.find(p => p.id === id); }
 function sumOf(arr){ return arr.reduce((a, c) => a + c.v, 0); }
