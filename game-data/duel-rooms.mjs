@@ -17,7 +17,7 @@ function loadEngine(file) {
   }
   throw new Error('engine not found ' + file);
 }
-const CC = loadEngine('cubecount.js'), RC = loadEngine('rectcount.js'), FG = loadEngine('flags.js');
+const CC = loadEngine('cubecount.js'), RC = loadEngine('rectcount.js'), FG = loadEngine('flags.js'), MP = loadEngine('mempoker.js');
 const GR = loadEngine('gradation.js'), CJ = loadEngine('cardjanggi.js'), CL = loadEngine('colorlink.js'), SG = loadEngine('signal.js'), PO = loadEngine('pointomok.js'), HS = loadEngine('hitstay.js'), SK = loadEngine('stock.js');
 
 /* ---------------- 게임별 규칙: 각 게임 파일의 DUEL(init/act/view)을 그대로 씀 ---------------- */
@@ -33,6 +33,7 @@ const GAMES = { gradation: wrap(GR.DUEL), cardjanggi: wrap(CJ.DUEL), colorlink: 
   // 여럿이 하는 게임: 자리 수가 설정에 따라 달라지고, 빈자리는 방장이 시작할 때 AI로 채움
   stock: { ...wrap(SK.MULTI), multi: true, extraOpts: o => ({ kind: o.kind === 'player' ? 'player' : 'team' }), settings: (o, b) => { if (b.kind === 'team' || b.kind === 'player') o.kind = b.kind; }, seats: o => SK.MULTI.seats(o), init: (prev, opts, seats) => SK.MULTI.init(prev, opts, seats), tick: (st, t) => SK.MULTI.tick(st, t) },
   flags: multiG(FG),
+  mempoker: multiG(MP, { extraOpts: o => ({ mode: o.mode === 'one' ? 'one' : 'bo3' }), settings: (o, b) => { if (b.mode === 'one' || b.mode === 'bo3') o.mode = b.mode; } }),
   rectcount: multiG(RC, { extraOpts: o => ({ diff: [0, 1, 2].includes(Number(o.diff)) ? Number(o.diff) : 1 }), settings: (o, b) => { if ([0, 1, 2].includes(Number(b.diff))) o.diff = Number(b.diff); } }),
   cubecount: multiG(CC, { extraOpts: o => ({ diff: [0, 1, 2].includes(Number(o.diff)) ? Number(o.diff) : 1 }), settings: (o, b) => { if ([0, 1, 2].includes(Number(b.diff))) o.diff = Number(b.diff); } }),
   hitstay: { ...wrap(HS.MULTI), multi: true, seats: o => HS.MULTI.seats(o), init: (prev, opts, seats) => HS.MULTI.init(prev, opts, seats), tick: (st, t) => HS.MULTI.tick(st, t) } };

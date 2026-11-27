@@ -282,3 +282,22 @@ html.in-game .df-bar:has(+ .g-one) { max-width: 760px; margin-inline: auto; widt
 .fg-c.dim { opacity: .45; }
 .fg-c:disabled { cursor: default; }
 @media (max-width: 480px) { .fg-grid { gap: 5px; } .fg-c { padding: 2px; } }
+/* 기억 포커 */
+.mp-shared { display: grid; justify-items: center; gap: 4px; min-height: 76px; margin-bottom: 8px; }
+.mp-shared small { font-size: 12px; color: var(--chalk-dim); letter-spacing: .08em; }
+.mp-shared > div { display: flex; gap: 6px; }
+.mp-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: min(100%, 420px); margin: 0 auto; }
+.mp-slot { position: relative; padding: 0; background: none; border: 0; display: grid; }
+.mp-slot:disabled { cursor: default; opacity: 1; }
+.mp-card { aspect-ratio: 5 / 7; border-radius: 7px; background: #fbf8ef; color: #1b1f1e; display: grid; place-content: center; justify-items: center; line-height: 1; border: 2px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,.35); width: 100%; }
+.mp-card b { font-family: var(--f-display); font-weight: 400; font-size: clamp(18px, 5.4vw, 26px); }
+.mp-card i { font-style: normal; font-size: clamp(14px, 4vw, 20px); }
+.mp-card.red { color: #c62828; }
+.mp-card.back { background: repeating-linear-gradient(45deg, #2a2350 0 6px, #211c42 6px 12px); border-color: rgba(184,166,242,.35); }
+.mp-card.sh { width: 52px; }
+.mp-slot .lt { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: var(--f-display); font-size: 22px; color: rgba(241,238,228,.85); pointer-events: none; }
+.mp-slot .mp-card:not(.back) + .lt { top: auto; bottom: 2px; left: 5px; transform: none; font-size: 11px; color: rgba(0,0,0,.45); font-family: var(--f-mono); }
+.mp-slot.pk .mp-card { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(243,182,65,.45); }
+.mp-slot .oth { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--blue); color: #06222e; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.mp-act { display: grid; justify-items: center; margin-top: 10px; min-height: 44px; }
+.mp-act button { min-width: 220px; padding: 12px 18px; }
